@@ -10,11 +10,21 @@ import { useMutation } from "@tanstack/react-query";
 import { apiPost } from "@/lib/api";
 import { useNavigate } from "react-router-dom";
 
+type SignInResponse = {
+  token: string;
+  user: {
+    id: number;
+    email: string;
+    role: "admin" | "user" | "owner";
+    isApproved?: boolean;
+  };
+};
+
 const SignIn = () => {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const navigate = useNavigate()
-  const mutation = useMutation({ mutationFn: () => apiPost<{ token: string; user: { id: number; email: string; role: "admin" | "user" | "owner" } }>("/api/auth/signin", { email, password }) ,
+  const mutation = useMutation({ mutationFn: () => apiPost<SignInResponse, { email: string; password: string }>("/api/auth/signin", { email, password }) ,
     onSuccess: (data) => {
       localStorage.setItem("auth", JSON.stringify(data))
       const role = data.user.role
@@ -61,7 +71,7 @@ const SignIn = () => {
               </div>
 
               <Button className="w-full" disabled={mutation.isPending}>{mutation.isPending ? "Signing in..." : "Sign In"}</Button>
-              {mutation.isError && <div className="text-red-600 text-sm">Sign in failed</div>}
+              {mutation.isError && <div className="text-red-600 text-sm">{(mutation.error as Error | undefined)?.message?.includes("403") ? "Owner account pending admin approval" : "Sign in failed"}</div>}
               {mutation.isSuccess && <div className="text-green-600 text-sm">Signed in</div>}
 
               <div className="relative my-6">

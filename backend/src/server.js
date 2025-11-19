@@ -72,7 +72,8 @@ app.post('/api/auth/signin', (req, res) => {
   const db = read()
   const user = db.users.find(u => u.email === email)
   if (!user || user.password !== password) return res.status(401).json({ error: 'Invalid credentials' })
-  res.json({ token: 'mock-token', user: { id: user.id, email: user.email, role: user.role } })
+  if (user.role === 'owner' && user.isApproved === false) return res.status(403).json({ error: 'Owner not approved' })
+  res.json({ token: 'mock-token', user: { id: user.id, email: user.email, role: user.role, isApproved: user.isApproved !== false } })
 })
 
 app.post('/api/auth/register', (req, res) => {
@@ -83,7 +84,8 @@ app.post('/api/auth/register', (req, res) => {
   const id = nextId(db.users)
   const allowed = ['admin', 'user', 'owner']
   const userRole = allowed.includes(role) ? role : 'user'
-  db.users.push({ id, email, password, firstName, lastName, phone, role: userRole, createdAt: new Date().toISOString() })
+  const isApproved = userRole === 'owner' ? false : true
+  db.users.push({ id, email, password, firstName, lastName, phone, role: userRole, isApproved, createdAt: new Date().toISOString() })
   write(db)
   res.json({ status: 'created', user: { id, email, role: userRole } })
 })
@@ -95,7 +97,7 @@ app.get('/api/seed/admin', (req, res) => {
   const exists = db.users.find(u => u.email === email)
   if (exists) return res.json({ status: 'exists', user: { id: exists.id, email: exists.email, role: exists.role } })
   const id = nextId(db.users)
-  const user = { id, email, password, role: 'admin', firstName: 'Admin', lastName: 'User', createdAt: new Date().toISOString() }
+  const user = { id, email, password, role: 'admin', isApproved: true, firstName: 'Admin', lastName: 'User', createdAt: new Date().toISOString() }
   db.users.push(user)
   write(db)
   res.json({ status: 'seeded', user: { id, email, role: 'admin' } })
