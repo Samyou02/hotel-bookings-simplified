@@ -72,18 +72,33 @@ app.post('/api/auth/signin', (req, res) => {
   const db = read()
   const user = db.users.find(u => u.email === email)
   if (!user || user.password !== password) return res.status(401).json({ error: 'Invalid credentials' })
-  res.json({ token: 'mock-token', user: { email } })
+  res.json({ token: 'mock-token', user: { id: user.id, email: user.email, role: user.role } })
 })
 
 app.post('/api/auth/register', (req, res) => {
-  const { email, password, firstName, lastName, phone } = req.body || {}
+  const { email, password, firstName, lastName, phone, role } = req.body || {}
   if (!email || !password) return res.status(400).json({ error: 'Missing fields' })
   const db = read()
   if (db.users.find(u => u.email === email)) return res.status(409).json({ error: 'Email exists' })
   const id = nextId(db.users)
-  db.users.push({ id, email, password, firstName, lastName, phone, createdAt: new Date().toISOString() })
+  const allowed = ['admin', 'user', 'owner']
+  const userRole = allowed.includes(role) ? role : 'user'
+  db.users.push({ id, email, password, firstName, lastName, phone, role: userRole, createdAt: new Date().toISOString() })
   write(db)
-  res.json({ status: 'created', user: { id, email } })
+  res.json({ status: 'created', user: { id, email, role: userRole } })
+})
+
+app.get('/api/seed/admin', (req, res) => {
+  const db = read()
+  const email = process.env.ADMIN_EMAIL || 'admin@staybook.com'
+  const password = process.env.ADMIN_PASSWORD || 'admin123'
+  const exists = db.users.find(u => u.email === email)
+  if (exists) return res.json({ status: 'exists', user: { id: exists.id, email: exists.email, role: exists.role } })
+  const id = nextId(db.users)
+  const user = { id, email, password, role: 'admin', firstName: 'Admin', lastName: 'User', createdAt: new Date().toISOString() }
+  db.users.push(user)
+  write(db)
+  res.json({ status: 'seeded', user: { id, email, role: 'admin' } })
 })
 
 app.post('/api/bookings', (req, res) => {
