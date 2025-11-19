@@ -1,53 +1,11 @@
 import HotelCard from "./HotelCard";
-import hotel1 from "@/assets/hotel-1.jpg";
-import hotel2 from "@/assets/hotel-2.jpg";
-import hotel3 from "@/assets/hotel-3.jpg";
-import hotel4 from "@/assets/hotel-4.jpg";
-
-const hotels = [
-  {
-    id: 1,
-    name: "Grand Luxury Hotel",
-    location: "New York, USA",
-    rating: 4.8,
-    reviews: 328,
-    price: 299,
-    image: hotel1,
-    amenities: ["WiFi", "Breakfast", "Parking"]
-  },
-  {
-    id: 2,
-    name: "Tropical Paradise Resort",
-    location: "Bali, Indonesia",
-    rating: 4.9,
-    reviews: 512,
-    price: 189,
-    image: hotel2,
-    amenities: ["WiFi", "Breakfast", "Parking"]
-  },
-  {
-    id: 3,
-    name: "Mediterranean Villa",
-    location: "Santorini, Greece",
-    rating: 4.7,
-    reviews: 256,
-    price: 349,
-    image: hotel3,
-    amenities: ["WiFi", "Breakfast"]
-  },
-  {
-    id: 4,
-    name: "Alpine Mountain Lodge",
-    location: "Swiss Alps, Switzerland",
-    rating: 4.9,
-    reviews: 425,
-    price: 279,
-    image: hotel4,
-    amenities: ["WiFi", "Parking"]
-  }
-];
+import { useQuery } from "@tanstack/react-query";
+import { apiGet } from "@/lib/api";
 
 const FeaturedHotels = () => {
+  type Hotel = { id: number; name: string; location: string; rating: number; reviews: number; price: number; image: string; amenities?: string[] }
+  const { data, isLoading, isError } = useQuery({ queryKey: ["featured"], queryFn: () => apiGet<{ hotels: Hotel[] }>("/api/featured") })
+  const hotels: Hotel[] = data?.hotels || []
   return (
     <section className="py-16 bg-background">
       <div className="container">
@@ -59,7 +17,9 @@ const FeaturedHotels = () => {
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {hotels.map((hotel) => (
+          {isLoading && <div className="col-span-4 text-center">Loading...</div>}
+          {isError && <div className="col-span-4 text-center">Failed to load</div>}
+          {!isLoading && !isError && hotels.map((hotel) => (
             <HotelCard key={hotel.id} {...hotel} />
           ))}
         </div>

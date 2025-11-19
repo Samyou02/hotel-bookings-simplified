@@ -4,6 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Mail, Phone, MapPin, Clock } from "lucide-react";
+import { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { apiPost } from "@/lib/api";
 
 const Contact = () => {
   const contactInfo = [
@@ -29,6 +32,8 @@ const Contact = () => {
     },
   ];
 
+  const [form, setForm] = useState({ firstName: "", lastName: "", email: "", subject: "", message: "" })
+  const mutation = useMutation({ mutationFn: () => apiPost("/api/contact", form) })
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
@@ -50,26 +55,26 @@ const Contact = () => {
               {/* Contact Form */}
               <div>
                 <h2 className="text-2xl font-bold mb-6">Send us a Message</h2>
-                <form className="space-y-4">
+                <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); mutation.mutate(); }}>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="text-sm font-medium mb-2 block">First Name</label>
-                      <Input placeholder="John" />
+                      <Input placeholder="John" value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })} />
                     </div>
                     <div>
                       <label className="text-sm font-medium mb-2 block">Last Name</label>
-                      <Input placeholder="Doe" />
+                      <Input placeholder="Doe" value={form.lastName} onChange={(e) => setForm({ ...form, lastName: e.target.value })} />
                     </div>
                   </div>
                   
                   <div>
                     <label className="text-sm font-medium mb-2 block">Email</label>
-                    <Input type="email" placeholder="john@example.com" />
+                    <Input type="email" placeholder="john@example.com" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
                   </div>
                   
                   <div>
                     <label className="text-sm font-medium mb-2 block">Subject</label>
-                    <Input placeholder="How can we help?" />
+                    <Input placeholder="How can we help?" value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} />
                   </div>
                   
                   <div>
@@ -77,10 +82,14 @@ const Contact = () => {
                     <Textarea 
                       placeholder="Tell us more about your inquiry..." 
                       rows={6}
+                      value={form.message}
+                      onChange={(e) => setForm({ ...form, message: e.target.value })}
                     />
                   </div>
                   
-                  <Button className="w-full">Send Message</Button>
+                  <Button className="w-full" disabled={mutation.isPending}>{mutation.isPending ? "Sending..." : "Send Message"}</Button>
+                  {mutation.isError && <div className="text-red-600 text-sm">Failed to send</div>}
+                  {mutation.isSuccess && <div className="text-green-600 text-sm">Message sent</div>}
                 </form>
               </div>
 

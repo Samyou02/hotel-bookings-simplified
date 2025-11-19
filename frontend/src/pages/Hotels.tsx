@@ -6,46 +6,20 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Search } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { apiGet } from "@/lib/api";
+import { useState } from "react";
 
 const Hotels = () => {
-  const hotels = [
-    {
-      id: 1,
-      name: "Luxury Beach Resort",
-      location: "Miami, Florida",
-      rating: 4.8,
-      reviews: 342,
-      price: 250,
-      image: "/src/assets/hotel-1.jpg",
-    },
-    {
-      id: 2,
-      name: "Mountain View Hotel",
-      location: "Aspen, Colorado",
-      rating: 4.6,
-      reviews: 215,
-      price: 180,
-      image: "/src/assets/hotel-2.jpg",
-    },
-    {
-      id: 3,
-      name: "City Center Plaza",
-      location: "New York, NY",
-      rating: 4.7,
-      reviews: 489,
-      price: 320,
-      image: "/src/assets/hotel-3.jpg",
-    },
-    {
-      id: 4,
-      name: "Seaside Villa",
-      location: "Malibu, California",
-      rating: 4.9,
-      reviews: 567,
-      price: 450,
-      image: "/src/assets/hotel-4.jpg",
-    },
-  ];
+  type Hotel = { id: number; name: string; location: string; rating: number; reviews: number; price: number; image: string; amenities?: string[]; description?: string }
+  const [q, setQ] = useState("")
+  const [price, setPrice] = useState<[number, number]>([50, 500])
+  const [minRating, setMinRating] = useState<number | null>(null)
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ["hotels", q, price, minRating],
+    queryFn: () => apiGet<{ hotels: Hotel[] }>(`/api/hotels?q=${encodeURIComponent(q)}&minPrice=${price[0]}&maxPrice=${price[1]}&minRating=${minRating ?? ''}`)
+  })
+  const hotels: Hotel[] = data?.hotels || []
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -65,7 +39,7 @@ const Hotels = () => {
                   <label className="text-sm font-medium mb-2 block">Search</label>
                   <div className="relative">
                     <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input placeholder="Hotel name..." className="pl-9" />
+                    <Input placeholder="Hotel name..." className="pl-9" value={q} onChange={(e) => setQ(e.target.value)} />
                   </div>
                 </div>
 
@@ -74,7 +48,7 @@ const Hotels = () => {
                   <label className="text-sm font-medium mb-3 block">
                     Price Range: $50 - $500
                   </label>
-                  <Slider defaultValue={[50, 500]} max={1000} step={10} />
+                  <Slider defaultValue={[50, 500]} max={1000} step={10} onValueChange={(v) => setPrice([v[0], v[1]])} />
                 </div>
 
                 {/* Rating */}
@@ -83,7 +57,7 @@ const Hotels = () => {
                   <div className="space-y-2">
                     {[5, 4, 3].map((rating) => (
                       <div key={rating} className="flex items-center space-x-2">
-                        <Checkbox id={`rating-${rating}`} />
+                        <Checkbox id={`rating-${rating}`} checked={minRating === rating} onCheckedChange={(checked) => setMinRating(checked ? rating : null)} />
                         <label
                           htmlFor={`rating-${rating}`}
                           className="text-sm cursor-pointer"
@@ -127,7 +101,7 @@ const Hotels = () => {
                   </div>
                 </div>
 
-                <Button className="w-full">Apply Filters</Button>
+                <Button className="w-full" onClick={() => { /* queryKey updates trigger refetch automatically */ }}>Apply Filters</Button>
               </div>
             </div>
           </aside>
@@ -135,7 +109,7 @@ const Hotels = () => {
           {/* Hotels Grid */}
           <div className="lg:col-span-3">
             <div className="flex justify-between items-center mb-6">
-              <p className="text-muted-foreground">{hotels.length} properties found</p>
+              <p className="text-muted-foreground">{isLoading ? "Loading..." : isError ? "Failed to load" : `${hotels.length} properties found`}</p>
               <select className="border rounded-lg px-4 py-2 bg-background">
                 <option>Price: Low to High</option>
                 <option>Price: High to Low</option>

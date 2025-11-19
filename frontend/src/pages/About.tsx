@@ -1,14 +1,13 @@
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Hotel, Users, Award, Globe } from "lucide-react";
+import type { ComponentType } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { apiGet } from "@/lib/api";
 
 const About = () => {
-  const stats = [
-    { icon: Hotel, label: "Hotels", value: "50,000+" },
-    { icon: Users, label: "Happy Customers", value: "1M+" },
-    { icon: Award, label: "Awards Won", value: "25+" },
-    { icon: Globe, label: "Countries", value: "180+" },
-  ];
+  const { data, isLoading, isError } = useQuery({ queryKey: ["about"], queryFn: () => apiGet<{ stats: { label: string; value: string }[] }>("/api/about") })
+  const stats = data?.stats || []
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -28,13 +27,24 @@ const About = () => {
         <section className="py-16 bg-secondary">
           <div className="container">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-              {stats.map((stat) => (
-                <div key={stat.label} className="text-center">
-                  <stat.icon className="h-12 w-12 mx-auto mb-4 text-primary" />
-                  <div className="text-3xl font-bold mb-2">{stat.value}</div>
-                  <div className="text-muted-foreground">{stat.label}</div>
-                </div>
-              ))}
+              {isLoading && <div className="col-span-4 text-center">Loading...</div>}
+              {isError && <div className="col-span-4 text-center">Failed to load</div>}
+              {!isLoading && !isError && stats.map((stat) => {
+                const iconMap: Record<string, ComponentType<{ className?: string }>> = {
+                  Hotels: Hotel,
+                  "Happy Customers": Users,
+                  "Awards Won": Award,
+                  Countries: Globe,
+                }
+                const Icon = iconMap[stat.label] || Hotel
+                return (
+                  <div key={stat.label} className="text-center">
+                    <Icon className="h-12 w-12 mx-auto mb-4 text-primary" />
+                    <div className="text-3xl font-bold mb-2">{stat.value}</div>
+                    <div className="text-muted-foreground">{stat.label}</div>
+                  </div>
+                )
+              })}
             </div>
           </div>
         </section>

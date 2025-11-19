@@ -5,8 +5,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Hotel } from "lucide-react";
+import { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { apiPost } from "@/lib/api";
 
 const Register = () => {
+  const [firstName, setFirstName] = useState("")
+  const [lastName, setLastName] = useState("")
+  const [email, setEmail] = useState("")
+  const [phone, setPhone] = useState("")
+  const [password, setPassword] = useState("")
+  const [confirm, setConfirm] = useState("")
+  const mutation = useMutation({ mutationFn: () => apiPost("/api/auth/register", { firstName, lastName, email, phone, password }) })
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
@@ -21,36 +31,36 @@ const Register = () => {
           </div>
 
           <div className="bg-card rounded-lg shadow-card p-8">
-            <form className="space-y-4">
+            <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); mutation.mutate(); }}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium mb-2 block">First Name</label>
-                  <Input placeholder="John" />
+                  <Input placeholder="John" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
                 </div>
                 <div>
                   <label className="text-sm font-medium mb-2 block">Last Name</label>
-                  <Input placeholder="Doe" />
+                  <Input placeholder="Doe" value={lastName} onChange={(e) => setLastName(e.target.value)} />
                 </div>
               </div>
 
               <div>
                 <label className="text-sm font-medium mb-2 block">Email</label>
-                <Input type="email" placeholder="your@email.com" />
+                <Input type="email" placeholder="your@email.com" value={email} onChange={(e) => setEmail(e.target.value)} />
               </div>
 
               <div>
                 <label className="text-sm font-medium mb-2 block">Phone Number</label>
-                <Input type="tel" placeholder="+1 (555) 000-0000" />
+                <Input type="tel" placeholder="+1 (555) 000-0000" value={phone} onChange={(e) => setPhone(e.target.value)} />
               </div>
 
               <div>
                 <label className="text-sm font-medium mb-2 block">Password</label>
-                <Input type="password" placeholder="Create a strong password" />
+                <Input type="password" placeholder="Create a strong password" value={password} onChange={(e) => setPassword(e.target.value)} />
               </div>
 
               <div>
                 <label className="text-sm font-medium mb-2 block">Confirm Password</label>
-                <Input type="password" placeholder="Confirm your password" />
+                <Input type="password" placeholder="Confirm your password" value={confirm} onChange={(e) => setConfirm(e.target.value)} />
               </div>
 
               <div className="flex items-center space-x-2">
@@ -63,7 +73,9 @@ const Register = () => {
                 </label>
               </div>
 
-              <Button className="w-full">Create Account</Button>
+              <Button className="w-full" disabled={mutation.isPending}>{mutation.isPending ? "Creating..." : "Create Account"}</Button>
+              {mutation.isError && <div className="text-red-600 text-sm">Registration failed</div>}
+              {mutation.isSuccess && <div className="text-green-600 text-sm">Account created</div>}
 
               <div className="relative my-6">
                 <div className="absolute inset-0 flex items-center">

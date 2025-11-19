@@ -5,8 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Hotel } from "lucide-react";
+import { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { apiPost } from "@/lib/api";
 
 const SignIn = () => {
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const mutation = useMutation({ mutationFn: () => apiPost("/api/auth/signin", { email, password }) })
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
@@ -21,15 +27,15 @@ const SignIn = () => {
           </div>
 
           <div className="bg-card rounded-lg shadow-card p-8">
-            <form className="space-y-4">
+            <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); mutation.mutate(); }}>
               <div>
                 <label className="text-sm font-medium mb-2 block">Email</label>
-                <Input type="email" placeholder="your@email.com" />
+                <Input type="email" placeholder="your@email.com" value={email} onChange={(e) => setEmail(e.target.value)} />
               </div>
 
               <div>
                 <label className="text-sm font-medium mb-2 block">Password</label>
-                <Input type="password" placeholder="Enter your password" />
+                <Input type="password" placeholder="Enter your password" value={password} onChange={(e) => setPassword(e.target.value)} />
               </div>
 
               <div className="flex items-center justify-between">
@@ -44,7 +50,9 @@ const SignIn = () => {
                 </Link>
               </div>
 
-              <Button className="w-full">Sign In</Button>
+              <Button className="w-full" disabled={mutation.isPending}>{mutation.isPending ? "Signing in..." : "Sign In"}</Button>
+              {mutation.isError && <div className="text-red-600 text-sm">Sign in failed</div>}
+              {mutation.isSuccess && <div className="text-green-600 text-sm">Signed in</div>}
 
               <div className="relative my-6">
                 <div className="absolute inset-0 flex items-center">
