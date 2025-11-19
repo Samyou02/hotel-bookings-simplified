@@ -1,22 +1,83 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Hotel } from "lucide-react";
-import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
-import { apiPost } from "@/lib/api";
+import { useState, useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 const Register = () => {
-  const [firstName, setFirstName] = useState("")
-  const [lastName, setLastName] = useState("")
-  const [email, setEmail] = useState("")
-  const [phone, setPhone] = useState("")
-  const [password, setPassword] = useState("")
-  const [confirm, setConfirm] = useState("")
-  const mutation = useMutation({ mutationFn: () => apiPost("/api/auth/register", { firstName, lastName, email, phone, password }) })
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [userType, setUserType] = useState<'user' | 'hotel_owner'>('user');
+  const [isLoading, setIsLoading] = useState(false);
+  const { signUp, user } = useAuth();
+  const { toast } = useToast();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // Redirect if already logged in
+    if (user) {
+      navigate('/');
+    }
+  }, [user, navigate]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!fullName || !email || !password) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Please fill in all required fields",
+      });
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Passwords do not match",
+      });
+      return;
+    }
+
+    if (password.length < 6) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Password must be at least 6 characters long",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    const { error } = await signUp(email, password, fullName, phone, userType);
+    setIsLoading(false);
+
+    if (error) {
+      toast({
+        variant: "destructive",
+        title: "Registration failed",
+        description: error.message || "Failed to create account",
+      });
+    } else {
+      toast({
+        title: "Success",
+        description: "Account created successfully! Please sign in.",
+      });
+      navigate('/signin');
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
@@ -26,95 +87,90 @@ const Register = () => {
             <Hotel className="h-12 w-12 text-primary mx-auto mb-4" />
             <h1 className="text-3xl font-bold mb-2">Create Account</h1>
             <p className="text-muted-foreground">
-              Join StayBook and start your journey
+              Join us and start your journey
             </p>
           </div>
 
           <div className="bg-card rounded-lg shadow-card p-8">
-            <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); mutation.mutate(); }}>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium mb-2 block">First Name</label>
-                  <Input placeholder="John" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
-                </div>
-                <div>
-                  <label className="text-sm font-medium mb-2 block">Last Name</label>
-                  <Input placeholder="Doe" value={lastName} onChange={(e) => setLastName(e.target.value)} />
-                </div>
+            <form className="space-y-4" onSubmit={handleSubmit}>
+              <div>
+                <label className="text-sm font-medium mb-2 block">Account Type</label>
+                <RadioGroup value={userType} onValueChange={(value: string) => setUserType(value as 'user' | 'hotel_owner')}>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="user" id="user" />
+                    <Label htmlFor="user" className="cursor-pointer">Guest - Book hotels</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="hotel_owner" id="hotel_owner" />
+                    <Label htmlFor="hotel_owner" className="cursor-pointer">Hotel Owner - List your property</Label>
+                  </div>
+                </RadioGroup>
               </div>
 
               <div>
-                <label className="text-sm font-medium mb-2 block">Email</label>
-                <Input type="email" placeholder="your@email.com" value={email} onChange={(e) => setEmail(e.target.value)} />
+                <label className="text-sm font-medium mb-2 block">Full Name *</label>
+                <Input 
+                  placeholder="John Doe" 
+                  value={fullName} 
+                  onChange={(e) => setFullName(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium mb-2 block">Email *</label>
+                <Input 
+                  type="email" 
+                  placeholder="your@email.com" 
+                  value={email} 
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
               </div>
 
               <div>
                 <label className="text-sm font-medium mb-2 block">Phone Number</label>
-                <Input type="tel" placeholder="+1 (555) 000-0000" value={phone} onChange={(e) => setPhone(e.target.value)} />
+                <Input 
+                  type="tel" 
+                  placeholder="+1 (555) 000-0000" 
+                  value={phone} 
+                  onChange={(e) => setPhone(e.target.value)}
+                />
               </div>
 
               <div>
-                <label className="text-sm font-medium mb-2 block">Password</label>
-                <Input type="password" placeholder="Create a strong password" value={password} onChange={(e) => setPassword(e.target.value)} />
+                <label className="text-sm font-medium mb-2 block">Password *</label>
+                <Input 
+                  type="password" 
+                  placeholder="At least 6 characters" 
+                  value={password} 
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
               </div>
 
               <div>
-                <label className="text-sm font-medium mb-2 block">Confirm Password</label>
-                <Input type="password" placeholder="Confirm your password" value={confirm} onChange={(e) => setConfirm(e.target.value)} />
+                <label className="text-sm font-medium mb-2 block">Confirm Password *</label>
+                <Input 
+                  type="password" 
+                  placeholder="Confirm your password" 
+                  value={confirmPassword} 
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                />
               </div>
 
-              <div className="flex items-center space-x-2">
-                <Checkbox id="terms" />
-                <label htmlFor="terms" className="text-sm cursor-pointer">
-                  I agree to the{" "}
-                  <Link to="/terms" className="text-primary hover:underline">
-                    Terms & Conditions
-                  </Link>
-                </label>
-              </div>
-
-              <Button className="w-full" disabled={mutation.isPending}>{mutation.isPending ? "Creating..." : "Create Account"}</Button>
-              {mutation.isError && <div className="text-red-600 text-sm">Registration failed</div>}
-              {mutation.isSuccess && <div className="text-green-600 text-sm">Account created</div>}
-
-              <div className="relative my-6">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t"></div>
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-card text-muted-foreground">Or continue with</span>
-                </div>
-              </div>
-
-              <Button variant="outline" className="w-full">
-                <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24">
-                  <path
-                    fill="currentColor"
-                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                  />
-                  <path
-                    fill="currentColor"
-                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                  />
-                  <path
-                    fill="currentColor"
-                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                  />
-                  <path
-                    fill="currentColor"
-                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                  />
-                </svg>
-                Sign up with Google
+              <Button className="w-full" type="submit" disabled={isLoading}>
+                {isLoading ? "Creating account..." : "Create Account"}
               </Button>
-            </form>
 
-            <p className="text-center text-sm text-muted-foreground mt-6">
-              Already have an account?{" "}
-              <Link to="/signin" className="text-primary font-medium hover:underline">
-                Sign in
-              </Link>
-            </p>
+              <div className="text-center text-sm">
+                <span className="text-muted-foreground">Already have an account? </span>
+                <Link to="/signin" className="text-primary hover:underline font-medium">
+                  Sign in
+                </Link>
+              </div>
+            </form>
           </div>
         </div>
       </main>
