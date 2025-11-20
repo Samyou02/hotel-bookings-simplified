@@ -107,11 +107,36 @@
       "firstName": "Admin",
       "lastName": "User",
       "createdAt": "2025-11-19T08:51:30.353Z"
+    },
+    {
+      "id": 4,
+      "email": "john@example.com",
+      "password": "123456",
+      "firstName": "John",
+      "lastName": "Doe",
+      "phone": "123",
+      "role": "user",
+      "isApproved": true,
+      "createdAt": "2025-11-19T09:20:59.065Z"
     }
   ],
   "contacts": [],
   "settings": {
     "taxRate": 10,
     "commissionRate": 15
-  }
+  },
+  "bookings": [
+    {
+      "id": 1,
+      "userId": 4,
+      "hotelId": 1,
+      "checkIn": "2025-11-21",
+      "checkOut": "2025-11-23",
+      "guests": 2,
+      "total": 600,
+      "status": "pending",
+      "refundIssued": false,
+      "createdAt": "2025-11-19T09:24:15.598Z"
+    }
+  ]
 }

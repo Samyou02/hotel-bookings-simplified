@@ -1,28 +1,18 @@
-import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiGet, apiPost } from "@/lib/api";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Hotel, Users, DollarSign, TrendingUp } from "lucide-react";
 
 const AdminDashboard = () => {
-  const { user, userRole, loading } = useAuth();
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    if (!loading && (!user || userRole !== 'admin')) {
-      navigate('/signin');
-    }
-  }, [user, userRole, loading, navigate]);
-
-  if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
-  }
-
-  if (!user || userRole !== 'admin') {
-    return null;
-  }
+  const qc = useQueryClient()
+  const stats = useQuery({ queryKey: ["admin","stats"], queryFn: () => apiGet<{ totalHotels: number; totalBookings: number; totalRevenue: number; monthlySales: Record<string, number>; cityGrowth: Record<string, number> }>("/api/admin/stats") })
+  const users = useQuery({ queryKey: ["admin","users"], queryFn: () => apiGet<{ users: { id:number; email:string; role:string; blocked?:boolean }[] }>("/api/admin/users") })
+  const hotels = useQuery({ queryKey: ["admin","hotels"], queryFn: () => apiGet<{ hotels: { id:number; name:string; status:string }[] }>("/api/admin/hotels") })
+  type AdminBooking = { id:number; userId:number; hotelId:number; checkIn:string; checkOut:string; guests:number; total:number; status:string; refundIssued?:boolean; createdAt?:string; hotel?: { id:number; name:string } | null }
+  const bookings = useQuery({ queryKey: ["admin","bookings"], queryFn: () => apiGet<{ bookings: AdminBooking[] }>("/api/admin/bookings") })
+  const setHotelStatus = useMutation({ mutationFn: (p: { id:number; status:"approved"|"rejected"|"suspended"|"pending" }) => apiPost("/api/admin/hotels/"+p.id+"/status", { status: p.status }), onSuccess: () => qc.invalidateQueries({ queryKey: ["admin","hotels"] }) })
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -40,7 +30,7 @@ const AdminDashboard = () => {
               <Hotel className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">0</div>
+              <div className="text-2xl font-bold">{stats.data?.totalHotels ?? 0}</div>
               <p className="text-xs text-muted-foreground">All registered hotels</p>
             </CardContent>
           </Card>
@@ -51,7 +41,7 @@ const AdminDashboard = () => {
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">0</div>
+              <div className="text-2xl font-bold">{stats.data?.totalBookings ?? 0}</div>
               <p className="text-xs text-muted-foreground">All time bookings</p>
             </CardContent>
           </Card>
@@ -62,7 +52,7 @@ const AdminDashboard = () => {
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">0</div>
+              <div className="text-2xl font-bold">{users.data?.users?.length ?? 0}</div>
               <p className="text-xs text-muted-foreground">Registered users</p>
             </CardContent>
           </Card>
@@ -73,7 +63,7 @@ const AdminDashboard = () => {
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">$0</div>
+              <div className="text-2xl font-bold">${stats.data?.totalRevenue ?? 0}</div>
               <p className="text-xs text-muted-foreground">All time revenue</p>
             </CardContent>
           </Card>

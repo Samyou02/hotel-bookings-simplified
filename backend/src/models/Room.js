@@ -1,0 +1,14 @@
+const { mongoose } = require('../config/db')
+
+const RoomSchema = new mongoose.Schema({
+  id: { type: Number, index: true },
+  hotelId: Number,
+  type: String,
+  price: Number,
+  amenities: [String],
+  photos: [String],
+  availability: { type: Boolean, default: true },
+  blocked: { type: Boolean, default: false }
+})
+
+module.exports = mongoose.model('Room', RoomSchema)

@@ -9,16 +9,20 @@ import { apiGet } from "@/lib/api";
 import { useMutation } from "@tanstack/react-query";
 import { apiPost } from "@/lib/api";
 import { useState } from "react";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 
 const HotelDetail = () => {
   type Hotel = { id: number; name: string; location: string; rating: number; reviews: number; price: number; image: string; amenities?: string[]; description?: string }
   const { id } = useParams();
   const { data, isLoading, isError } = useQuery({ queryKey: ["hotel", id], queryFn: () => apiGet<{ hotel: Hotel }>(`/api/hotels/${id}`), enabled: !!id })
   const hotel: Hotel | undefined = data?.hotel
+  const reviews = useQuery({ queryKey: ["hotel","reviews",id], queryFn: () => apiGet<{ reviews: { id:number; userId:number; hotelId:number; rating:number; comment:string; createdAt:string }[] }>(`/api/hotels/${id}/reviews`), enabled: !!id })
   const [checkIn, setCheckIn] = useState("")
   const [checkOut, setCheckOut] = useState("")
   const [guests, setGuests] = useState(1)
-  const reserve = useMutation({ mutationFn: () => apiPost<{ status: string; id: number }, { hotelId: number; checkIn: string; checkOut: string; guests: number; total: number }>("/api/bookings", { hotelId: Number(id), checkIn, checkOut, guests, total: (hotel?.price || 0) * 3 }) })
+  const raw = typeof window !== "undefined" ? localStorage.getItem("auth") : null
+  const auth = raw ? JSON.parse(raw) as { user?: { id?: number } } : null
+  const reserve = useMutation({ mutationFn: () => apiPost<{ status: string; id: number }, { userId:number; hotelId: number; checkIn: string; checkOut: string; guests: number; total: number }>("/api/bookings", { userId: auth?.user?.id || 0, hotelId: Number(id), checkIn, checkOut, guests, total: (hotel?.price || 0) * 3 }) })
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -85,29 +89,24 @@ const HotelDetail = () => {
               <div>
                 <h2 className="text-2xl font-bold mb-4">Guest Reviews</h2>
                 <div className="space-y-4">
-                  {[1, 2, 3].map((review) => (
-                    <div key={review} className="p-6 rounded-lg bg-card border">
+                  {(reviews.data?.reviews||[]).map(r => (
+                    <div key={r.id} className="p-6 rounded-lg bg-card border">
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center space-x-3">
-                          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                            <span className="font-bold text-primary">JD</span>
-                          </div>
                           <div>
-                            <p className="font-semibold">John Doe</p>
-                            <p className="text-sm text-muted-foreground">2 days ago</p>
+                            <p className="font-semibold">Guest #{r.userId}</p>
+                            <p className="text-sm text-muted-foreground">{new Date(r.createdAt).toLocaleDateString()}</p>
                           </div>
                         </div>
                         <div className="flex items-center space-x-1 text-accent">
                           <Star className="h-4 w-4 fill-current" />
-                          <span className="font-bold">5.0</span>
+                          <span className="font-bold">{r.rating.toFixed(1)}</span>
                         </div>
                       </div>
-                      <p className="text-muted-foreground">
-                        Excellent hotel with amazing service! The rooms were clean and spacious. 
-                        Would definitely recommend to anyone visiting New York.
-                      </p>
+                      <p className="text-muted-foreground">{r.comment}</p>
                     </div>
                   ))}
+                  {(!reviews.data?.reviews || reviews.data.reviews.length===0) && <div className="text-sm text-muted-foreground">No reviews yet</div>}
                 </div>
               </div>
             </div>
@@ -116,7 +115,7 @@ const HotelDetail = () => {
             <div className="lg:col-span-1">
               <div className="sticky top-24 p-6 rounded-2xl border bg-card shadow-card">
                 <div className="mb-6">
-                  <div className="text-3xl font-bold text-primary mb-1">$299</div>
+                  <div className="text-3xl font-bold text-primary mb-1">${hotel?.price ?? 0}</div>
                   <p className="text-muted-foreground">per night</p>
                 </div>
 
@@ -150,7 +149,7 @@ const HotelDetail = () => {
                   </div>
                 </div>
 
-                <Button className="w-full h-12 bg-accent hover:bg-accent/90 text-white mb-4" disabled={reserve.isPending} onClick={() => reserve.mutate()}>
+                <Button className="w-full h-12 bg-accent hover:bg-accent/90 text-white mb-4" disabled={reserve.isPending || !checkIn || !checkOut} onClick={() => reserve.mutate()}>
                   {reserve.isPending ? "Reserving..." : "Reserve Now"}
                 </Button>
                 {reserve.isError && <div className="text-red-600 text-sm">Reservation failed</div>}
@@ -158,8 +157,8 @@ const HotelDetail = () => {
 
                 <div className="space-y-2 pt-4 border-t">
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">$299 × 3 nights</span>
-                    <span className="font-medium">$897</span>
+                    <span className="text-muted-foreground">${hotel?.price ?? 0} × {checkIn && checkOut ? Math.max(1, Math.ceil((new Date(checkOut).getTime() - new Date(checkIn).getTime()) / (1000*60*60*24))) : 0} nights</span>
+                    <span className="font-medium">${(hotel?.price ?? 0) * (checkIn && checkOut ? Math.max(1, Math.ceil((new Date(checkOut).getTime() - new Date(checkIn).getTime()) / (1000*60*60*24))) : 0)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Service fee</span>

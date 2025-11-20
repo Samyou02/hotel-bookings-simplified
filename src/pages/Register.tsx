@@ -4,8 +4,9 @@ import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Hotel } from "lucide-react";
-import { useState, useEffect } from "react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { apiPost } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -18,16 +19,10 @@ const Register = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [userType, setUserType] = useState<'user' | 'hotel_owner'>('user');
   const [isLoading, setIsLoading] = useState(false);
-  const { signUp, user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    // Redirect if already logged in
-    if (user) {
-      navigate('/');
-    }
-  }, [user, navigate]);
+  const mutation = useMutation({ mutationFn: (body: { email:string; password:string; firstName:string; lastName:string; phone:string; role:string }) => apiPost("/api/auth/register", body), onSuccess: () => { toast({ title: "Success", description: "Account created successfully! Please sign in." }); navigate('/signin') } })
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,21 +55,15 @@ const Register = () => {
     }
 
     setIsLoading(true);
-    const { error } = await signUp(email, password, fullName, phone, userType);
-    setIsLoading(false);
-
-    if (error) {
-      toast({
-        variant: "destructive",
-        title: "Registration failed",
-        description: error.message || "Failed to create account",
-      });
-    } else {
-      toast({
-        title: "Success",
-        description: "Account created successfully! Please sign in.",
-      });
-      navigate('/signin');
+    try {
+      const names = fullName.trim().split(' ')
+      const firstName = names[0] || ''
+      const lastName = names.slice(1).join(' ') || ''
+      await mutation.mutateAsync({ email, password, firstName, lastName, phone, role: userType === 'hotel_owner' ? 'owner' : 'user' })
+    } catch (err) {
+      toast({ variant: "destructive", title: "Registration failed", description: (err as Error)?.message || "Failed to create account" })
+    } finally {
+      setIsLoading(false)
     }
   };
 
@@ -160,8 +149,8 @@ const Register = () => {
                 />
               </div>
 
-              <Button className="w-full" type="submit" disabled={isLoading}>
-                {isLoading ? "Creating account..." : "Create Account"}
+              <Button className="w-full" type="submit" disabled={isLoading || mutation.isPending}>
+                {isLoading || mutation.isPending ? "Creating account..." : "Create Account"}
               </Button>
 
               <div className="text-center text-sm">

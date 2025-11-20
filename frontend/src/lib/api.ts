@@ -1,4 +1,4 @@
-const base = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+const base = 'http://localhost:5000'
 
 export async function apiGet<T>(path: string): Promise<T> {
   const res = await fetch(`${base}${path}`)
@@ -13,5 +13,11 @@ export async function apiPost<T, B extends object>(path: string, body: B): Promi
     body: JSON.stringify(body)
   })
   if (!res.ok) throw new Error(`POST ${path} ${res.status}`)
+  return res.json()
+}
+
+export async function apiDelete<T = { status: string }>(path: string): Promise<T> {
+  const res = await fetch(`${base}${path}`, { method: 'DELETE' })
+  if (!res.ok) throw new Error(`DELETE ${path} ${res.status}`)
   return res.json()
 }
