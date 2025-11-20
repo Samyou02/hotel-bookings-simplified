@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Shield, BarChart3, Building2 } from "lucide-react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { apiGet, apiPost } from "@/lib/api"
+import AdminOverview from "@/components/admin/AdminOverview"
 
 type Stats = { totalHotels: number; totalBookings: number; totalRevenue: number; monthlySales: Record<string, number>; cityGrowth: Record<string, number> }
 type User = { id: number; email: string; role: "admin"|"user"|"owner"; isApproved?: boolean; blocked?: boolean }
@@ -58,75 +59,10 @@ const AdminDashboard = () => {
     <div className="min-h-screen flex flex-col">
       <Header />
       <main className="flex-1">
-        {!feature && hasDashboardData && (
-        <section className="bg-hero-gradient text-primary-foreground py-10">
-          <div className="container">
-            <div className="flex items-center gap-3 mb-2">
-              <Shield className="h-8 w-8" />
-              <h1 className="text-3xl md:text-4xl font-bold">Admin Dashboard</h1>
-            </div>
-            <p className="opacity-90">Super Admin controls for the platform</p>
-            <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <Card className="shadow-card hover:shadow-card-hover transition-all">
-                <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Total Hotels</CardTitle></CardHeader>
-                <CardContent><div className="text-3xl font-bold">{stats.data?.totalHotels ?? 0}</div></CardContent>
-              </Card>
-              <Card className="shadow-card hover:shadow-card-hover transition-all">
-                <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Total Bookings</CardTitle></CardHeader>
-                <CardContent><div className="text-3xl font-bold">{stats.data?.totalBookings ?? 0}</div></CardContent>
-              </Card>
-              <Card className="shadow-card hover:shadow-card-hover transition-all">
-                <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Total Revenue</CardTitle></CardHeader>
-                <CardContent><div className="text-3xl font-bold">${stats.data?.totalRevenue ?? 0}</div></CardContent>
-              </Card>
-              <Card className="shadow-card hover:shadow-card-hover transition-all">
-                <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Cities</CardTitle></CardHeader>
-                <CardContent><div className="text-3xl font-bold">{Object.keys(stats.data?.cityGrowth || {}).length}</div></CardContent>
-              </Card>
-            </div>
-          </div>
-        </section>
+        {!feature && (
+          <AdminOverview stats={stats.data} bookings={(bookings.data?.bookings || [])} />
         )}
         <div className="container py-8 space-y-8">
-
-        {!feature && hasDashboardData && (
-        <div className="grid gap-6 md:grid-cols-2">
-          <Card className="shadow-card hover:shadow-card-hover transition-all">
-            <CardHeader className="flex-row items-center justify-between">
-              <CardTitle>Monthly Sales</CardTitle>
-              <BarChart3 className="h-5 w-5 text-primary" />
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-end gap-2 h-40">
-                {Object.entries(stats.data?.monthlySales || {}).map(([m,v]) => (
-                  <div key={m} className="flex-1">
-                    <div className="bg-primary/80 rounded-md w-full" style={{ height: Math.max(8, Math.min(160, v/10)) }} />
-                    <div className="text-xs mt-1 text-muted-foreground">{m}</div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="shadow-card hover:shadow-card-hover transition-all">
-            <CardHeader className="flex-row items-center justify-between"><CardTitle>City-wise Growth</CardTitle><Building2 className="h-5 w-5 text-primary" /></CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {Object.entries(stats.data?.cityGrowth || {}).map(([c,v]) => (
-                  <div key={c} className="flex items-center gap-2">
-                    <div className="w-32 text-sm">{c}</div>
-                    <div className="flex-1 bg-secondary h-2 rounded">
-                      <div className="bg-primary h-2 rounded" style={{ width: `${Math.min(100, v*10)}%` }} />
-                    </div>
-                    <div className="text-xs w-8 text-right">{v}</div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-        )}
-
-        
 
         {feature === 'users' && (
         <Card className="shadow-card hover:shadow-card-hover transition-all">
