@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { Hotel, User, Menu, X, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 const Header = () => {
   const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
+  const { pathname } = useLocation();
 
   const navLinks = [
     { to: "/", label: "Home" },
@@ -14,6 +15,8 @@ const Header = () => {
     { to: "/about", label: "About" },
     { to: "/contact", label: "Contact" },
   ];
+
+  const hideNavLinks = pathname.startsWith("/dashboard/admin") || pathname.startsWith("/dashboard/owner")
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -23,17 +26,19 @@ const Header = () => {
           <span className="text-xl font-bold">StayBook</span>
         </Link>
 
-        <nav className="hidden md:flex items-center space-x-6">
-          {navLinks.map((link) => (
-            <Link
-              key={link.to}
-              to={link.to}
-              className="text-sm font-medium transition-colors hover:text-primary"
-            >
-              {link.label}
-            </Link>
-          ))}
-        </nav>
+        {!hideNavLinks && (
+          <nav className="hidden md:flex items-center space-x-6">
+            {navLinks.map((link) => (
+              <Link
+                key={link.to}
+                to={link.to}
+                className="text-sm font-medium transition-colors hover:text-primary"
+              >
+                {link.label}
+              </Link>
+            ))}
+          </nav>
+        )}
 
         <div className="flex items-center space-x-4">
           {(() => {
@@ -91,7 +96,7 @@ const Header = () => {
             </SheetTrigger>
             <SheetContent side="right" className="w-[300px] sm:w-[400px]">
               <nav className="flex flex-col space-y-4 mt-8">
-                {navLinks.map((link) => (
+                {!hideNavLinks && navLinks.map((link) => (
                   <Link
                     key={link.to}
                     to={link.to}

@@ -4,6 +4,7 @@ import Footer from "@/components/Footer"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Shield, BarChart3, Building2 } from "lucide-react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { apiGet, apiPost } from "@/lib/api"
 
@@ -16,6 +17,14 @@ type Settings = { taxRate: number; commissionRate: number }
 
 const AdminDashboard = () => {
   const qc = useQueryClient()
+  const abKey = "addedByDashboard"
+  type AddedStore = { hotels?: number[]; rooms?: number[]; reviews?: number[]; coupons?: number[]; wishlist?: number[]; bookings?: number[] }
+  const readAB = (): AddedStore => {
+    try { return JSON.parse(localStorage.getItem(abKey) || "{}") as AddedStore } catch { return {} }
+  }
+  const writeAB = (obj: AddedStore) => { try { localStorage.setItem(abKey, JSON.stringify(obj)); return true } catch (e) { return false } }
+  const addId = (type: keyof AddedStore, id: number) => { const cur = readAB(); const list = new Set(cur[type] || []); list.add(id); cur[type] = Array.from(list); writeAB(cur) }
+  const getSet = (type: keyof AddedStore) => new Set<number>((readAB()[type] || []) as number[])
 
   const stats = useQuery({ queryKey: ["admin","stats"], queryFn: () => apiGet<{ totalHotels: number; totalBookings: number; totalRevenue: number; monthlySales: Record<string, number>; cityGrowth: Record<string, number> }>("/api/admin/stats") })
   const users = useQuery({ queryKey: ["admin","users"], queryFn: () => apiGet<{ users: User[] }>("/api/admin/users") })
@@ -25,12 +34,16 @@ const AdminDashboard = () => {
   const settings = useQuery({ queryKey: ["admin","settings"], queryFn: () => apiGet<{ settings: Settings }>("/api/admin/settings") })
   const inbox = useQuery({ queryKey: ["admin","support"], queryFn: () => apiGet<{ inbox: { id:number; email:string; subject:string; message:string; createdAt:string }[] }>("/api/admin/support") })
 
+  const hasDashboardData = ((hotels.data?.hotels || []).filter(h => getSet("hotels").has(h.id)).length > 0)
+    || ((coupons.data?.coupons || []).filter(c => getSet("coupons").has(c.id)).length > 0)
+    || ((bookings.data?.bookings || []).filter(b => getSet("bookings").has(b.id)).length > 0)
+
   const blockUser = useMutation({ mutationFn: (p: { id:number; blocked:boolean }) => apiPost("/api/admin/users/"+p.id+"/block", { blocked: p.blocked }), onSuccess: () => qc.invalidateQueries({ queryKey: ["admin","users"] }) })
   const setHotelStatus = useMutation({ mutationFn: (p: { id:number; status:Hotel["status"] }) => apiPost("/api/admin/hotels/"+p.id+"/status", { status: p.status }), onSuccess: () => qc.invalidateQueries({ queryKey: ["admin","hotels"] }) })
   const setHotelFeatured = useMutation({ mutationFn: (p: { id:number; featured:boolean }) => apiPost("/api/admin/hotels/"+p.id+"/feature", { featured: p.featured }), onSuccess: () => qc.invalidateQueries({ queryKey: ["admin","hotels"] }) })
   const cancelBooking = useMutation({ mutationFn: (id:number) => apiPost("/api/admin/bookings/"+id+"/cancel", {}), onSuccess: () => qc.invalidateQueries({ queryKey: ["admin","bookings"] }) })
   const refundBooking = useMutation({ mutationFn: (id:number) => apiPost("/api/admin/bookings/"+id+"/refund", {}), onSuccess: () => qc.invalidateQueries({ queryKey: ["admin","bookings"] }) })
-  const createCoupon = useMutation({ mutationFn: (p: { code:string; discount:number; expiry:string; usageLimit:number; enabled:boolean }) => apiPost("/api/admin/coupons", p), onSuccess: () => { qc.invalidateQueries({ queryKey: ["admin","coupons"] }) } })
+  const createCoupon = useMutation({ mutationFn: (p: { code:string; discount:number; expiry:string; usageLimit:number; enabled:boolean }) => apiPost<{ id:number }, { code:string; discount:number; expiry:string; usageLimit:number; enabled:boolean }>("/api/admin/coupons", p), onSuccess: (res) => { if (res?.id) addId("coupons", res.id); qc.invalidateQueries({ queryKey: ["admin","coupons"] }) } })
   const setCouponStatus = useMutation({ mutationFn: (p: { id:number; enabled:boolean }) => apiPost("/api/admin/coupons/"+p.id+"/status", { enabled: p.enabled }), onSuccess: () => qc.invalidateQueries({ queryKey: ["admin","coupons"] }) })
   const updateSettings = useMutation({ mutationFn: (p: Partial<Settings>) => apiPost("/api/admin/settings", p), onSuccess: () => qc.invalidateQueries({ queryKey: ["admin","settings"] }) })
   const approveOwner = useMutation({ mutationFn: (id:number) => apiPost("/api/admin/owners/"+id+"/approve", {}), onSuccess: () => qc.invalidateQueries({ queryKey: ["admin","users"] }) })
@@ -42,35 +55,58 @@ const AdminDashboard = () => {
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
-      <main className="flex-1 container py-8 space-y-8">
-        <div>
-          <h1 className="text-4xl font-bold mb-2">Admin Dashboard</h1>
-          <p className="text-muted-foreground">Super Admin controls for the platform</p>
-        </div>
+      <main className="flex-1">
+        {hasDashboardData && (
+        <section className="bg-hero-gradient text-primary-foreground py-10">
+          <div className="container">
+            <div className="flex items-center gap-3 mb-2">
+              <Shield className="h-8 w-8" />
+              <h1 className="text-3xl md:text-4xl font-bold">Admin Dashboard</h1>
+            </div>
+            <p className="opacity-90">Super Admin controls for the platform</p>
+            <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <Card className="shadow-card hover:shadow-card-hover transition-all">
+                <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Total Hotels</CardTitle></CardHeader>
+                <CardContent><div className="text-3xl font-bold">{stats.data?.totalHotels ?? 0}</div></CardContent>
+              </Card>
+              <Card className="shadow-card hover:shadow-card-hover transition-all">
+                <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Total Bookings</CardTitle></CardHeader>
+                <CardContent><div className="text-3xl font-bold">{stats.data?.totalBookings ?? 0}</div></CardContent>
+              </Card>
+              <Card className="shadow-card hover:shadow-card-hover transition-all">
+                <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Total Revenue</CardTitle></CardHeader>
+                <CardContent><div className="text-3xl font-bold">${stats.data?.totalRevenue ?? 0}</div></CardContent>
+              </Card>
+              <Card className="shadow-card hover:shadow-card-hover transition-all">
+                <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Cities</CardTitle></CardHeader>
+                <CardContent><div className="text-3xl font-bold">{Object.keys(stats.data?.cityGrowth || {}).length}</div></CardContent>
+              </Card>
+            </div>
+          </div>
+        </section>
+        )}
+        <div className="container py-8 space-y-8">
 
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-          <Card><CardHeader><CardTitle>Total Hotels</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">{stats.data?.totalHotels ?? 0}</div></CardContent></Card>
-          <Card><CardHeader><CardTitle>Total Bookings</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">{stats.data?.totalBookings ?? 0}</div></CardContent></Card>
-          <Card><CardHeader><CardTitle>Total Revenue</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">${stats.data?.totalRevenue ?? 0}</div></CardContent></Card>
-          <Card><CardHeader><CardTitle>Cities</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">{Object.keys(stats.data?.cityGrowth || {}).length}</div></CardContent></Card>
-        </div>
-
+        {hasDashboardData && (
         <div className="grid gap-6 md:grid-cols-2">
-          <Card>
-            <CardHeader><CardTitle>Monthly Sales</CardTitle></CardHeader>
+          <Card className="shadow-card hover:shadow-card-hover transition-all">
+            <CardHeader className="flex-row items-center justify-between">
+              <CardTitle>Monthly Sales</CardTitle>
+              <BarChart3 className="h-5 w-5 text-primary" />
+            </CardHeader>
             <CardContent>
               <div className="flex items-end gap-2 h-40">
                 {Object.entries(stats.data?.monthlySales || {}).map(([m,v]) => (
                   <div key={m} className="flex-1">
-                    <div className="bg-primary/80 w-full" style={{ height: Math.max(8, Math.min(160, v/10)) }} />
+                    <div className="bg-primary/80 rounded-md w-full" style={{ height: Math.max(8, Math.min(160, v/10)) }} />
                     <div className="text-xs mt-1 text-muted-foreground">{m}</div>
                   </div>
                 ))}
               </div>
             </CardContent>
           </Card>
-          <Card>
-            <CardHeader><CardTitle>City-wise Growth</CardTitle></CardHeader>
+          <Card className="shadow-card hover:shadow-card-hover transition-all">
+            <CardHeader className="flex-row items-center justify-between"><CardTitle>City-wise Growth</CardTitle><Building2 className="h-5 w-5 text-primary" /></CardHeader>
             <CardContent>
               <div className="space-y-2">
                 {Object.entries(stats.data?.cityGrowth || {}).map(([c,v]) => (
@@ -86,21 +122,26 @@ const AdminDashboard = () => {
             </CardContent>
           </Card>
         </div>
+        )}
 
-        <Card>
+        
+
+        <Card className="shadow-card hover:shadow-card-hover transition-all">
           <CardHeader><CardTitle>User Management</CardTitle></CardHeader>
           <CardContent>
-            <div className="overflow-x-auto">
+            <div className="rounded-lg border overflow-hidden">
               <table className="w-full text-sm">
-                <thead><tr className="text-left"><th className="p-2">Email</th><th className="p-2">Role</th><th className="p-2">Approved</th><th className="p-2">Status</th><th className="p-2">Actions</th></tr></thead>
-                <tbody>
+                <thead className="bg-muted/50"><tr className="text-left"><th className="p-3">Email</th><th className="p-3">Role</th><th className="p-3">Approved</th><th className="p-3">Status</th><th className="p-3">Actions</th></tr></thead>
+                <tbody className="[&_tr:hover]:bg-muted/30">
                   {(users.data?.users || []).map(u => (
                     <tr key={u.id} className="border-t">
-                      <td className="p-2">{u.email}</td>
-                      <td className="p-2">{u.role}</td>
-                      <td className="p-2">{u.role === 'owner' ? (u.isApproved ? 'Approved' : 'Pending') : '—'}</td>
-                      <td className="p-2">{u.blocked ? 'Blocked' : 'Active'}</td>
-                      <td className="p-2 flex gap-2">
+                      <td className="p-3">{u.email}</td>
+                      <td className="p-3"><span className="inline-flex items-center px-2 py-1 rounded-full bg-secondary text-xs">{u.role}</span></td>
+                      <td className="p-3">{u.role === 'owner' ? (
+                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs ${u.isApproved ? 'bg-primary/15 text-primary' : 'bg-accent/15 text-foreground'}`}>{u.isApproved ? 'Approved' : 'Pending'}</span>
+                      ) : '—'}</td>
+                      <td className="p-3"><span className={`inline-flex items-center px-2 py-1 rounded-full text-xs ${u.blocked ? 'bg-destructive/15 text-destructive' : 'bg-primary/15 text-primary'}`}>{u.blocked ? 'Blocked' : 'Active'}</span></td>
+                      <td className="p-3 flex gap-2">
                         {u.role === 'owner' && !u.isApproved && <Button size="sm" onClick={() => approveOwner.mutate(u.id)}>Approve</Button>}
                         <Button variant={u.blocked ? 'outline' : 'destructive'} size="sm" onClick={() => blockUser.mutate({ id: u.id, blocked: !u.blocked })}>{u.blocked ? 'Unblock' : 'Block'}</Button>
                       </td>
@@ -112,20 +153,20 @@ const AdminDashboard = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="shadow-card hover:shadow-card-hover transition-all">
           <CardHeader><CardTitle>Hotel Management</CardTitle></CardHeader>
           <CardContent>
-            <div className="overflow-x-auto">
+            <div className="rounded-lg border overflow-hidden">
               <table className="w-full text-sm">
-                <thead><tr className="text-left"><th className="p-2">Name</th><th className="p-2">Location</th><th className="p-2">Status</th><th className="p-2">Featured</th><th className="p-2">Actions</th></tr></thead>
-                <tbody>
-                  {(hotels.data?.hotels || []).map(h => (
+                <thead className="bg-muted/50"><tr className="text-left"><th className="p-3">Name</th><th className="p-3">Location</th><th className="p-3">Status</th><th className="p-3">Featured</th><th className="p-3">Actions</th></tr></thead>
+                <tbody className="[&_tr:hover]:bg-muted/30">
+                  {(hotels.data?.hotels || []).filter(h => getSet("hotels").has(h.id)).map(h => (
                     <tr key={h.id} className="border-t">
-                      <td className="p-2">{h.name}</td>
-                      <td className="p-2">{h.location}</td>
-                      <td className="p-2">{h.status}</td>
-                      <td className="p-2">{h.featured ? 'Yes' : 'No'}</td>
-                      <td className="p-2 flex gap-2 flex-wrap">
+                      <td className="p-3">{h.name}</td>
+                      <td className="p-3">{h.location}</td>
+                      <td className="p-3"><span className={`inline-flex items-center px-2 py-1 rounded-full text-xs ${h.status === 'approved' ? 'bg-primary/15 text-primary' : h.status === 'rejected' ? 'bg-destructive/15 text-destructive' : h.status === 'suspended' ? 'bg-accent/15 text-foreground' : 'bg-muted text-foreground'}`}>{h.status}</span></td>
+                      <td className="p-3"><span className={`inline-flex items-center px-2 py-1 rounded-full text-xs ${h.featured ? 'bg-primary/15 text-primary' : 'bg-muted text-foreground'}`}>{h.featured ? 'Yes' : 'No'}</span></td>
+                      <td className="p-3 flex gap-2 flex-wrap">
                         <Button size="sm" variant="outline" onClick={() => setHotelStatus.mutate({ id: h.id, status: 'approved' })}>Approve</Button>
                         <Button size="sm" variant="outline" onClick={() => setHotelStatus.mutate({ id: h.id, status: 'rejected' })}>Reject</Button>
                         <Button size="sm" variant="outline" onClick={() => setHotelStatus.mutate({ id: h.id, status: 'suspended' })}>Suspend</Button>
@@ -139,21 +180,21 @@ const AdminDashboard = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="shadow-card hover:shadow-card-hover transition-all">
           <CardHeader><CardTitle>Booking Management</CardTitle></CardHeader>
           <CardContent>
-            <div className="overflow-x-auto">
+            <div className="rounded-lg border overflow-hidden">
               <table className="w-full text-sm">
-                <thead><tr className="text-left"><th className="p-2">Hotel</th><th className="p-2">Dates</th><th className="p-2">Guests</th><th className="p-2">Total</th><th className="p-2">Status</th><th className="p-2">Actions</th></tr></thead>
-                <tbody>
-                  {(bookings.data?.bookings || []).map(b => (
+                <thead className="bg-muted/50"><tr className="text-left"><th className="p-3">Hotel</th><th className="p-3">Dates</th><th className="p-3">Guests</th><th className="p-3">Total</th><th className="p-3">Status</th><th className="p-3">Actions</th></tr></thead>
+                <tbody className="[&_tr:hover]:bg-muted/30">
+                  {(bookings.data?.bookings || []).filter(b => getSet("bookings").has(b.id)).map(b => (
                     <tr key={b.id} className="border-t">
-                      <td className="p-2">{b.hotel?.name}</td>
-                      <td className="p-2">{b.checkIn} → {b.checkOut}</td>
-                      <td className="p-2">{b.guests}</td>
-                      <td className="p-2">${b.total}</td>
-                      <td className="p-2">{b.status}{b.refundIssued ? ' • Refunded' : ''}</td>
-                      <td className="p-2 flex gap-2">
+                      <td className="p-3">{b.hotel?.name}</td>
+                      <td className="p-3">{b.checkIn} → {b.checkOut}</td>
+                      <td className="p-3">{b.guests}</td>
+                      <td className="p-3">${b.total}</td>
+                      <td className="p-3"><span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-secondary">{b.status}{b.refundIssued ? ' • Refunded' : ''}</span></td>
+                      <td className="p-3 flex gap-2">
                         <Button size="sm" variant="outline" onClick={() => cancelBooking.mutate(b.id)}>Cancel</Button>
                         <Button size="sm" onClick={() => refundBooking.mutate(b.id)} disabled={b.refundIssued}>Issue Refund</Button>
                       </td>
@@ -166,7 +207,7 @@ const AdminDashboard = () => {
         </Card>
 
         <div className="grid gap-6 md:grid-cols-2">
-          <Card>
+          <Card className="shadow-card hover:shadow-card-hover transition-all">
             <CardHeader><CardTitle>Coupon Management</CardTitle></CardHeader>
             <CardContent className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
@@ -178,18 +219,18 @@ const AdminDashboard = () => {
               <div className="flex gap-2">
                 <Button onClick={() => createCoupon.mutate({ ...couponForm })} disabled={!couponForm.code || couponForm.discount<=0}>Create Coupon</Button>
               </div>
-              <div className="overflow-x-auto">
+              <div className="rounded-lg border overflow-hidden">
                 <table className="w-full text-sm">
-                  <thead><tr className="text-left"><th className="p-2">Code</th><th className="p-2">Discount</th><th className="p-2">Expiry</th><th className="p-2">Usage</th><th className="p-2">Status</th><th className="p-2">Actions</th></tr></thead>
-                  <tbody>
-                    {(coupons.data?.coupons || []).map(c => (
+                  <thead className="bg-muted/50"><tr className="text-left"><th className="p-3">Code</th><th className="p-3">Discount</th><th className="p-3">Expiry</th><th className="p-3">Usage</th><th className="p-3">Status</th><th className="p-3">Actions</th></tr></thead>
+                  <tbody className="[&_tr:hover]:bg-muted/30">
+                    {(coupons.data?.coupons || []).filter(c => getSet("coupons").has(c.id)).map(c => (
                       <tr key={c.id} className="border-t">
-                        <td className="p-2">{c.code}</td>
-                        <td className="p-2">{c.discount}%</td>
-                        <td className="p-2">{c.expiry ?? '—'}</td>
-                        <td className="p-2">{c.used}/{c.usageLimit}</td>
-                        <td className="p-2">{c.enabled ? 'Enabled' : 'Disabled'}</td>
-                        <td className="p-2"><Button size="sm" onClick={() => setCouponStatus.mutate({ id: c.id, enabled: !c.enabled })}>{c.enabled ? 'Disable' : 'Enable'}</Button></td>
+                        <td className="p-3">{c.code}</td>
+                        <td className="p-3">{c.discount}%</td>
+                        <td className="p-3">{c.expiry ?? '—'}</td>
+                        <td className="p-3">{c.used}/{c.usageLimit}</td>
+                        <td className="p-3"><span className={`inline-flex items-center px-2 py-1 rounded-full text-xs ${c.enabled ? 'bg-primary/15 text-primary' : 'bg-muted text-foreground'}`}>{c.enabled ? 'Enabled' : 'Disabled'}</span></td>
+                        <td className="p-3"><Button size="sm" onClick={() => setCouponStatus.mutate({ id: c.id, enabled: !c.enabled })}>{c.enabled ? 'Disable' : 'Enable'}</Button></td>
                       </tr>
                     ))}
                   </tbody>
@@ -198,7 +239,7 @@ const AdminDashboard = () => {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="shadow-card hover:shadow-card-hover transition-all">
             <CardHeader><CardTitle>System Settings</CardTitle></CardHeader>
             <CardContent className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
@@ -210,7 +251,7 @@ const AdminDashboard = () => {
                 <h3 className="text-lg font-semibold mb-2">Support Inbox</h3>
                 <div className="space-y-2">
                   {(inbox.data?.inbox || []).slice(0,5).map(i => (
-                    <div key={i.id} className="p-3 rounded border">
+                    <div key={i.id} className="p-3 rounded-lg border bg-card">
                       <div className="text-sm font-medium">{i.email} • {i.subject}</div>
                       <div className="text-sm text-muted-foreground">{i.message}</div>
                     </div>
@@ -220,6 +261,7 @@ const AdminDashboard = () => {
             </CardContent>
           </Card>
         </div>
+      </div>
       </main>
       <Footer />
     </div>
