@@ -49,8 +49,8 @@ const OwnerDashboard = () => {
 
   const submitHotel = useMutation({ mutationFn: (p: { name:string; location:string; price:number; amenities:string[] }) => apiPost<{ id:number }, { ownerId:number; name:string; location:string; price:number; amenities:string[] }>(`/api/owner/hotels/submit`, { ownerId, ...p }), onSuccess: (res) => { if (res?.id) addId("hotels", res.id); qc.invalidateQueries({ queryKey: ["owner","hotels",ownerId] }) } })
   const updateAmenities = useMutation({ mutationFn: (p: { id:number; amenities:string[] }) => apiPost(`/api/owner/hotels/${p.id}/amenities`, { amenities: p.amenities }), onSuccess: () => qc.invalidateQueries({ queryKey: ["owner","hotels",ownerId] }) })
-  const updateImages = useMutation({ mutationFn: (p: { id:number; images:string[] }) => apiPost(`/api/owner/hotels/${p.id}/images`, { images: p.images }), onSuccess: () => qc.invalidateQueries({ queryKey: ["owner","hotels",ownerId] }) })
-  const updateDocs = useMutation({ mutationFn: (p: { id:number; docs:string[] }) => apiPost(`/api/owner/hotels/${p.id}/docs`, { docs: p.docs }), onSuccess: () => qc.invalidateQueries({ queryKey: ["owner","hotels",ownerId] }) })
+  const updateImages = useMutation({ mutationFn: (p: { id:number; images:string[] }) => apiPost(`/api/owner/hotels/${p.id}/images`, { images: p.images }), onSuccess: (_res, vars) => { setImageUploaded(prev => ({ ...prev, [vars.id]: true })); qc.invalidateQueries({ queryKey: ["owner","hotels",ownerId] }) } })
+  const updateDocs = useMutation({ mutationFn: (p: { id:number; docs:string[] }) => apiPost(`/api/owner/hotels/${p.id}/docs`, { docs: p.docs }), onSuccess: (_res, vars) => { setDocUploaded(prev => ({ ...prev, [vars.id]: true })); qc.invalidateQueries({ queryKey: ["owner","hotels",ownerId] }) } })
   const createRoom = useMutation({ mutationFn: (p: { hotelId:number; type:string; price:number; amenities:string[]; photos:string[] }) => apiPost<{ id:number }, { ownerId:number; hotelId:number; type:string; price:number; amenities:string[]; photos:string[]; availability:boolean }>(`/api/owner/rooms`, { ownerId, ...p, availability: true }), onSuccess: (res) => { if (res?.id) addId("rooms", res.id); qc.invalidateQueries({ queryKey: ["owner","rooms",ownerId] }) } })
   const updateRoom = useMutation({ mutationFn: (p: { id:number; price?:number; availability?:boolean; amenities?:string[]; photos?:string[] }) => apiPost(`/api/owner/rooms/${p.id}`, p), onSuccess: () => qc.invalidateQueries({ queryKey: ["owner","rooms",ownerId] }) })
   const blockRoom = useMutation({ mutationFn: (p: { id:number; blocked:boolean }) => apiPost(`/api/owner/rooms/${p.id}/block`, { blocked: p.blocked }), onSuccess: () => qc.invalidateQueries({ queryKey: ["owner","rooms",ownerId] }) })
@@ -63,9 +63,13 @@ const OwnerDashboard = () => {
 
   const [hotelForm, setHotelForm] = React.useState({ name:"", location:"", price:0, amenities:"" })
   const [amenitiesEdit, setAmenitiesEdit] = React.useState<{ [id:number]: string }>({})
-  const [imageEdit, setImageEdit] = React.useState<{ [id:number]: string }>({})
-  const [docEdit, setDocEdit] = React.useState<{ [id:number]: string }>({})
-  const [roomForm, setRoomForm] = React.useState({ hotelId:0, type:"Standard", price:0, amenities:"", photos:"" })
+  const [imageFiles, setImageFiles] = React.useState<{ [id:number]: File[] }>({})
+  const [docFiles, setDocFiles] = React.useState<{ [id:number]: File[] }>({})
+  const [imageUploaded, setImageUploaded] = React.useState<{ [id:number]: boolean }>({})
+  const [docUploaded, setDocUploaded] = React.useState<{ [id:number]: boolean }>({})
+  const [roomForm, setRoomForm] = React.useState({ hotelId:0, type:"Standard", price:0, amenities:"" })
+  const [roomPhotoFiles, setRoomPhotoFiles] = React.useState<File[]>([])
+  const [uploadInfo, setUploadInfo] = React.useState<{ type: 'images' | 'documents' | 'photos' | null; names: string[] }>({ type: null, names: [] })
   const [pricingForm, setPricingForm] = React.useState<{ [id:number]: { weekendPercent:string; seasonalStart:string; seasonalEnd:string; seasonalPercent:string; specialDate:string; specialPrice:string } }>({})
   const [reviewReply, setReviewReply] = React.useState<{ [id:number]: string }>({})
 
@@ -124,16 +128,16 @@ const OwnerDashboard = () => {
                       </td>
                       <td className="p-2">
                         <div className="flex gap-2 flex-wrap">{h.images?.map(url=>(<span key={url} className="px-2 py-1 bg-secondary rounded text-xs">{url}</span>))}</div>
-                        <div className="flex gap-2 mt-2">
-                          <Input placeholder="image url(s) comma-separated" value={imageEdit[h.id]||""} onChange={e=>setImageEdit({...imageEdit,[h.id]:e.target.value})} />
-                          <Button onClick={()=>updateImages.mutate({ id:h.id, images:(imageEdit[h.id]||"").split(',').map(s=>s.trim()).filter(Boolean) })}>Upload</Button>
+                        <div className="flex gap-2 mt-2 items-center">
+                          <input type="file" multiple accept="image/*" onChange={e=>setImageFiles({ ...imageFiles, [h.id]: Array.from(e.target.files || []) })} />
+                          <Button onClick={()=>{ const names = Array.from(new Set((imageFiles[h.id]||[]).map(f=>f.name))).slice(0,10); if (!names.length) return; updateImages.mutate({ id:h.id, images:names }); setUploadInfo({ type:'images', names }) }} disabled={!!imageUploaded[h.id] || updateImages.isPending}>{imageUploaded[h.id] ? 'Uploaded' : 'Upload'}</Button>
                         </div>
                       </td>
                       <td className="p-2">
                         <div className="flex gap-2 flex-wrap">{h.docs?.map(url=>(<span key={url} className="px-2 py-1 bg-secondary rounded text-xs">{url}</span>))}</div>
-                        <div className="flex gap-2 mt-2">
-                          <Input placeholder="doc url(s)" value={docEdit[h.id]||""} onChange={e=>setDocEdit({...docEdit,[h.id]:e.target.value})} />
-                          <Button onClick={()=>updateDocs.mutate({ id:h.id, docs:(docEdit[h.id]||"").split(',').map(s=>s.trim()).filter(Boolean) })}>Upload</Button>
+                        <div className="flex gap-2 mt-2 items-center">
+                          <input type="file" multiple onChange={e=>setDocFiles({ ...docFiles, [h.id]: Array.from(e.target.files || []) })} />
+                          <Button onClick={()=>{ const names = Array.from(new Set((docFiles[h.id]||[]).map(f=>f.name))).slice(0,10); if (!names.length) return; updateDocs.mutate({ id:h.id, docs:names }); setUploadInfo({ type:'documents', names }) }} disabled={!!docUploaded[h.id] || updateDocs.isPending}>{docUploaded[h.id] ? 'Uploaded' : 'Upload'}</Button>
                         </div>
                       </td>
                     </tr>
@@ -154,9 +158,9 @@ const OwnerDashboard = () => {
               <Input placeholder="Room Type" value={roomForm.type} onChange={e=>setRoomForm({...roomForm,type:e.target.value})} />
               <Input type="number" placeholder="Price" value={roomForm.price} onChange={e=>setRoomForm({...roomForm,price:Number(e.target.value)})} />
               <Input placeholder="Amenities" value={roomForm.amenities} onChange={e=>setRoomForm({...roomForm,amenities:e.target.value})} />
-              <Input placeholder="Photo URLs" value={roomForm.photos} onChange={e=>setRoomForm({...roomForm,photos:e.target.value})} />
+              <input type="file" multiple accept="image/*" onChange={e=>setRoomPhotoFiles(Array.from(e.target.files || []).slice(0,10))} />
             </div>
-            <Button onClick={()=>createRoom.mutate({ hotelId:roomForm.hotelId, type:roomForm.type, price:roomForm.price, amenities: roomForm.amenities.split(',').map(s=>s.trim()).filter(Boolean), photos: roomForm.photos.split(',').map(s=>s.trim()).filter(Boolean) })} disabled={!roomForm.hotelId || !roomForm.type}>Add Room</Button>
+            <Button onClick={()=>{ const photos = Array.from(new Set(roomPhotoFiles.map(f=>f.name))).slice(0,10); createRoom.mutate({ hotelId:roomForm.hotelId, type:roomForm.type, price:roomForm.price, amenities: roomForm.amenities.split(',').map(s=>s.trim()).filter(Boolean), photos }); setUploadInfo({ type:'photos', names: photos }) }} disabled={!roomForm.hotelId || !roomForm.type}>Add Room</Button>
             <div className="rounded-lg border overflow-hidden mt-4">
               <table className="w-full text-sm">
                 <thead className="bg-muted/50"><tr className="text-left"><th className="p-3">Hotel</th><th className="p-3">Type</th><th className="p-3">Price</th><th className="p-3">Availability</th><th className="p-3">Blocked</th><th className="p-3">Actions</th></tr></thead>
@@ -179,6 +183,20 @@ const OwnerDashboard = () => {
             </div>
           </CardContent>
         </Card>
+        )}
+
+        {/* Upload result popup */}
+        {uploadInfo.type && (
+          <div className="fixed inset-0 flex items-center justify-center">
+            <div className="bg-card border rounded-lg shadow-card p-6 w-[400px]">
+              <div className="text-lg font-semibold mb-2">{uploadInfo.type === 'images' ? 'Images uploaded' : uploadInfo.type === 'documents' ? 'Documents uploaded' : 'Room photos added'}</div>
+              <div className="text-sm text-muted-foreground mb-4">Files:</div>
+              <div className="space-y-1 max-h-40 overflow-auto">
+                {uploadInfo.names.map(n => (<div key={n} className="text-sm">{n}</div>))}
+              </div>
+              <div className="mt-4 flex justify-end"><Button onClick={()=>setUploadInfo({ type:null, names:[] })}>Close</Button></div>
+            </div>
+          </div>
         )}
 
         {feature === 'bookings' && (

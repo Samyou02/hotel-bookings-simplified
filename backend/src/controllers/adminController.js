@@ -35,6 +35,17 @@ async function users(req, res) {
   res.json({ users })
 }
 
+async function createOwner(req, res) {
+  await connect(); await ensureSeed();
+  const { email, password, firstName, lastName, phone } = req.body || {}
+  if (!email || !password) return res.status(400).json({ error: 'Missing fields' })
+  const existing = await User.findOne({ email })
+  if (existing) return res.status(409).json({ error: 'Email exists' })
+  const id = await nextIdFor('User')
+  await User.create({ id, email, password, firstName, lastName, phone, role: 'owner', isApproved: true })
+  res.json({ status: 'created', id })
+}
+
 async function blockUser(req, res) {
   await connect(); await ensureSeed();
   const id = Number(req.params.id)
@@ -197,6 +208,7 @@ async function supportInbox(req, res) {
 module.exports = {
   stats,
   users,
+  createOwner,
   blockUser,
   hotelsList,
   hotelStatus,

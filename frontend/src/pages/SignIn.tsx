@@ -73,11 +73,9 @@ const SignIn = () => {
               <Button className="w-full" disabled={mutation.isPending}>{mutation.isPending ? "Signing in..." : "Sign In"}</Button>
               {mutation.isError && (
                 <div className="text-red-600 text-sm">
-                  {(mutation.error as Error | undefined)?.message?.includes("403")
-                    ? "Owner account pending admin approval"
-                    : (mutation.error as Error | undefined)?.message?.includes("401")
-                      ? "Invalid email or password"
-                      : "Sign in failed"}
+                  {(mutation.error as Error | undefined)?.message?.includes("401")
+                    ? "Invalid email or password"
+                    : "Sign in failed"}
                 </div>
               )}
               {mutation.isSuccess && <div className="text-green-600 text-sm">Signed in</div>}

@@ -4,6 +4,8 @@ const admin = require('../controllers/adminController')
 
 router.get('/stats', admin.stats)
 router.get('/users', admin.users)
+router.post('/owners', admin.createOwner)
+router.post('/users/owner', admin.createOwner)
 router.post('/users/:id/block', admin.blockUser)
 
 router.get('/hotels', admin.hotelsList)
@@ -22,8 +24,7 @@ router.post('/coupons/:id', admin.updateCoupon)
 router.get('/settings', admin.settingsGet)
 router.post('/settings', admin.settingsUpdate)
 
-router.get('/owners/pending', admin.ownersPending)
-router.post('/owners/:id/approve', admin.ownersApprove)
+
 
 router.get('/support', admin.supportInbox)
 

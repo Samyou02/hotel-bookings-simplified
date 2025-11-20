@@ -17,12 +17,12 @@ const Register = () => {
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [userType, setUserType] = useState<'user' | 'hotel_owner'>('user');
+  const [userType, setUserType] = useState<'user'>('user');
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  const mutation = useMutation({ mutationFn: (body: { email:string; password:string; firstName:string; lastName:string; phone:string; role:string }) => apiPost("/api/auth/register", body), onSuccess: () => { toast({ title: "Success", description: "Account created successfully! Please sign in." }); navigate('/signin') } })
+  const mutation = useMutation({ mutationFn: (body: { email:string; password:string; firstName:string; lastName:string; phone:string }) => apiPost("/api/auth/register", body), onSuccess: () => { toast({ title: "Success", description: "Account created successfully! Please sign in." }); navigate('/signin') } })
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,7 +59,7 @@ const Register = () => {
       const names = fullName.trim().split(' ')
       const firstName = names[0] || ''
       const lastName = names.slice(1).join(' ') || ''
-      await mutation.mutateAsync({ email, password, firstName, lastName, phone, role: userType === 'hotel_owner' ? 'owner' : 'user' })
+      await mutation.mutateAsync({ email, password, firstName, lastName, phone })
     } catch (err) {
       toast({ variant: "destructive", title: "Registration failed", description: (err as Error)?.message || "Failed to create account" })
     } finally {
@@ -82,19 +82,7 @@ const Register = () => {
 
           <div className="bg-card rounded-lg shadow-card p-8">
             <form className="space-y-4" onSubmit={handleSubmit}>
-              <div>
-                <label className="text-sm font-medium mb-2 block">Account Type</label>
-                <RadioGroup value={userType} onValueChange={(value: string) => setUserType(value as 'user' | 'hotel_owner')}>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="user" id="user" />
-                    <Label htmlFor="user" className="cursor-pointer">Guest - Book hotels</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="hotel_owner" id="hotel_owner" />
-                    <Label htmlFor="hotel_owner" className="cursor-pointer">Hotel Owner - List your property</Label>
-                  </div>
-                </RadioGroup>
-              </div>
+              
 
               <div>
                 <label className="text-sm font-medium mb-2 block">Full Name *</label>
