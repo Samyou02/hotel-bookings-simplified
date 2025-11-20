@@ -11,8 +11,8 @@ import { apiGet, apiPost } from "@/lib/api"
 
 type OwnerStats = { totalBookings:number; totalRevenue:number; dailyStats:number; roomOccupancy:number; upcomingArrivals: { id:number; hotelId:number; checkIn:string; guests:number }[] }
 type Hotel = { id:number; name:string; location:string; status:string; price:number; amenities:string[]; images:string[]; docs:string[] }
-type Room = { id:number; hotelId:number; type:string; price:number; availability:boolean; blocked:boolean; amenities:string[]; photos:string[] }
-type Booking = { id:number; hotelId:number; checkIn:string; checkOut:string; guests:number; total:number; status:string }
+type Room = { id:number; hotelId:number; type:string; price:number; members:number; availability:boolean; blocked:boolean; amenities:string[]; photos:string[] }
+type Booking = { id:number; hotelId:number; roomId?:number; checkIn:string; checkOut:string; guests:number; total:number; status:string }
 type Review = { id:number; hotelId:number; rating:number; comment:string; createdAt:string; response?:string }
 
 const OwnerDashboard = () => {
@@ -44,14 +44,14 @@ const OwnerDashboard = () => {
 
   const hotels = (hotelsQ.data?.hotels || []).filter(h => getSet("hotels").has(h.id))
   const rooms = (roomsQ.data?.rooms || []).filter(r => getSet("rooms").has(r.id))
-  const bookings = (bookingsQ.data?.bookings || []).filter(b => getSet("rooms").has(b.hotelId))
+  const bookings = bookingsQ.data?.bookings || []
   const reviews = (reviewsQ.data?.reviews || []).filter(r => getSet("reviews").has(r.id))
 
   const submitHotel = useMutation({ mutationFn: (p: { name:string; location:string; price:number; amenities:string[] }) => apiPost<{ id:number }, { ownerId:number; name:string; location:string; price:number; amenities:string[] }>(`/api/owner/hotels/submit`, { ownerId, ...p }), onSuccess: (res) => { if (res?.id) addId("hotels", res.id); qc.invalidateQueries({ queryKey: ["owner","hotels",ownerId] }) } })
   const updateAmenities = useMutation({ mutationFn: (p: { id:number; amenities:string[] }) => apiPost(`/api/owner/hotels/${p.id}/amenities`, { amenities: p.amenities }), onSuccess: () => qc.invalidateQueries({ queryKey: ["owner","hotels",ownerId] }) })
   const updateImages = useMutation({ mutationFn: (p: { id:number; images:string[] }) => apiPost(`/api/owner/hotels/${p.id}/images`, { images: p.images }), onSuccess: (_res, vars) => { setImageUploaded(prev => ({ ...prev, [vars.id]: true })); qc.invalidateQueries({ queryKey: ["owner","hotels",ownerId] }) } })
   const updateDocs = useMutation({ mutationFn: (p: { id:number; docs:string[] }) => apiPost(`/api/owner/hotels/${p.id}/docs`, { docs: p.docs }), onSuccess: (_res, vars) => { setDocUploaded(prev => ({ ...prev, [vars.id]: true })); qc.invalidateQueries({ queryKey: ["owner","hotels",ownerId] }) } })
-  const createRoom = useMutation({ mutationFn: (p: { hotelId:number; type:string; price:number; amenities:string[]; photos:string[] }) => apiPost<{ id:number }, { ownerId:number; hotelId:number; type:string; price:number; amenities:string[]; photos:string[]; availability:boolean }>(`/api/owner/rooms`, { ownerId, ...p, availability: true }), onSuccess: (res) => { if (res?.id) addId("rooms", res.id); qc.invalidateQueries({ queryKey: ["owner","rooms",ownerId] }) } })
+  const createRoom = useMutation({ mutationFn: (p: { hotelId:number; type:string; price:number; members:number; amenities:string[]; photos:string[]; availability:boolean }) => apiPost<{ id:number }, { ownerId:number; hotelId:number; type:string; price:number; members:number; amenities:string[]; photos:string[]; availability:boolean }>(`/api/owner/rooms`, { ownerId, ...p }), onSuccess: (res) => { if (res?.id) { addId("rooms", res.id); setLastRoomId(res.id) } qc.invalidateQueries({ queryKey: ["owner","rooms",ownerId] }) } })
   const updateRoom = useMutation({ mutationFn: (p: { id:number; price?:number; availability?:boolean; amenities?:string[]; photos?:string[] }) => apiPost(`/api/owner/rooms/${p.id}`, p), onSuccess: () => qc.invalidateQueries({ queryKey: ["owner","rooms",ownerId] }) })
   const blockRoom = useMutation({ mutationFn: (p: { id:number; blocked:boolean }) => apiPost(`/api/owner/rooms/${p.id}/block`, { blocked: p.blocked }), onSuccess: () => qc.invalidateQueries({ queryKey: ["owner","rooms",ownerId] }) })
   const approveBooking = useMutation({ mutationFn: (id:number) => apiPost(`/api/owner/bookings/${id}/approve`, {}), onSuccess: () => qc.invalidateQueries({ queryKey: ["owner","bookings",ownerId] }) })
@@ -67,7 +67,8 @@ const OwnerDashboard = () => {
   const [docFiles, setDocFiles] = React.useState<{ [id:number]: File[] }>({})
   const [imageUploaded, setImageUploaded] = React.useState<{ [id:number]: boolean }>({})
   const [docUploaded, setDocUploaded] = React.useState<{ [id:number]: boolean }>({})
-  const [roomForm, setRoomForm] = React.useState({ hotelId:0, type:"Standard", price:0, amenities:"" })
+  const [roomForm, setRoomForm] = React.useState({ hotelId:0, type:"Standard", price:0, members:1, amenities:"", availability:true })
+  const [lastRoomId, setLastRoomId] = React.useState<number | null>(null)
   const [roomPhotoFiles, setRoomPhotoFiles] = React.useState<File[]>([])
   const [uploadInfo, setUploadInfo] = React.useState<{ type: 'images' | 'documents' | 'photos' | null; names: string[] }>({ type: null, names: [] })
   const [pricingForm, setPricingForm] = React.useState<{ [id:number]: { weekendPercent:string; seasonalStart:string; seasonalEnd:string; seasonalPercent:string; specialDate:string; specialPrice:string } }>({})
@@ -87,7 +88,7 @@ const OwnerDashboard = () => {
             <p className="opacity-90">Manage your properties and reservations</p>
             <div className="mt-6 grid gap-4 md:grid-cols-3 lg:grid-cols-5">
               <Card className="shadow-card hover:shadow-card-hover transition-all"><CardHeader className="pb-2"><CardTitle className="text-sm">Total Bookings</CardTitle></CardHeader><CardContent><div className="text-3xl font-bold">{stats.data?.totalBookings ?? 0}</div></CardContent></Card>
-              <Card className="shadow-card hover:shadow-card-hover transition-all"><CardHeader className="pb-2"><CardTitle className="text-sm">Total Revenue</CardTitle></CardHeader><CardContent><div className="text-3xl font-bold">${stats.data?.totalRevenue ?? 0}</div></CardContent></Card>
+              <Card className="shadow-card hover:shadow-card-hover transition-all"><CardHeader className="pb-2"><CardTitle className="text-sm">Total Revenue</CardTitle></CardHeader><CardContent><div className="text-3xl font-bold">₹{stats.data?.totalRevenue ?? 0}</div></CardContent></Card>
               <Card className="shadow-card hover:shadow-card-hover transition-all"><CardHeader className="pb-2"><CardTitle className="text-sm">Daily Stats</CardTitle></CardHeader><CardContent><div className="text-3xl font-bold">{stats.data?.dailyStats ?? 0}</div></CardContent></Card>
               <Card className="shadow-card hover:shadow-card-hover transition-all"><CardHeader className="pb-2"><CardTitle className="text-sm">Room Occupancy</CardTitle></CardHeader><CardContent><div className="text-3xl font-bold">{stats.data?.roomOccupancy ?? 0}%</div></CardContent></Card>
               <Card className="shadow-card hover:shadow-card-hover transition-all"><CardHeader className="pb-2"><CardTitle className="text-sm">Upcoming Arrivals</CardTitle></CardHeader><CardContent><div className="text-3xl font-bold">{stats.data?.upcomingArrivals?.length ?? 0}</div></CardContent></Card>
@@ -130,7 +131,14 @@ const OwnerDashboard = () => {
                         <div className="flex gap-2 flex-wrap">{h.images?.map(url=>(<span key={url} className="px-2 py-1 bg-secondary rounded text-xs">{url}</span>))}</div>
                         <div className="flex gap-2 mt-2 items-center">
                           <input type="file" multiple accept="image/*" onChange={e=>setImageFiles({ ...imageFiles, [h.id]: Array.from(e.target.files || []) })} />
-                          <Button onClick={()=>{ const names = Array.from(new Set((imageFiles[h.id]||[]).map(f=>f.name))).slice(0,10); if (!names.length) return; updateImages.mutate({ id:h.id, images:names }); setUploadInfo({ type:'images', names }) }} disabled={!!imageUploaded[h.id] || updateImages.isPending}>{imageUploaded[h.id] ? 'Uploaded' : 'Upload'}</Button>
+                          <Button onClick={async ()=>{
+                            const files = (imageFiles[h.id]||[]).slice(0,10)
+                            if (!files.length) return
+                            const toDataUrl = (f: File) => new Promise<string>((resolve, reject) => { const r = new FileReader(); r.onload = () => resolve(String(r.result||'')); r.onerror = reject; r.readAsDataURL(f) })
+                            const dataUrls = await Promise.all(files.map(toDataUrl))
+                            updateImages.mutate({ id:h.id, images:dataUrls })
+                            setUploadInfo({ type:'images', names: files.map(f=>f.name) })
+                          }} disabled={!!imageUploaded[h.id] || updateImages.isPending}>{imageUploaded[h.id] ? 'Uploaded' : 'Upload'}</Button>
                         </div>
                       </td>
                       <td className="p-2">
@@ -153,23 +161,61 @@ const OwnerDashboard = () => {
         <Card className="shadow-card hover:shadow-card-hover transition-all">
           <CardHeader><CardTitle>Manage Rooms</CardTitle></CardHeader>
           <CardContent className="space-y-3">
-            <div className="grid grid-cols-5 gap-3">
-              <Input type="number" placeholder="Hotel ID" value={roomForm.hotelId} onChange={e=>setRoomForm({...roomForm,hotelId:Number(e.target.value)})} />
-              <Input placeholder="Room Type" value={roomForm.type} onChange={e=>setRoomForm({...roomForm,type:e.target.value})} />
-              <Input type="number" placeholder="Price" value={roomForm.price} onChange={e=>setRoomForm({...roomForm,price:Number(e.target.value)})} />
-              <Input placeholder="Amenities" value={roomForm.amenities} onChange={e=>setRoomForm({...roomForm,amenities:e.target.value})} />
-              <input type="file" multiple accept="image/*" onChange={e=>setRoomPhotoFiles(Array.from(e.target.files || []).slice(0,10))} />
+            <div className="grid grid-cols-6 gap-3">
+              <div>
+                <label className="text-sm font-medium mb-2 block">Hotel ID</label>
+                <Input type="number" value={roomForm.hotelId} onChange={e=>setRoomForm({...roomForm,hotelId:Number(e.target.value)})} />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-2 block">Type</label>
+                <select className="w-full px-4 py-2 rounded-lg border bg-background" value={roomForm.type} onChange={e=>setRoomForm({...roomForm,type:e.target.value})}>
+                  <option value="Standard">Standard</option>
+                  <option value="Deluxe">Deluxe</option>
+                  <option value="Suite">Suite</option>
+                  <option value="Family">Family</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-2 block">Price</label>
+                <Input type="number" value={roomForm.price} onChange={e=>setRoomForm({...roomForm,price:Number(e.target.value)})} />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-2 block">Members</label>
+                <Input type="number" value={roomForm.members} onChange={e=>setRoomForm({...roomForm,members:Number(e.target.value)})} />
+              </div>
+              <div className="col-span-2">
+                <label className="text-sm font-medium mb-2 block">Amenities (comma-separated)</label>
+                <Input value={roomForm.amenities} onChange={e=>setRoomForm({...roomForm,amenities:e.target.value})} />
+              </div>
+              <div className="col-span-3 flex items-center gap-3">
+                <input type="file" multiple accept="image/*" onChange={e=>setRoomPhotoFiles(Array.from(e.target.files || []).slice(0,10))} />
+                <div className="flex items-center gap-2">
+                  <input type="checkbox" checked={roomForm.availability} onChange={e=>setRoomForm({...roomForm,availability:e.target.checked})} />
+                  <span className="text-sm">Available</span>
+                </div>
+              </div>
+              <div className="col-span-3 flex items-end">
+                <Button onClick={async ()=>{
+                  const files = roomPhotoFiles.slice(0,10)
+                  const toDataUrl = (f: File) => new Promise<string>((resolve, reject) => { const r = new FileReader(); r.onload = () => resolve(String(r.result||'')); r.onerror = reject; r.readAsDataURL(f) })
+                  const photos = files.length ? await Promise.all(files.map(toDataUrl)) : []
+                  createRoom.mutate({ hotelId:roomForm.hotelId, type:roomForm.type, price:roomForm.price, members:roomForm.members, amenities: roomForm.amenities.split(',').map(s=>s.trim()).filter(Boolean), photos, availability: roomForm.availability })
+                  setUploadInfo({ type:'photos', names: files.map(f=>f.name) })
+                }} disabled={!roomForm.hotelId || !roomForm.type}>Add Room</Button>
+              </div>
             </div>
-            <Button onClick={()=>{ const photos = Array.from(new Set(roomPhotoFiles.map(f=>f.name))).slice(0,10); createRoom.mutate({ hotelId:roomForm.hotelId, type:roomForm.type, price:roomForm.price, amenities: roomForm.amenities.split(',').map(s=>s.trim()).filter(Boolean), photos }); setUploadInfo({ type:'photos', names: photos }) }} disabled={!roomForm.hotelId || !roomForm.type}>Add Room</Button>
             <div className="rounded-lg border overflow-hidden mt-4">
               <table className="w-full text-sm">
-                <thead className="bg-muted/50"><tr className="text-left"><th className="p-3">Hotel</th><th className="p-3">Type</th><th className="p-3">Price</th><th className="p-3">Availability</th><th className="p-3">Blocked</th><th className="p-3">Actions</th></tr></thead>
+                <thead className="bg-muted/50"><tr className="text-left"><th className="p-3">Hotel</th><th className="p-3">Type</th><th className="p-3">Price</th><th className="p-3">Members</th><th className="p-3">Amenities</th><th className="p-3">Photos</th><th className="p-3">Availability</th><th className="p-3">Blocked</th><th className="p-3">Actions</th></tr></thead>
                 <tbody className="[&_tr:hover]:bg-muted/30">
                   {rooms.map(r=>(
                     <tr key={r.id} className="border-t">
                       <td className="p-3">{r.hotelId}</td>
                       <td className="p-3">{r.type}</td>
-                      <td className="p-3">${r.price}</td>
+                      <td className="p-3">₹{r.price}</td>
+                      <td className="p-3">{r.members}</td>
+                      <td className="p-3"><div className="flex gap-1 flex-wrap">{r.amenities?.map(a=>(<span key={a} className="px-2 py-1 bg-secondary rounded text-xs">{a}</span>))}</div></td>
+                      <td className="p-3">{r.photos?.length||0}</td>
                       <td className="p-3"><span className={`inline-flex items-center px-2 py-1 rounded-full text-xs ${r.availability ? 'bg-primary/15 text-primary' : 'bg-muted text-foreground'}`}>{r.availability ? 'Available' : 'Unavailable'}</span></td>
                       <td className="p-3"><span className={`inline-flex items-center px-2 py-1 rounded-full text-xs ${r.blocked ? 'bg-destructive/15 text-destructive' : 'bg-primary/15 text-primary'}`}>{r.blocked ? 'Blocked' : 'Free'}</span></td>
                       <td className="p-3 flex gap-2 flex-wrap">
@@ -198,6 +244,22 @@ const OwnerDashboard = () => {
             </div>
           </div>
         )}
+        {uploadInfo.type && lastRoomId && feature==='rooms' && (()=>{ const lr = rooms.find(x=>x.id===lastRoomId); return lr ? (
+            <div className="rounded-lg border p-4 mt-4">
+              <div className="text-lg font-bold mb-2">Room Details</div>
+              <div className="grid grid-cols-2 gap-2">
+                <div><span className="text-sm text-muted-foreground">ID</span><div>{lr.id}</div></div>
+                <div><span className="text-sm text-muted-foreground">Hotel</span><div>{lr.hotelId}</div></div>
+                <div><span className="text-sm text-muted-foreground">Type</span><div>{lr.type}</div></div>
+                <div><span className="text-sm text-muted-foreground">Members</span><div>{lr.members}</div></div>
+                <div><span className="text-sm text-muted-foreground">Price</span><div>₹{lr.price}</div></div>
+                <div><span className="text-sm text-muted-foreground">Availability</span><div>{lr.availability ? 'Available' : 'Unavailable'}</div></div>
+                <div><span className="text-sm text-muted-foreground">Blocked</span><div>{lr.blocked ? 'Blocked' : 'Free'}</div></div>
+                <div><span className="text-sm text-muted-foreground">Amenities</span><div className="flex gap-1 flex-wrap">{lr.amenities?.map(a=>(<span key={a} className="px-2 py-1 bg-secondary rounded text-xs">{a}</span>))}</div></div>
+                <div><span className="text-sm text-muted-foreground">Photos</span><div className="flex gap-2 flex-wrap">{(lr.photos||[]).map(p=>(<span key={p} className="px-2 py-1 bg-secondary rounded text-xs">{p}</span>))}</div></div>
+              </div>
+            </div>
+          ) : null })()}
 
         {feature === 'bookings' && (
         <Card className="shadow-card hover:shadow-card-hover transition-all">
@@ -205,15 +267,16 @@ const OwnerDashboard = () => {
           <CardContent>
             <div className="rounded-lg border overflow-hidden">
               <table className="w-full text-sm">
-                <thead className="bg-muted/50"><tr className="text-left"><th className="p-3">Booking</th><th className="p-3">Hotel</th><th className="p-3">Dates</th><th className="p-3">Guests</th><th className="p-3">Total</th><th className="p-3">Status</th><th className="p-3">Actions</th></tr></thead>
+                <thead className="bg-muted/50"><tr className="text-left"><th className="p-3">Booking</th><th className="p-3">Hotel</th><th className="p-3">Room</th><th className="p-3">Dates</th><th className="p-3">Guests</th><th className="p-3">Total</th><th className="p-3">Status</th><th className="p-3">Actions</th></tr></thead>
                 <tbody className="[&_tr:hover]:bg-muted/30">
                   {bookings.map(b=>(
                     <tr key={b.id} className="border-t">
                       <td className="p-3">#{b.id}</td>
                       <td className="p-3">{b.hotelId}</td>
+                      <td className="p-3">{b.roomId ?? '-'}</td>
                       <td className="p-3">{b.checkIn} → {b.checkOut}</td>
                       <td className="p-3">{b.guests}</td>
-                      <td className="p-3">${b.total}</td>
+                      <td className="p-3">₹{b.total}</td>
                       <td className="p-3"><span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-secondary">{b.status}</span></td>
                       <td className="p-3 flex gap-2 flex-wrap">
                         <Button size="sm" variant="outline" onClick={()=>approveBooking.mutate(b.id)}>Approve</Button>

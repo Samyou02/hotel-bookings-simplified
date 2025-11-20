@@ -43,7 +43,7 @@ const AdminOverview: React.FC<Props> = ({ stats, bookings }) => {
             <Card className="shadow-card"><CardHeader className="pb-2"><CardTitle className="text-sm">Total Bookings</CardTitle></CardHeader><CardContent><div className="text-3xl font-bold">{stats?.totalBookings ?? 0}</div></CardContent></Card>
             <Card className="shadow-card"><CardHeader className="pb-2"><CardTitle className="text-sm">Bookings Today</CardTitle></CardHeader><CardContent><div className="text-3xl font-bold">{bookingsToday}</div></CardContent></Card>
             <Card className="shadow-card"><CardHeader className="pb-2"><CardTitle className="text-sm">Bookings This Month</CardTitle></CardHeader><CardContent><div className="text-3xl font-bold">{bookingsThisMonth}</div></CardContent></Card>
-            <Card className="shadow-card"><CardHeader className="pb-2"><CardTitle className="text-sm">Total Revenue</CardTitle></CardHeader><CardContent><div className="text-3xl font-bold">${stats?.totalRevenue ?? 0}</div></CardContent></Card>
+            <Card className="shadow-card"><CardHeader className="pb-2"><CardTitle className="text-sm">Total Revenue</CardTitle></CardHeader><CardContent><div className="text-3xl font-bold">₹{stats?.totalRevenue ?? 0}</div></CardContent></Card>
             <Card className="shadow-card"><CardHeader className="pb-2"><CardTitle className="text-sm">Cities</CardTitle></CardHeader><CardContent><div className="text-3xl font-bold">{citiesCount}</div></CardContent></Card>
           </div>
         </div>

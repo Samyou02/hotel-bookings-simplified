@@ -8,7 +8,7 @@ import { useQuery } from "@tanstack/react-query";
 import { apiGet } from "@/lib/api";
 import { useMutation } from "@tanstack/react-query";
 import { apiPost } from "@/lib/api";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -19,6 +19,8 @@ const HotelDetail = () => {
   type Hotel = { id: number; name: string; location: string; rating: number; reviews: number; price: number; image: string; amenities?: string[]; description?: string }
   const { id } = useParams();
   const { data, isLoading, isError } = useQuery({ queryKey: ["hotel", id], queryFn: () => apiGet<{ hotel: Hotel }>(`/api/hotels/${id}`), enabled: !!id })
+  type RoomInfo = { id:number; hotelId:number; type:string; price:number; members:number; availability:boolean; blocked:boolean }
+  const roomsQuery = useQuery({ queryKey: ["hotel","rooms",id], queryFn: () => apiGet<{ rooms: RoomInfo[] }>(`/api/hotels/${id}/rooms`), enabled: !!id })
   const hotel: Hotel | undefined = data?.hotel
   const reviews = useQuery({ queryKey: ["hotel","reviews",id], queryFn: () => apiGet<{ reviews: { id:number; userId:number; hotelId:number; rating:number; comment:string; createdAt:string }[] }>(`/api/hotels/${id}/reviews`), enabled: !!id })
   const [checkIn, setCheckIn] = useState("")
@@ -30,7 +32,10 @@ const HotelDetail = () => {
   const auth = raw ? JSON.parse(raw) as { user?: { id?: number } } : null
   
 
-  const price = hotel?.price ?? 0
+  const availableRooms = roomsQuery.data?.rooms || []
+  const [roomType, setRoomType] = useState<string>(availableRooms[0]?.type || 'Standard')
+  const selectedRoom = availableRooms.find(r => r.type === roomType) || availableRooms[0]
+  const price = Number(selectedRoom?.price ?? hotel?.price ?? 0)
   const hasDateTime = !!checkIn && !!checkOut && !!checkInTime && !!checkOutTime
   const ci = hasDateTime ? new Date(`${checkIn}T${checkInTime}:00`) : null
   const co = hasDateTime ? new Date(`${checkOut}T${checkOutTime}:00`) : null
@@ -43,12 +48,25 @@ const HotelDetail = () => {
   const subtotal = baseAmount + extraAmount
   const grandTotal = subtotal
 
-  const reserve = useMutation({ mutationFn: () => apiPost<{ status: string; id: number }, { userId:number; hotelId: number; checkIn: string; checkOut: string; guests: number; total: number }>("/api/bookings", { userId: auth?.user?.id || 0, hotelId: Number(id), checkIn: hasDateTime ? ci!.toISOString() : checkIn, checkOut: hasDateTime ? co!.toISOString() : checkOut, guests, total: subtotal }) })
+  type ReserveResp = { status: string; id: number; roomId: number; holdExpiresAt: string }
+  const reserve = useMutation({ mutationFn: () => apiPost<ReserveResp, { userId:number; hotelId: number; checkIn: string; checkOut: string; guests: number; roomType: string }>("/api/bookings", { userId: auth?.user?.id || 0, hotelId: Number(id), checkIn: hasDateTime ? ci!.toISOString() : checkIn, checkOut: hasDateTime ? co!.toISOString() : checkOut, guests, roomType }) })
 
   const [open, setOpen] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState<'upi'|'cod'|''>('')
   const [upiId, setUpiId] = useState("")
   const [paid, setPaid] = useState(false)
+  const confirm = useMutation({ mutationFn: (id:number) => apiPost(`/api/bookings/confirm/${id}`, {}) })
+  const [remaining, setRemaining] = useState(0)
+  const holdUntil = reserve.data?.holdExpiresAt
+  useEffect(() => {
+    if (reserve.isSuccess && holdUntil) {
+      const end = new Date(holdUntil).getTime()
+      const tick = () => setRemaining(Math.max(0, Math.floor((end - Date.now())/1000)))
+      tick()
+      const i = setInterval(tick, 1000)
+      return () => clearInterval(i)
+    }
+  }, [reserve.isSuccess, holdUntil])
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -141,7 +159,7 @@ const HotelDetail = () => {
             <div className="lg:col-span-1">
               <div className="sticky top-24 p-6 rounded-2xl border bg-card shadow-card">
                 <div className="mb-6">
-                  <div className="text-3xl font-bold text-primary mb-1">${hotel?.price ?? 0}</div>
+                  <div className="text-3xl font-bold text-primary mb-1">₹{price}</div>
                   <p className="text-muted-foreground">per 24h</p>
                 </div>
 
@@ -194,18 +212,18 @@ const HotelDetail = () => {
 
                 <div className="space-y-2 pt-4 border-t">
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">${price} × {stayDays} days</span>
-                    <span className="font-medium">${baseAmount}</span>
+                    <span className="text-muted-foreground">₹{price} × {stayDays} days</span>
+                    <span className="font-medium">₹{baseAmount}</span>
                   </div>
                   {extraHours>0 && (
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Extra hours {extraHours}h</span>
-                      <span className="font-medium">${extraAmount}</span>
+                      <span className="font-medium">₹{extraAmount}</span>
                     </div>
                   )}
                   <div className="flex justify-between font-bold text-lg pt-2 border-t">
                     <span>Total</span>
-                    <span>${grandTotal}</span>
+                    <span>₹{grandTotal}</span>
                   </div>
                 </div>
               </div>
@@ -218,11 +236,17 @@ const HotelDetail = () => {
               <DialogTitle>{reserve.isPending ? "Processing reservation" : reserve.isSuccess ? "Reservation successful" : reserve.isError ? "Reservation failed" : "Reserve"}</DialogTitle>
               <DialogDescription>{reserve.isSuccess ? "Choose a payment method to complete your booking." : reserve.isPending ? "Please wait while we reserve your room." : reserve.isError ? "Please try again." : ""}</DialogDescription>
             </DialogHeader>
-            {reserve.isSuccess && !paid && (
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Payment method</Label>
-                  <RadioGroup value={paymentMethod} onValueChange={(v)=>setPaymentMethod(v as 'upi'|'cod')}>
+                {reserve.isSuccess && !paid && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between p-3 rounded bg-muted">
+                      <div className="text-sm">Hold expires in</div>
+                      <div className="font-mono font-bold">
+                        {String(Math.floor(remaining/60)).padStart(2,'0')}:{String(remaining%60).padStart(2,'0')}
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Payment method</Label>
+                      <RadioGroup value={paymentMethod} onValueChange={(v)=>setPaymentMethod(v as 'upi'|'cod')}>
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="upi" id="pm-upi" />
                       <Label htmlFor="pm-upi">UPI</Label>
@@ -241,7 +265,7 @@ const HotelDetail = () => {
                 )}
             <DialogFooter>
               <Button variant="secondary" onClick={()=>setOpen(false)}>Close</Button>
-              <Button disabled={paymentMethod==='' || (paymentMethod==='upi' && !upiId)} onClick={()=>setPaid(true)}>Pay Now</Button>
+              <Button disabled={paymentMethod==='' || (paymentMethod==='upi' && !upiId) || remaining<=0} onClick={() => { setPaid(true); const bid = reserve.data?.id; if (bid) confirm.mutate(bid) }}>Pay Now</Button>
             </DialogFooter>
               </div>
             )}

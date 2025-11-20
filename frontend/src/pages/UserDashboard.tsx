@@ -73,7 +73,7 @@ const UserDashboard = () => {
                         <td className="p-3">{b.hotelId}</td>
                         <td className="p-3">{b.checkIn} → {b.checkOut}</td>
                         <td className="p-3">{b.guests}</td>
-                        <td className="p-3">${b.total}</td>
+                      <td className="p-3">₹{b.total}</td>
                         <td className="p-3"><span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-secondary">{b.status}</span></td>
                         <td className="p-3 flex gap-2">
                           <Button size="sm" variant="destructive" onClick={() => cancelBooking.mutate(b.id)}>Cancel</Button>
@@ -101,7 +101,7 @@ const UserDashboard = () => {
                         <td className="p-3">{b.hotelId}</td>
                         <td className="p-3">{b.checkIn} → {b.checkOut}</td>
                         <td className="p-3">{b.guests}</td>
-                        <td className="p-3">${b.total}</td>
+                        <td className="p-3">₹{b.total}</td>
                         <td className="p-3"><span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-secondary">{b.status}</span></td>
                       </tr>
                     ))}

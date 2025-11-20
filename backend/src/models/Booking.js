@@ -4,11 +4,14 @@ const BookingSchema = new mongoose.Schema({
   id: { type: Number, index: true },
   userId: Number,
   hotelId: Number,
+  roomId: Number,
   checkIn: String,
   checkOut: String,
   guests: Number,
   total: Number,
   status: { type: String, default: 'pending' },
+  holdExpiresAt: Date,
+  paid: { type: Boolean, default: false },
   refundIssued: { type: Boolean, default: false },
   createdAt: { type: Date, default: Date.now }
 })

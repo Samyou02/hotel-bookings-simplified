@@ -72,7 +72,7 @@ const HotelCard = ({ id, name, location, rating, reviews, price, image, amenitie
         
         <div className="flex items-end justify-between">
           <div>
-            <span className="text-2xl font-bold text-primary">${price}</span>
+            <span className="text-2xl font-bold text-primary">₹{price}</span>
             <span className="text-muted-foreground"> / night</span>
           </div>
           <Link to={`/hotel/${id}`}>

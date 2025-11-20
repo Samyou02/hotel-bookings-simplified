@@ -16,7 +16,7 @@ const Hotels = () => {
   const [searchParams] = useSearchParams()
   const [q, setQ] = useState("")
   useEffect(()=>{ setQ(searchParams.get('q') || '') }, [searchParams])
-  const [price, setPrice] = useState<[number, number]>([50, 500])
+  const [price, setPrice] = useState<[number, number]>([0, 100000])
   const [minRating, setMinRating] = useState<number | null>(null)
   const [selectedTypes, setSelectedTypes] = useState<string[]>([])
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([])
@@ -79,9 +79,9 @@ const Hotels = () => {
                 {/* Price Range */}
                 <div>
                   <label className="text-sm font-medium mb-3 block">
-                    Price Range: $50 - $500
+                    Price Range
                   </label>
-                  <Slider defaultValue={[50, 500]} max={1000} step={10} onValueChange={(v) => setPrice([v[0], v[1]])} />
+                  <Slider defaultValue={[0, 100000]} max={100000} step={100} onValueChange={(v) => setPrice([v[0], v[1]])} />
                 </div>
 
                 {/* Rating */}

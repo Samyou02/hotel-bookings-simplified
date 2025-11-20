@@ -2,6 +2,46 @@ const { connect } = require('../config/db')
 const ensureSeed = require('../seed')
 const { nextIdFor } = require('../utils/ids')
 const { Hotel, Booking, Room, Review } = require('../models')
+const fs = require('fs')
+const path = require('path')
+
+function ensureUploadsDir() {
+  const uploadsDir = path.join(__dirname, '../uploads')
+  try { fs.mkdirSync(uploadsDir, { recursive: true }) } catch {}
+  return uploadsDir
+}
+
+function dataUrlToBuffer(dataUrl) {
+  if (typeof dataUrl !== 'string') return null
+  const match = dataUrl.match(/^data:(.+);base64,(.+)$/)
+  if (!match) return null
+  const mime = match[1]
+  const base64 = match[2]
+  const buf = Buffer.from(base64, 'base64')
+  let ext = 'png'
+  if (mime.includes('jpeg')) ext = 'jpg'
+  else if (mime.includes('png')) ext = 'png'
+  else if (mime.includes('gif')) ext = 'gif'
+  else if (mime.includes('webp')) ext = 'webp'
+  return { buf, ext }
+}
+
+function saveImagesFromDataUrls(prefix, entityId, list) {
+  const uploadsDir = ensureUploadsDir()
+  const urls = []
+  const items = Array.isArray(list) ? list : []
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i]
+    const parsed = dataUrlToBuffer(item)
+    if (!parsed) continue
+    const ts = Date.now()
+    const filename = `${prefix}-${entityId}-${ts}-${i}.${parsed.ext}`
+    const filePath = path.join(uploadsDir, filename)
+    try { fs.writeFileSync(filePath, parsed.buf) } catch {}
+    urls.push(`/uploads/${filename}`)
+  }
+  return urls
+}
 
 async function stats(req, res) {
   await connect(); await ensureSeed();
@@ -33,7 +73,7 @@ async function submitHotel(req, res) {
   const { ownerId, name, location, price, amenities } = req.body || {}
   if (!ownerId || !name || !location) return res.status(400).json({ error: 'Missing fields' })
   const id = await nextIdFor('Hotel')
-  await Hotel.create({ id, ownerId: Number(ownerId), name, location, price: Number(price)||0, image: '', amenities: Array.isArray(amenities)?amenities:[], description: '', status: 'pending', featured: false, images: [], docs: [], pricing: { weekendPercent: 0, seasonal: [], specials: [] } })
+  await Hotel.create({ id, ownerId: Number(ownerId), name, location, price: Number(price)||0, image: '', amenities: Array.isArray(amenities)?amenities:[], description: '', status: 'approved', featured: false, images: [], docs: [], pricing: { weekendPercent: 0, seasonal: [], specials: [] } })
   res.json({ status: 'submitted', id })
 }
 
@@ -54,7 +94,9 @@ async function updateImages(req, res) {
   const { images } = req.body || {}
   const h = await Hotel.findOne({ id })
   if (!h) return res.status(404).json({ error: 'Hotel not found' })
-  h.images = Array.isArray(images)?images:[]
+  const savedUrls = saveImagesFromDataUrls('hotel', id, Array.isArray(images)?images:[])
+  h.images = (savedUrls.length ? savedUrls : (Array.isArray(images)?images:[]))
+  if (h.images.length > 0) h.image = h.images[0]
   await h.save()
   res.json({ status: 'updated' })
 }
@@ -80,24 +122,29 @@ async function rooms(req, res) {
 
 async function createRoom(req, res) {
   await connect(); await ensureSeed();
-  const { ownerId, hotelId, type, price, amenities, photos, availability } = req.body || {}
+  const { ownerId, hotelId, type, price, amenities, photos, availability, members } = req.body || {}
   const h = await Hotel.findOne({ id: Number(hotelId), ownerId: Number(ownerId) })
   if (!h) return res.status(404).json({ error: 'Hotel not found' })
   const id = await nextIdFor('Room')
-  await Room.create({ id, hotelId: Number(hotelId), type: String(type||'Standard'), price: Number(price)||0, amenities: Array.isArray(amenities)?amenities:[], photos: Array.isArray(photos)?photos:[], availability: availability!==false, blocked:false })
+  const savedUrls = saveImagesFromDataUrls('room', id, Array.isArray(photos)?photos:[])
+  await Room.create({ id, hotelId: Number(hotelId), type: String(type||'Standard'), price: Number(price)||0, members: Number(members)||1, amenities: Array.isArray(amenities)?amenities:[], photos: savedUrls.length ? savedUrls : (Array.isArray(photos)?photos:[]), availability: availability!==false, blocked:false })
   res.json({ status: 'created', id })
 }
 
 async function updateRoom(req, res) {
   await connect(); await ensureSeed();
   const id = Number(req.params.id)
-  const { price, availability, amenities, photos } = req.body || {}
+  const { price, availability, amenities, photos, members } = req.body || {}
   const r = await Room.findOne({ id })
   if (!r) return res.status(404).json({ error: 'Room not found' })
   if (price!==undefined) r.price = Number(price)
   if (availability!==undefined) r.availability = !!availability
+  if (members!==undefined) r.members = Number(members)
   if (Array.isArray(amenities)) r.amenities = amenities
-  if (Array.isArray(photos)) r.photos = photos
+  if (Array.isArray(photos)) {
+    const savedUrls = saveImagesFromDataUrls('room', id, photos)
+    r.photos = savedUrls.length ? savedUrls : photos
+  }
   await r.save()
   res.json({ status: 'updated' })
 }
