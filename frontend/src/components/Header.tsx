@@ -17,6 +17,29 @@ const Header = () => {
   ];
 
   const hideNavLinks = pathname.startsWith("/dashboard/admin") || pathname.startsWith("/dashboard/owner")
+  const dashboardLinks = (() => {
+    if (pathname.startsWith("/dashboard/admin")) {
+      return [
+        { to: "/dashboard/admin", label: "Overview" },
+        { to: "/dashboard/admin/users", label: "Users" },
+        { to: "/dashboard/admin/hotels", label: "Hotels" },
+        { to: "/dashboard/admin/bookings", label: "Bookings" },
+        { to: "/dashboard/admin/coupons", label: "Coupons" },
+        { to: "/dashboard/admin/settings", label: "Settings" },
+      ]
+    }
+    if (pathname.startsWith("/dashboard/owner")) {
+      return [
+        { to: "/dashboard/owner", label: "Overview" },
+        { to: "/dashboard/owner/register", label: "Register" },
+        { to: "/dashboard/owner/rooms", label: "Rooms" },
+        { to: "/dashboard/owner/bookings", label: "Bookings" },
+        { to: "/dashboard/owner/pricing", label: "Pricing" },
+        { to: "/dashboard/owner/reviews", label: "Reviews" },
+      ]
+    }
+    return []
+  })()
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -26,9 +49,21 @@ const Header = () => {
           <span className="text-xl font-bold">StayBook</span>
         </Link>
 
-        {!hideNavLinks && (
+        {(!hideNavLinks) ? (
           <nav className="hidden md:flex items-center space-x-6">
             {navLinks.map((link) => (
+              <Link
+                key={link.to}
+                to={link.to}
+                className="text-sm font-medium transition-colors hover:text-primary"
+              >
+                {link.label}
+              </Link>
+            ))}
+          </nav>
+        ) : (
+          <nav className="hidden md:flex items-center space-x-6">
+            {dashboardLinks.map((link) => (
               <Link
                 key={link.to}
                 to={link.to}
@@ -96,7 +131,7 @@ const Header = () => {
             </SheetTrigger>
             <SheetContent side="right" className="w-[300px] sm:w-[400px]">
               <nav className="flex flex-col space-y-4 mt-8">
-                {!hideNavLinks && navLinks.map((link) => (
+                {(!hideNavLinks ? navLinks : dashboardLinks).map((link) => (
                   <Link
                     key={link.to}
                     to={link.to}

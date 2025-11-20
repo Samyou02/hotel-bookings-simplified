@@ -1,4 +1,5 @@
 import * as React from "react"
+import { useParams } from "react-router-dom"
 import Header from "@/components/Header"
 import Footer from "@/components/Footer"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -17,6 +18,7 @@ type Settings = { taxRate: number; commissionRate: number }
 
 const AdminDashboard = () => {
   const qc = useQueryClient()
+  const { feature } = useParams<{ feature?: string }>()
   const abKey = "addedByDashboard"
   type AddedStore = { hotels?: number[]; rooms?: number[]; reviews?: number[]; coupons?: number[]; wishlist?: number[]; bookings?: number[] }
   const readAB = (): AddedStore => {
@@ -56,7 +58,7 @@ const AdminDashboard = () => {
     <div className="min-h-screen flex flex-col">
       <Header />
       <main className="flex-1">
-        {hasDashboardData && (
+        {!feature && hasDashboardData && (
         <section className="bg-hero-gradient text-primary-foreground py-10">
           <div className="container">
             <div className="flex items-center gap-3 mb-2">
@@ -87,7 +89,7 @@ const AdminDashboard = () => {
         )}
         <div className="container py-8 space-y-8">
 
-        {hasDashboardData && (
+        {!feature && hasDashboardData && (
         <div className="grid gap-6 md:grid-cols-2">
           <Card className="shadow-card hover:shadow-card-hover transition-all">
             <CardHeader className="flex-row items-center justify-between">
@@ -126,6 +128,7 @@ const AdminDashboard = () => {
 
         
 
+        {feature === 'users' && (
         <Card className="shadow-card hover:shadow-card-hover transition-all">
           <CardHeader><CardTitle>User Management</CardTitle></CardHeader>
           <CardContent>
@@ -152,7 +155,9 @@ const AdminDashboard = () => {
             </div>
           </CardContent>
         </Card>
+        )}
 
+        {feature === 'hotels' && (
         <Card className="shadow-card hover:shadow-card-hover transition-all">
           <CardHeader><CardTitle>Hotel Management</CardTitle></CardHeader>
           <CardContent>
@@ -179,7 +184,9 @@ const AdminDashboard = () => {
             </div>
           </CardContent>
         </Card>
+        )}
 
+        {feature === 'bookings' && (
         <Card className="shadow-card hover:shadow-card-hover transition-all">
           <CardHeader><CardTitle>Booking Management</CardTitle></CardHeader>
           <CardContent>
@@ -205,7 +212,9 @@ const AdminDashboard = () => {
             </div>
           </CardContent>
         </Card>
+        )}
 
+        {feature === 'coupons' && (
         <div className="grid gap-6 md:grid-cols-2">
           <Card className="shadow-card hover:shadow-card-hover transition-all">
             <CardHeader><CardTitle>Coupon Management</CardTitle></CardHeader>
@@ -239,6 +248,10 @@ const AdminDashboard = () => {
             </CardContent>
           </Card>
 
+          </div>
+        )}
+
+        {feature === 'settings' && (
           <Card className="shadow-card hover:shadow-card-hover transition-all">
             <CardHeader><CardTitle>System Settings</CardTitle></CardHeader>
             <CardContent className="space-y-3">
@@ -260,7 +273,7 @@ const AdminDashboard = () => {
               </div>
             </CardContent>
           </Card>
-        </div>
+        )}
       </div>
       </main>
       <Footer />

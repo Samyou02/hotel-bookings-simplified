@@ -33,8 +33,10 @@ const App = () => (
           <Route path="/register" element={<Register />} />
           <Route path="/hotel/:id" element={<ProtectedRoute><HotelDetail /></ProtectedRoute>} />
           <Route path="/dashboard/admin" element={<ProtectedRoute role="admin"><AdminDashboard /></ProtectedRoute>} />
+          <Route path="/dashboard/admin/:feature" element={<ProtectedRoute role="admin"><AdminDashboard /></ProtectedRoute>} />
           <Route path="/dashboard/user" element={<ProtectedRoute role="user"><UserDashboard /></ProtectedRoute>} />
           <Route path="/dashboard/owner" element={<ProtectedRoute role="owner"><OwnerDashboard /></ProtectedRoute>} />
+          <Route path="/dashboard/owner/:feature" element={<ProtectedRoute role="owner"><OwnerDashboard /></ProtectedRoute>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

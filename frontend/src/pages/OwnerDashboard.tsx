@@ -1,4 +1,5 @@
 import * as React from "react"
+import { useParams } from "react-router-dom"
 import Header from "@/components/Header"
 import Footer from "@/components/Footer"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
@@ -18,6 +19,7 @@ const OwnerDashboard = () => {
   const raw = typeof window !== "undefined" ? localStorage.getItem("auth") : null
   const auth = raw ? JSON.parse(raw) as { user?: { id?: number } } : null
   const ownerId = auth?.user?.id || 0
+  const { feature } = useParams<{ feature?: string }>()
   const qc = useQueryClient()
   const abKey = "addedByDashboard"
   type AddedStore = { hotels?: number[]; rooms?: number[]; reviews?: number[]; coupons?: number[]; wishlist?: number[] }
@@ -71,6 +73,7 @@ const OwnerDashboard = () => {
     <div className="min-h-screen flex flex-col">
       <Header />
       <main className="flex-1">
+        {!feature && (
         <section className="bg-hero-gradient text-primary-foreground py-10">
           <div className="container">
             <div className="flex items-center gap-3 mb-2">
@@ -87,10 +90,12 @@ const OwnerDashboard = () => {
             </div>
           </div>
         </section>
+        )}
         <div className="container py-8 space-y-8">
 
         
 
+        {feature === 'register' && (
         <Card className="shadow-card hover:shadow-card-hover transition-all">
           <CardHeader><CardTitle>Hotel Registration</CardTitle></CardHeader>
           <CardContent className="space-y-3">
@@ -138,7 +143,9 @@ const OwnerDashboard = () => {
             </div>
           </CardContent>
         </Card>
+        )}
 
+        {feature === 'rooms' && (
         <Card className="shadow-card hover:shadow-card-hover transition-all">
           <CardHeader><CardTitle>Manage Rooms</CardTitle></CardHeader>
           <CardContent className="space-y-3">
@@ -172,7 +179,9 @@ const OwnerDashboard = () => {
             </div>
           </CardContent>
         </Card>
+        )}
 
+        {feature === 'bookings' && (
         <Card className="shadow-card hover:shadow-card-hover transition-all">
           <CardHeader><CardTitle>Manage Bookings</CardTitle></CardHeader>
           <CardContent>
@@ -201,7 +210,9 @@ const OwnerDashboard = () => {
             </div>
           </CardContent>
         </Card>
+        )}
 
+        {feature === 'pricing' && (
         <Card className="shadow-card hover:shadow-card-hover transition-all">
           <CardHeader><CardTitle>Dynamic Pricing</CardTitle></CardHeader>
           <CardContent className="space-y-3">
@@ -239,7 +250,9 @@ const OwnerDashboard = () => {
             </div>
           </CardContent>
         </Card>
+        )}
 
+        {feature === 'reviews' && (
         <Card className="shadow-card hover:shadow-card-hover transition-all">
           <CardHeader><CardTitle>Review Management</CardTitle></CardHeader>
           <CardContent>
@@ -258,6 +271,7 @@ const OwnerDashboard = () => {
             </div>
           </CardContent>
         </Card>
+        )}
       </div>
       </main>
       <Footer />
