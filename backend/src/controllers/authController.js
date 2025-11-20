@@ -10,7 +10,6 @@ async function signin(req, res) {
     if (!email || !password) return res.status(400).json({ error: 'Missing credentials' })
     const user = await User.findOne({ email }).lean()
     if (!user || user.password !== password) return res.status(401).json({ error: 'Invalid credentials' })
-    if (user.role === 'owner' && user.isApproved === false) return res.status(403).json({ error: 'Owner not approved' })
     res.json({ token: 'mock-token', user: { id: user.id, email: user.email, role: user.role, isApproved: user.isApproved !== false } })
   } catch (e) {
     const { email, password } = req.body || {}
@@ -23,16 +22,13 @@ async function signin(req, res) {
 
 async function register(req, res) {
   await connect(); await ensureSeed();
-  const { email, password, firstName, lastName, phone, role } = req.body || {}
+  const { email, password, firstName, lastName, phone } = req.body || {}
   if (!email || !password) return res.status(400).json({ error: 'Missing fields' })
   const existing = await User.findOne({ email })
   if (existing) return res.status(409).json({ error: 'Email exists' })
   const id = await nextIdFor('User')
-  const allowed = ['admin', 'user', 'owner']
-  const userRole = allowed.includes(role) ? role : 'user'
-  const isApproved = userRole === 'owner' ? false : true
-  await User.create({ id, email, password, firstName, lastName, phone, role: userRole, isApproved })
-  res.json({ status: 'created', user: { id, email, role: userRole } })
+  await User.create({ id, email, password, firstName, lastName, phone, role: 'user', isApproved: true })
+  res.json({ status: 'created', user: { id, email, role: 'user' } })
 }
 
 async function seedAdmin(req, res) {

@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Shield, BarChart3, Building2 } from "lucide-react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { apiGet, apiPost } from "@/lib/api"
+import { useToast } from "@/hooks/use-toast"
 import AdminOverview from "@/components/admin/AdminOverview"
 
 type Stats = { totalHotels: number; totalBookings: number; totalRevenue: number; monthlySales: Record<string, number>; cityGrowth: Record<string, number> }
@@ -19,6 +20,7 @@ type Settings = { taxRate: number; commissionRate: number }
 
 const AdminDashboard = () => {
   const qc = useQueryClient()
+  const { toast } = useToast()
   const { feature } = useParams<{ feature?: string }>()
   const abKey = "addedByDashboard"
   type AddedStore = { hotels?: number[]; rooms?: number[]; reviews?: number[]; coupons?: number[]; wishlist?: number[]; bookings?: number[] }
@@ -49,11 +51,24 @@ const AdminDashboard = () => {
   const createCoupon = useMutation({ mutationFn: (p: { code:string; discount:number; expiry:string; usageLimit:number; enabled:boolean }) => apiPost<{ id:number }, { code:string; discount:number; expiry:string; usageLimit:number; enabled:boolean }>("/api/admin/coupons", p), onSuccess: (res) => { if (res?.id) addId("coupons", res.id); qc.invalidateQueries({ queryKey: ["admin","coupons"] }) } })
   const setCouponStatus = useMutation({ mutationFn: (p: { id:number; enabled:boolean }) => apiPost("/api/admin/coupons/"+p.id+"/status", { enabled: p.enabled }), onSuccess: () => qc.invalidateQueries({ queryKey: ["admin","coupons"] }) })
   const updateSettings = useMutation({ mutationFn: (p: Partial<Settings>) => apiPost("/api/admin/settings", p), onSuccess: () => qc.invalidateQueries({ queryKey: ["admin","settings"] }) })
-  const approveOwner = useMutation({ mutationFn: (id:number) => apiPost("/api/admin/owners/"+id+"/approve", {}), onSuccess: () => qc.invalidateQueries({ queryKey: ["admin","users"] }) })
+  const createOwner = useMutation({
+    mutationFn: (p: { email:string; password:string; firstName:string; lastName:string; phone:string }) =>
+      apiPost<{ id:number }, { email:string; password:string; firstName:string; lastName:string; phone:string }>("/api/admin/owners", p),
+    onSuccess: (_res, vars) => {
+      toast({ title: "Owner created", description: vars.email })
+      setOwnerForm({ email:"", password:"", firstName:"", lastName:"", phone:"" })
+      qc.invalidateQueries({ queryKey: ["admin","users"] })
+    },
+    onError: (err: unknown) => {
+      const msg = (err as Error)?.message || "Failed to create owner"
+      toast({ title: "Create failed", description: msg.includes("409") ? "Email already exists" : msg, variant: "destructive" })
+    }
+  })
 
   const [couponForm, setCouponForm] = React.useState({ code:"", discount:0, expiry:"", usageLimit:0, enabled:true })
   const [taxInput, setTaxInput] = React.useState("")
   const [commInput, setCommInput] = React.useState("")
+  const [ownerForm, setOwnerForm] = React.useState({ email:"", password:"", firstName:"", lastName:"", phone:"" })
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -68,20 +83,24 @@ const AdminDashboard = () => {
         <Card className="shadow-card hover:shadow-card-hover transition-all">
           <CardHeader><CardTitle>User Management</CardTitle></CardHeader>
           <CardContent>
+            <div className="grid grid-cols-2 gap-3 mb-4">
+              <Input type="email" placeholder="Owner Email" value={ownerForm.email} onChange={e=>setOwnerForm({ ...ownerForm, email: e.target.value })} />
+              <Input placeholder="Password" type="password" value={ownerForm.password} onChange={e=>setOwnerForm({ ...ownerForm, password: e.target.value })} />
+              <Input placeholder="First Name" value={ownerForm.firstName} onChange={e=>setOwnerForm({ ...ownerForm, firstName: e.target.value })} />
+              <Input placeholder="Last Name" value={ownerForm.lastName} onChange={e=>setOwnerForm({ ...ownerForm, lastName: e.target.value })} />
+              <Input placeholder="Phone" value={ownerForm.phone} onChange={e=>setOwnerForm({ ...ownerForm, phone: e.target.value })} />
+              <Button onClick={() => { if (!ownerForm.email || !ownerForm.password) return; createOwner.mutate(ownerForm) }} disabled={createOwner.isPending || !ownerForm.email || !ownerForm.password}>{createOwner.isPending ? "Adding..." : "Add Hotel Owner"}</Button>
+            </div>
             <div className="rounded-lg border overflow-hidden">
               <table className="w-full text-sm">
-                <thead className="bg-muted/50"><tr className="text-left"><th className="p-3">Email</th><th className="p-3">Role</th><th className="p-3">Approved</th><th className="p-3">Status</th><th className="p-3">Actions</th></tr></thead>
+                <thead className="bg-muted/50"><tr className="text-left"><th className="p-3">Email</th><th className="p-3">Role</th><th className="p-3">Status</th><th className="p-3">Actions</th></tr></thead>
                 <tbody className="[&_tr:hover]:bg-muted/30">
                   {(users.data?.users || []).map(u => (
                     <tr key={u.id} className="border-t">
                       <td className="p-3">{u.email}</td>
                       <td className="p-3"><span className="inline-flex items-center px-2 py-1 rounded-full bg-secondary text-xs">{u.role}</span></td>
-                      <td className="p-3">{u.role === 'owner' ? (
-                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs ${u.isApproved ? 'bg-primary/15 text-primary' : 'bg-accent/15 text-foreground'}`}>{u.isApproved ? 'Approved' : 'Pending'}</span>
-                      ) : '—'}</td>
                       <td className="p-3"><span className={`inline-flex items-center px-2 py-1 rounded-full text-xs ${u.blocked ? 'bg-destructive/15 text-destructive' : 'bg-primary/15 text-primary'}`}>{u.blocked ? 'Blocked' : 'Active'}</span></td>
                       <td className="p-3 flex gap-2">
-                        {u.role === 'owner' && !u.isApproved && <Button size="sm" onClick={() => approveOwner.mutate(u.id)}>Approve</Button>}
                         <Button variant={u.blocked ? 'outline' : 'destructive'} size="sm" onClick={() => blockUser.mutate({ id: u.id, blocked: !u.blocked })}>{u.blocked ? 'Unblock' : 'Block'}</Button>
                       </td>
                     </tr>
@@ -99,19 +118,15 @@ const AdminDashboard = () => {
           <CardContent>
             <div className="rounded-lg border overflow-hidden">
               <table className="w-full text-sm">
-                <thead className="bg-muted/50"><tr className="text-left"><th className="p-3">Name</th><th className="p-3">Location</th><th className="p-3">Status</th><th className="p-3">Featured</th><th className="p-3">Actions</th></tr></thead>
+                <thead className="bg-muted/50"><tr className="text-left"><th className="p-3">Name</th><th className="p-3">Location</th><th className="p-3">Status</th><th className="p-3">Actions</th></tr></thead>
                 <tbody className="[&_tr:hover]:bg-muted/30">
                   {(hotels.data?.hotels || []).filter(h => getSet("hotels").has(h.id)).map(h => (
                     <tr key={h.id} className="border-t">
                       <td className="p-3">{h.name}</td>
                       <td className="p-3">{h.location}</td>
                       <td className="p-3"><span className={`inline-flex items-center px-2 py-1 rounded-full text-xs ${h.status === 'approved' ? 'bg-primary/15 text-primary' : h.status === 'rejected' ? 'bg-destructive/15 text-destructive' : h.status === 'suspended' ? 'bg-accent/15 text-foreground' : 'bg-muted text-foreground'}`}>{h.status}</span></td>
-                      <td className="p-3"><span className={`inline-flex items-center px-2 py-1 rounded-full text-xs ${h.featured ? 'bg-primary/15 text-primary' : 'bg-muted text-foreground'}`}>{h.featured ? 'Yes' : 'No'}</span></td>
                       <td className="p-3 flex gap-2 flex-wrap">
-                        <Button size="sm" variant="outline" onClick={() => setHotelStatus.mutate({ id: h.id, status: 'approved' })}>Approve</Button>
-                        <Button size="sm" variant="outline" onClick={() => setHotelStatus.mutate({ id: h.id, status: 'rejected' })}>Reject</Button>
-                        <Button size="sm" variant="outline" onClick={() => setHotelStatus.mutate({ id: h.id, status: 'suspended' })}>Suspend</Button>
-                        <Button size="sm" onClick={() => setHotelFeatured.mutate({ id: h.id, featured: !h.featured })}>{h.featured ? 'Unfeature' : 'Feature'}</Button>
+                        <Button size="sm" variant={h.status === 'suspended' ? 'outline' : 'destructive'} onClick={() => setHotelStatus.mutate({ id: h.id, status: h.status === 'suspended' ? 'approved' : 'suspended' })}>{h.status === 'suspended' ? 'Unblock' : 'Block'}</Button>
                       </td>
                     </tr>
                   ))}

@@ -16,8 +16,7 @@ const Register = () => {
   const [phone, setPhone] = useState("")
   const [password, setPassword] = useState("")
   const [confirm, setConfirm] = useState("")
-  const [role, setRole] = useState<"admin" | "user" | "owner">("user")
-  const mutation = useMutation({ mutationFn: () => apiPost("/api/auth/register", { firstName, lastName, email, phone, password, role }) })
+  const mutation = useMutation({ mutationFn: () => apiPost("/api/auth/register", { firstName, lastName, email, phone, password }) })
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
@@ -64,14 +63,7 @@ const Register = () => {
                 <Input type="password" placeholder="Confirm your password" value={confirm} onChange={(e) => setConfirm(e.target.value)} />
               </div>
 
-              <div>
-                <label className="text-sm font-medium mb-2 block">Role</label>
-                <select className="w-full px-4 py-2 rounded-lg border bg-background" value={role} onChange={(e) => setRole(e.target.value as "admin" | "user" | "owner")}>
-                  <option value="user">User</option>
-                  <option value="owner">Hotel Owner</option>
-                  <option value="admin">Admin</option>
-                </select>
-              </div>
+              
 
               <div className="flex items-center space-x-2">
                 <Checkbox id="terms" />
