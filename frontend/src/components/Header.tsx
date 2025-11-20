@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Hotel, User, Menu, X } from "lucide-react";
+import { Hotel, User, Menu, X, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -36,22 +36,51 @@ const Header = () => {
         </nav>
 
         <div className="flex items-center space-x-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="hidden md:flex"
-            onClick={() => navigate("/signin")}
-          >
-            <User className="h-4 w-4 mr-2" />
-            Sign In
-          </Button>
-          <Button
-            size="sm"
-            className="hidden md:flex"
-            onClick={() => navigate("/register")}
-          >
-            Register
-          </Button>
+          {(() => {
+            let authed = false;
+            try {
+              const raw = localStorage.getItem("auth");
+              authed = !!(raw && JSON.parse(raw)?.token);
+            } catch {
+              authed = false;
+            }
+            if (authed) {
+              return (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="hidden md:flex"
+                  onClick={() => {
+                    localStorage.removeItem("auth");
+                    navigate("/signin");
+                  }}
+                >
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Logout
+                </Button>
+              );
+            }
+            return (
+              <>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="hidden md:flex"
+                  onClick={() => navigate("/signin")}
+                >
+                  <User className="h-4 w-4 mr-2" />
+                  Sign In
+                </Button>
+                <Button
+                  size="sm"
+                  className="hidden md:flex"
+                  onClick={() => navigate("/register")}
+                >
+                  Register
+                </Button>
+              </>
+            );
+          })()}
 
           {/* Mobile Menu */}
           <Sheet open={isOpen} onOpenChange={setIsOpen}>
@@ -73,26 +102,54 @@ const Header = () => {
                   </Link>
                 ))}
                 <div className="pt-4 border-t space-y-3">
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => {
-                      navigate("/signin");
-                      setIsOpen(false);
-                    }}
-                  >
-                    <User className="h-4 w-4 mr-2" />
-                    Sign In
-                  </Button>
-                  <Button
-                    className="w-full"
-                    onClick={() => {
-                      navigate("/register");
-                      setIsOpen(false);
-                    }}
-                  >
-                    Register
-                  </Button>
+                  {(() => {
+                    let authed = false;
+                    try {
+                      const raw = localStorage.getItem("auth");
+                      authed = !!(raw && JSON.parse(raw)?.token);
+                    } catch {
+                      authed = false;
+                    }
+                    if (authed) {
+                      return (
+                        <Button
+                          className="w-full"
+                          onClick={() => {
+                            localStorage.removeItem("auth");
+                            setIsOpen(false);
+                            navigate("/signin");
+                          }}
+                        >
+                          <LogOut className="h-4 w-4 mr-2" />
+                          Logout
+                        </Button>
+                      );
+                    }
+                    return (
+                      <>
+                        <Button
+                          variant="outline"
+                          className="w-full"
+                          onClick={() => {
+                            navigate("/signin");
+                            setIsOpen(false);
+                          }}
+                        >
+                          <User className="h-4 w-4 mr-2" />
+                          Sign In
+                        </Button>
+                        <Button
+                          className="w-full"
+                          onClick={() => {
+                            navigate("/register");
+                            setIsOpen(false);
+                          }}
+                        >
+                          Register
+                        </Button>
+                      </>
+                    );
+                  })()}
                 </div>
               </nav>
             </SheetContent>
