@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Building2, CalendarCheck2, DollarSign } from "lucide-react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { apiGet, apiPost, apiDelete } from "@/lib/api"
+import RoomTypeManager from "@/components/RoomTypeManager"
 
 type OwnerStats = { totalBookings:number; totalRevenue:number; dailyStats:number; roomOccupancy:number; upcomingArrivals: { id:number; hotelId:number; checkIn:string; guests:number }[] }
   type Hotel = { id:number; name:string; location:string; status:string; price:number; amenities:string[]; images:string[]; docs:string[]; description?: string; pricing?: { normalPrice?: number; weekendPrice?: number; seasonal?: { start:string; end:string; price:number }[]; specials?: { date:string; price:number }[] } }
@@ -85,7 +86,15 @@ const OwnerDashboard = () => {
   const [pricingForm, setPricingForm] = React.useState<{ [id:number]: { normalPrice:string; weekendPrice:string; seasonal:{ start:string; end:string; price:string }[]; specials:{ date:string; price:string }[] } }>({})
   const [pricingType, setPricingType] = React.useState<{ [id:number]: string }>({})
   const [pricingEditing, setPricingEditing] = React.useState<{ [id:number]: boolean }>({})
-  const ROOM_TYPES = React.useMemo(() => ['Standard','Deluxe','Suite','Family'], [])
+  const [roomTypes, setRoomTypes] = React.useState<string[]>(()=>{
+    try {
+      const raw = localStorage.getItem('roomTypes')
+      const arr = raw ? JSON.parse(raw) : null
+      return Array.isArray(arr) && arr.length ? arr : ['Standard','Deluxe','Suite','Family']
+    } catch { return ['Standard','Deluxe','Suite','Family'] }
+  })
+  const setRoomTypesPersist = (next: string[]) => { setRoomTypes(next); try { localStorage.setItem('roomTypes', JSON.stringify(next)) } catch (_e) { void _e } }
+  const addRoomType = (t: string) => { const s = new Set(roomTypes.map(x=>x.trim()).filter(Boolean)); s.add(t.trim()); setRoomTypesPersist(Array.from(s)) }
   const [reviewReply, setReviewReply] = React.useState<{ [id:number]: string }>({})
   const [roomEdit, setRoomEdit] = React.useState<{ [id:number]: { price?: string; members?: string; amenities?: string; availability?: boolean; blocked?: boolean; type?: string } }>({})
   const [roomEditing, setRoomEditing] = React.useState<{ [id:number]: boolean }>({})
@@ -103,17 +112,40 @@ const OwnerDashboard = () => {
       const specials = Array.isArray(p?.specials) ? p.specials.map(sp=>({ date:String(sp.date||''), price:String(sp.price??'') })) : []
       let np = normalPrice || ''
       if (!np) {
-        const rs = rooms.filter(r=>r.hotelId===h.id)
+        const rs = roomsRaw.filter(r=>r.hotelId===h.id)
         if (rs.length) {
           np = String(rs[0].price)
           typesNext[h.id] = rs[0].type
+        } else {
+          const any = roomsRaw[0]
+          if (any) {
+            np = String(any.price)
+            typesNext[h.id] = any.type
+          }
         }
       }
       next[h.id] = { normalPrice: np, weekendPrice: weekendPrice || '', seasonal, specials }
     })
     setPricingForm(next)
     setPricingType(typesNext)
-  }, [hotelsQ.data, roomsQ.data])
+  }, [hotelsQ.data, roomsRaw])
+
+  React.useEffect(() => {
+    const hs = hotelsQ.data?.hotels || []
+    const next = { ...pricingForm }
+    hs.forEach((h: Hotel) => {
+      const sel = pricingType[h.id]
+      if (!sel) return
+      const selNorm = sel.trim().toLowerCase()
+      const rrHotel = roomsRaw.find(r=>r.hotelId===h.id && r.type.trim().toLowerCase()===selNorm)
+      const rrGlobal = roomsRaw.find(r=>r.type.trim().toLowerCase()===selNorm)
+      const anyR = roomsRaw.find(r=>r.hotelId===h.id)
+      const cur = next[h.id] || { normalPrice:"", weekendPrice:"", seasonal:[], specials:[] }
+      const newPrice = String((rrHotel?.price ?? rrGlobal?.price ?? anyR?.price ?? cur.normalPrice) ?? '')
+      next[h.id] = { ...cur, normalPrice: newPrice }
+    })
+    setPricingForm(next)
+  }, [pricingType, roomsRaw])
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -247,6 +279,7 @@ const OwnerDashboard = () => {
         <Card className="shadow-card hover:shadow-card-hover transition-all">
           <CardHeader><CardTitle>Manage Rooms</CardTitle></CardHeader>
           <CardContent className="space-y-3">
+            <RoomTypeManager types={roomTypes} onAddType={addRoomType} />
             <div className="grid grid-cols-6 gap-3">
               <div>
                 <label className="text-sm font-medium mb-2 block">Hotel ID</label>
@@ -255,7 +288,7 @@ const OwnerDashboard = () => {
               <div>
                 <label className="text-sm font-medium mb-2 block">Type</label>
                 <select className="w-full px-4 py-2 rounded-lg border bg-background" value={roomForm.type} onChange={e=>setRoomForm({...roomForm,type:e.target.value})}>
-                  {ROOM_TYPES.map(t => (<option key={t} value={t}>{t}</option>))}
+                  {roomTypes.map(t => (<option key={t} value={t}>{t}</option>))}
                 </select>
               </div>
               <div>
@@ -296,8 +329,10 @@ const OwnerDashboard = () => {
                       <td className="p-3">{r.hotelId}</td>
                       <td className="p-3">
                         <select className="px-2 py-1 rounded border bg-background text-sm" value={roomEdit[r.id]?.type ?? r.type} onChange={e=>setRoomEdit({ ...roomEdit, [r.id]: { ...(roomEdit[r.id]||{}), type: e.target.value } })} disabled={!roomEditing[r.id]}>
-                          {ROOM_TYPES.map(t => (<option key={t} value={t}>{t}</option>))}
-                          {(!['Standard','Deluxe','Suite','Family'].includes(r.type)) && <option value={r.type}>{r.type}</option>}
+                          {Array.from(new Set([...
+                            roomTypes,
+                            ...roomsRaw.filter(x=>x.hotelId===r.hotelId).map(x=>x.type)
+                          ])).map(t => (<option key={`${r.id}-${t}`} value={t}>{t}</option>))}
                         </select>
                       </td>
                       <td className="p-3">
@@ -441,19 +476,24 @@ const OwnerDashboard = () => {
                             <select className="px-2 py-1 rounded border bg-background text-xs" value={pricingType[h.id]||''} onChange={e=>{
                               const sel = e.target.value
                               setPricingType({ ...pricingType, [h.id]: sel })
-                              const rr = rooms.find(r=>r.hotelId===h.id && r.type===sel)
-                              const fallback = String(h.price ?? '')
-                              setPricingForm({ ...pricingForm, [h.id]: { ...pf, normalPrice: String(rr?.price ?? fallback) } })
-                            }} disabled={!pricingEditing[h.id]}>
+                              const selNorm = sel.trim().toLowerCase()
+                              const rrHotel = roomsRaw.find(r=>r.hotelId===h.id && r.type.trim().toLowerCase()===selNorm)
+                              const rrGlobal = roomsRaw.find(r=>r.type.trim().toLowerCase()===selNorm)
+                              const newPrice = String(rrHotel?.price ?? rrGlobal?.price ?? h.price ?? '')
+                              setPricingForm(prev => ({
+                                ...prev,
+                                [h.id]: { ...(prev[h.id]||pf), normalPrice: newPrice }
+                              }))
+                            }}>
                               <option value="">Select room type</option>
                               {Array.from(new Set([...
-                                ROOM_TYPES,
-                                ...rooms.filter(r=>r.hotelId===h.id).map(r=>r.type)
+                                roomTypes,
+                                ...roomsRaw.filter(r=>r.hotelId===h.id).map(r=>r.type)
                               ])).map(t => (<option key={`${h.id}-${t}`} value={t}>{t}</option>))}
                             </select>
                           </div>
                         </td>
-                        <td className="p-2"><Input placeholder="₹" value={pf.normalPrice} onChange={e=>setPricingForm({ ...pricingForm, [h.id]: { ...pf, normalPrice: e.target.value } })} disabled={!pricingEditing[h.id]} /></td>
+                        <td className="p-2"><Input placeholder="₹" value={(pricingForm[h.id]?.normalPrice ?? '')} onChange={e=>setPricingForm({ ...pricingForm, [h.id]: { ...(pricingForm[h.id]||pf), normalPrice: e.target.value } })} disabled={!pricingEditing[h.id]} /></td>
                         <td className="p-2"><Input placeholder="₹" value={pf.weekendPrice} onChange={e=>setPricingForm({ ...pricingForm, [h.id]: { ...pf, weekendPrice: e.target.value } })} disabled={!pricingEditing[h.id]} /></td>
                         <td className="p-2">
                           <div className="space-y-2">
