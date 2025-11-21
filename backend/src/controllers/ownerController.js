@@ -123,6 +123,27 @@ async function updateDocs(req, res) {
   res.json({ status: 'updated' })
 }
 
+async function updateInfo(req, res) {
+  await connect(); await ensureSeed();
+  const id = Number(req.params.id)
+  const { name, location, price, description, status, featured } = req.body || {}
+  const h = await Hotel.findOne({ id })
+  if (!h) return res.status(404).json({ error: 'Hotel not found' })
+  if (name !== undefined) h.name = String(name)
+  if (location !== undefined) h.location = String(location)
+  if (price !== undefined) h.price = Number(price) || 0
+  if (description !== undefined) h.description = String(description)
+  if (status !== undefined) {
+    const allowed = ['approved','rejected','suspended','pending']
+    const s = String(status)
+    if (!allowed.includes(s)) return res.status(400).json({ error: 'Invalid status' })
+    h.status = s
+  }
+  if (featured !== undefined) h.featured = !!featured
+  await h.save()
+  res.json({ status: 'updated' })
+}
+
 async function rooms(req, res) {
   await connect(); await ensureSeed();
   const ownerId = Number(req.query.ownerId)
@@ -147,12 +168,13 @@ async function createRoom(req, res) {
 async function updateRoom(req, res) {
   await connect(); await ensureSeed();
   const id = Number(req.params.id)
-  const { price, availability, amenities, photos, members } = req.body || {}
+  const { price, availability, amenities, photos, members, type } = req.body || {}
   const r = await Room.findOne({ id })
   if (!r) return res.status(404).json({ error: 'Room not found' })
   if (price!==undefined) r.price = Number(price)
   if (availability!==undefined) r.availability = !!availability
   if (members!==undefined) r.members = Number(members)
+  if (type!==undefined) r.type = String(type||r.type)
   if (Array.isArray(amenities)) r.amenities = amenities
   if (Array.isArray(photos)) {
     const savedUrls = saveImagesFromDataUrls('room', id, photos)
@@ -171,6 +193,15 @@ async function blockRoom(req, res) {
   r.blocked = !!blocked
   await r.save()
   res.json({ status: 'updated' })
+}
+
+async function deleteRoom(req, res) {
+  await connect(); await ensureSeed();
+  const id = Number(req.params.id)
+  const r = await Room.findOne({ id })
+  if (!r) return res.status(404).json({ error: 'Room not found' })
+  await Room.deleteOne({ id })
+  res.json({ status: 'deleted' })
 }
 
 async function ownerBookings(req, res) {
@@ -255,6 +286,18 @@ async function respondReview(req, res) {
   res.json({ status: 'updated' })
 }
 
+async function deleteHotel(req, res) {
+  await connect(); await ensureSeed();
+  const id = Number(req.params.id)
+  const h = await Hotel.findOne({ id })
+  if (!h) return res.status(404).json({ error: 'Hotel not found' })
+  await Review.deleteMany({ hotelId: id })
+  await Booking.deleteMany({ hotelId: id })
+  await Room.deleteMany({ hotelId: id })
+  await Hotel.deleteOne({ id })
+  res.json({ status: 'deleted' })
+}
+
 module.exports = {
   stats,
   hotels,
@@ -263,10 +306,13 @@ module.exports = {
   updateDescription,
   updateImages,
   updateDocs,
+  updateInfo,
+  deleteHotel,
   rooms,
   createRoom,
   updateRoom,
   blockRoom,
+  deleteRoom,
   ownerBookings,
   approveBooking,
   checkinBooking,

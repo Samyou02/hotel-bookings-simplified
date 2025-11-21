@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Building2, CalendarCheck2, DollarSign } from "lucide-react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { apiGet, apiPost } from "@/lib/api"
+import { apiGet, apiPost, apiDelete } from "@/lib/api"
 
 type OwnerStats = { totalBookings:number; totalRevenue:number; dailyStats:number; roomOccupancy:number; upcomingArrivals: { id:number; hotelId:number; checkIn:string; guests:number }[] }
   type Hotel = { id:number; name:string; location:string; status:string; price:number; amenities:string[]; images:string[]; docs:string[]; description?: string; pricing?: { normalPrice?: number; weekendPrice?: number; seasonal?: { start:string; end:string; price:number }[]; specials?: { date:string; price:number }[] } }
@@ -43,7 +43,8 @@ const OwnerDashboard = () => {
   const reviewsQ = useQuery({ queryKey: ["owner","reviews",ownerId], queryFn: () => apiGet<{ reviews: Review[] }>(`/api/owner/reviews?ownerId=${ownerId}`), enabled: !!ownerId })
 
   const hotels = (hotelsQ.data?.hotels || []).filter(h => getSet("hotels").has(h.id))
-  const rooms = (roomsQ.data?.rooms || []).filter(r => getSet("rooms").has(r.id))
+  const roomsRaw = roomsQ.data?.rooms || []
+  const rooms = React.useMemo(() => (roomsRaw || []).filter(r => getSet("rooms").has(r.id)), [roomsRaw, getSet])
   const bookings = bookingsQ.data?.bookings || []
   const reviews = (reviewsQ.data?.reviews || []).filter(r => getSet("reviews").has(r.id))
 
@@ -52,8 +53,10 @@ const OwnerDashboard = () => {
   const updateDescription = useMutation({ mutationFn: (p: { id:number; description:string }) => apiPost(`/api/owner/hotels/${p.id}/description`, { description: p.description }), onSuccess: () => qc.invalidateQueries({ queryKey: ["owner","hotels",ownerId] }) })
   const updateImages = useMutation({ mutationFn: (p: { id:number; images:string[] }) => apiPost(`/api/owner/hotels/${p.id}/images`, { images: p.images }), onSuccess: (_res, vars) => { setImageUploaded(prev => ({ ...prev, [vars.id]: true })); qc.invalidateQueries({ queryKey: ["owner","hotels",ownerId] }) } })
   const updateDocs = useMutation({ mutationFn: (p: { id:number; docs:string[] }) => apiPost(`/api/owner/hotels/${p.id}/docs`, { docs: p.docs }), onSuccess: (_res, vars) => { setDocUploaded(prev => ({ ...prev, [vars.id]: true })); qc.invalidateQueries({ queryKey: ["owner","hotels",ownerId] }) } })
+  const updateInfo = useMutation({ mutationFn: (p: { id:number; name?:string; location?:string; price?:number; description?:string; status?:string; featured?:boolean }) => apiPost(`/api/owner/hotels/${p.id}/info`, p), onSuccess: () => qc.invalidateQueries({ queryKey: ["owner","hotels",ownerId] }) })
+  const deleteHotel = useMutation({ mutationFn: (id:number) => apiDelete(`/api/owner/hotels/${id}`), onSuccess: () => qc.invalidateQueries({ queryKey: ["owner","hotels",ownerId] }) })
   const createRoom = useMutation({ mutationFn: (p: { hotelId:number; type:string; price:number; members:number; amenities:string[]; photos:string[]; availability:boolean }) => apiPost<{ id:number }, { ownerId:number; hotelId:number; type:string; price:number; members:number; amenities:string[]; photos:string[]; availability:boolean }>(`/api/owner/rooms`, { ownerId, ...p }), onSuccess: (res) => { if (res?.id) { addId("rooms", res.id); setLastRoomId(res.id) } qc.invalidateQueries({ queryKey: ["owner","rooms",ownerId] }) } })
-  const updateRoom = useMutation({ mutationFn: (p: { id:number; price?:number; availability?:boolean; amenities?:string[]; photos?:string[] }) => apiPost(`/api/owner/rooms/${p.id}`, p), onSuccess: () => qc.invalidateQueries({ queryKey: ["owner","rooms",ownerId] }) })
+  const updateRoom = useMutation({ mutationFn: (p: { id:number; price?:number; members?:number; availability?:boolean; amenities?:string[]; photos?:string[] }) => apiPost(`/api/owner/rooms/${p.id}`, p), onSuccess: () => qc.invalidateQueries({ queryKey: ["owner","rooms",ownerId] }) })
   const blockRoom = useMutation({ mutationFn: (p: { id:number; blocked:boolean }) => apiPost(`/api/owner/rooms/${p.id}/block`, { blocked: p.blocked }), onSuccess: () => qc.invalidateQueries({ queryKey: ["owner","rooms",ownerId] }) })
   const approveBooking = useMutation({ mutationFn: (id:number) => apiPost(`/api/owner/bookings/${id}/approve`, {}), onSuccess: () => qc.invalidateQueries({ queryKey: ["owner","bookings",ownerId] }) })
   const cancelBooking = useMutation({ mutationFn: (id:number) => apiPost(`/api/owner/bookings/${id}/cancel`, {}), onSuccess: () => qc.invalidateQueries({ queryKey: ["owner","bookings",ownerId] }) })
@@ -65,6 +68,11 @@ const OwnerDashboard = () => {
   const [hotelForm, setHotelForm] = React.useState({ name:"", location:"", price:0, amenities:"", description:"" })
   const [amenitiesEdit, setAmenitiesEdit] = React.useState<{ [id:number]: string }>({})
   const [descriptionEdit, setDescriptionEdit] = React.useState<{ [id:number]: string }>({})
+  const [nameEdit, setNameEdit] = React.useState<{ [id:number]: string }>({})
+  const [locationEdit, setLocationEdit] = React.useState<{ [id:number]: string }>({})
+  const [priceEdit, setPriceEdit] = React.useState<{ [id:number]: string }>({})
+  const [statusEdit, setStatusEdit] = React.useState<{ [id:number]: string }>({})
+  const [editing, setEditing] = React.useState<{ [id:number]: boolean }>({})
   const [imageFiles, setImageFiles] = React.useState<{ [id:number]: File[] }>({})
   const [docFiles, setDocFiles] = React.useState<{ [id:number]: File[] }>({})
   const [imageUploaded, setImageUploaded] = React.useState<{ [id:number]: boolean }>({})
@@ -74,21 +82,35 @@ const OwnerDashboard = () => {
   const [roomPhotoFiles, setRoomPhotoFiles] = React.useState<File[]>([])
   const [uploadInfo, setUploadInfo] = React.useState<{ type: 'images' | 'documents' | 'photos' | null; names: string[] }>({ type: null, names: [] })
   const [pricingForm, setPricingForm] = React.useState<{ [id:number]: { normalPrice:string; weekendPrice:string; seasonal:{ start:string; end:string; price:string }[]; specials:{ date:string; price:string }[] } }>({})
+  const [pricingType, setPricingType] = React.useState<{ [id:number]: string }>({})
   const [reviewReply, setReviewReply] = React.useState<{ [id:number]: string }>({})
+  const [roomEdit, setRoomEdit] = React.useState<{ [id:number]: { price?: string; members?: string; amenities?: string; availability?: boolean; blocked?: boolean; type?: string } }>({})
+  const [roomEditing, setRoomEditing] = React.useState<{ [id:number]: boolean }>({})
+  const [roomPhotosById, setRoomPhotosById] = React.useState<{ [id:number]: File[] }>({})
 
   React.useEffect(() => {
     const hs = hotelsQ.data?.hotels || []
     const next: { [id:number]: { normalPrice:string; weekendPrice:string; seasonal:{ start:string; end:string; price:string }[]; specials:{ date:string; price:string }[] } } = {}
+    const typesNext: { [id:number]: string } = {}
     hs.forEach((h: Hotel) => {
       const p = h?.pricing || {}
       const normalPrice = String(p?.normalPrice ?? '')
       const weekendPrice = String(p?.weekendPrice ?? '')
       const seasonal = Array.isArray(p?.seasonal) ? p.seasonal.map(s=>({ start:String(s.start||''), end:String(s.end||''), price:String(s.price??'') })) : []
       const specials = Array.isArray(p?.specials) ? p.specials.map(sp=>({ date:String(sp.date||''), price:String(sp.price??'') })) : []
-      next[h.id] = { normalPrice: normalPrice || '', weekendPrice: weekendPrice || '', seasonal, specials }
+      let np = normalPrice || ''
+      if (!np) {
+        const rs = rooms.filter(r=>r.hotelId===h.id)
+        if (rs.length) {
+          np = String(rs[0].price)
+          typesNext[h.id] = rs[0].type
+        }
+      }
+      next[h.id] = { normalPrice: np, weekendPrice: weekendPrice || '', seasonal, specials }
     })
     setPricingForm(next)
-  }, [hotelsQ.data])
+    setPricingType(typesNext)
+  }, [hotelsQ.data, roomsQ.data])
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -130,46 +152,83 @@ const OwnerDashboard = () => {
             <Button onClick={()=>submitHotel.mutate({ name:hotelForm.name, location:hotelForm.location, price:hotelForm.price, amenities: hotelForm.amenities.split(',').map(s=>s.trim()).filter(Boolean), description: hotelForm.description })} disabled={!hotelForm.name || !hotelForm.location}>Submit Hotel</Button>
             <div className="rounded-lg border overflow-hidden mt-4">
               <table className="w-full text-sm">
-                <thead className="bg-muted/50"><tr className="text-left"><th className="p-3">Name</th><th className="p-3">Location</th><th className="p-3">Status</th><th className="p-3">Amenities</th><th className="p-3">Images</th><th className="p-3">Documents</th></tr></thead>
+                <thead className="bg-muted/50"><tr className="text-left"><th className="p-3">Name</th><th className="p-3">Location</th><th className="p-3">Status</th><th className="p-3">Amenities</th><th className="p-3">Images</th><th className="p-3">Documents</th><th className="p-3">Actions</th></tr></thead>
                 <tbody className="[&_tr:hover]:bg-muted/30">
                   {hotels.map(h=>(
                     <tr key={h.id} className="border-t align-top">
-                      <td className="p-3">{h.name}</td>
-                      <td className="p-3">{h.location}</td>
-                      <td className="p-3"><span className={`inline-flex items-center px-2 py-1 rounded-full text-xs ${h.status === 'approved' ? 'bg-primary/15 text-primary' : h.status === 'rejected' ? 'bg-destructive/15 text-destructive' : h.status === 'suspended' ? 'bg-accent/15 text-foreground' : 'bg-muted text-foreground'}`}>{h.status}</span></td>
+                      <td className="p-3">
+                        <div className="font-medium mb-2">{h.name}</div>
+                        <div className="flex gap-2">
+                          <Input placeholder="Name" value={(nameEdit[h.id] ?? h.name ?? "")} onChange={e=>setNameEdit({ ...nameEdit, [h.id]: e.target.value })} disabled={!editing[h.id]} />
+                        </div>
+                      </td>
+                      <td className="p-3">
+                        <div className="text-sm text-muted-foreground mb-2">{h.location}</div>
+                        <div className="flex gap-2">
+                          <Input placeholder="Location" value={(locationEdit[h.id] ?? h.location ?? "")} onChange={e=>setLocationEdit({ ...locationEdit, [h.id]: e.target.value })} disabled={!editing[h.id]} />
+                        </div>
+                      </td>
+                      <td className="p-3">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs ${h.status === 'approved' ? 'bg-primary/15 text-primary' : h.status === 'rejected' ? 'bg-destructive/15 text-destructive' : h.status === 'suspended' ? 'bg-accent/15 text-foreground' : 'bg-muted text-foreground'}`}>{h.status}</span>
+                          <select className="px-2 py-1 rounded border bg-background text-xs" value={(statusEdit[h.id] ?? h.status ?? '')} onChange={e=>setStatusEdit({ ...statusEdit, [h.id]: e.target.value })} disabled={!editing[h.id]}>
+                            <option value="approved">approved</option>
+                            <option value="rejected">rejected</option>
+                            <option value="suspended">suspended</option>
+                            <option value="pending">pending</option>
+                          </select>
+                        </div>
+                        <div className="flex gap-2 mt-2">
+                          <Input type="number" placeholder="Base Price" value={(priceEdit[h.id] ?? String(h.price ?? ''))} onChange={e=>setPriceEdit({ ...priceEdit, [h.id]: e.target.value })} disabled={!editing[h.id]} />
+                        </div>
+                      </td>
                       <td className="p-2">
                         <div className="flex gap-2 flex-wrap">{h.amenities?.map(a=>(<span key={a} className="px-2 py-1 bg-secondary rounded text-xs">{a}</span>))}</div>
                         <div className="flex gap-2 mt-2">
-                          <Input placeholder="amenities" value={amenitiesEdit[h.id]||""} onChange={e=>setAmenitiesEdit({...amenitiesEdit,[h.id]:e.target.value})} />
-                          <Button onClick={()=>updateAmenities.mutate({ id:h.id, amenities:(amenitiesEdit[h.id]||"").split(',').map(s=>s.trim()).filter(Boolean) })}>Save</Button>
+                          <Input placeholder="Amenities" value={amenitiesEdit[h.id]||""} onChange={e=>setAmenitiesEdit({...amenitiesEdit,[h.id]:e.target.value})} disabled={!editing[h.id]} />
                         </div>
                         <div className="mt-4">
                           <label className="text-sm font-medium mb-2 block">Description</label>
-                          <Input placeholder="Description" value={descriptionEdit[h.id] ?? (h.description || "")} onChange={e=>setDescriptionEdit({...descriptionEdit,[h.id]:e.target.value})} />
-                          <div className="mt-2">
-                          <Button onClick={()=>updateDescription.mutate({ id:h.id, description: ((descriptionEdit[h.id] ?? h.description) || "") })}>Save Description</Button>
-                          </div>
+                          <Input placeholder="Description" value={descriptionEdit[h.id] ?? (h.description || "")} onChange={e=>setDescriptionEdit({...descriptionEdit,[h.id]:e.target.value})} disabled={!editing[h.id]} />
                         </div>
                       </td>
                       <td className="p-2">
                         <div className="flex gap-2 flex-wrap">{h.images?.map(url=>(<span key={url} className="px-2 py-1 bg-secondary rounded text-xs">{url}</span>))}</div>
                         <div className="flex gap-2 mt-2 items-center">
                           <input type="file" multiple accept="image/*" onChange={e=>setImageFiles({ ...imageFiles, [h.id]: Array.from(e.target.files || []) })} />
-                          <Button onClick={async ()=>{
-                            const files = (imageFiles[h.id]||[]).slice(0,10)
-                            if (!files.length) return
-                            const toDataUrl = (f: File) => new Promise<string>((resolve, reject) => { const r = new FileReader(); r.onload = () => resolve(String(r.result||'')); r.onerror = reject; r.readAsDataURL(f) })
-                            const dataUrls = await Promise.all(files.map(toDataUrl))
-                            updateImages.mutate({ id:h.id, images:dataUrls })
-                            setUploadInfo({ type:'images', names: files.map(f=>f.name) })
-                          }} disabled={!!imageUploaded[h.id] || updateImages.isPending}>{imageUploaded[h.id] ? 'Uploaded' : 'Upload'}</Button>
                         </div>
                       </td>
                       <td className="p-2">
                         <div className="flex gap-2 flex-wrap">{h.docs?.map(url=>(<span key={url} className="px-2 py-1 bg-secondary rounded text-xs">{url}</span>))}</div>
                         <div className="flex gap-2 mt-2 items-center">
                           <input type="file" multiple onChange={e=>setDocFiles({ ...docFiles, [h.id]: Array.from(e.target.files || []) })} />
-                          <Button onClick={()=>{ const names = Array.from(new Set((docFiles[h.id]||[]).map(f=>f.name))).slice(0,10); if (!names.length) return; updateDocs.mutate({ id:h.id, docs:names }); setUploadInfo({ type:'documents', names }) }} disabled={!!docUploaded[h.id] || updateDocs.isPending}>{docUploaded[h.id] ? 'Uploaded' : 'Upload'}</Button>
+                        </div>
+                      </td>
+                      <td className="p-2">
+                        <div className="flex gap-2">
+                          <Button variant="outline" onClick={()=>setEditing({ ...editing, [h.id]: !editing[h.id] })}>{editing[h.id] ? 'Stop Edit' : 'Edit'}</Button>
+                          <Button onClick={async ()=>{
+                            const name = (nameEdit[h.id] ?? h.name ?? '')
+                            const location = (locationEdit[h.id] ?? h.location ?? '')
+                            const price = Number(priceEdit[h.id] ?? h.price ?? 0)
+                            const description = (descriptionEdit[h.id] ?? h.description ?? '')
+                            const amenities = (amenitiesEdit[h.id]||'').split(',').map(s=>s.trim()).filter(Boolean)
+                            const status = (statusEdit[h.id] ?? h.status ?? '')
+                            if (name || location || price || description || status) updateInfo.mutate({ id:h.id, name, location, price, description, status })
+                            updateAmenities.mutate({ id:h.id, amenities })
+                          }}>Update</Button>
+                          <Button variant="secondary" onClick={async ()=>{
+                            const imgFiles = (imageFiles[h.id]||[]).slice(0,10)
+                            if (imgFiles.length) {
+                              const toDataUrl = (f: File) => new Promise<string>((resolve, reject) => { const r = new FileReader(); r.onload = () => resolve(String(r.result||'')); r.onerror = reject; r.readAsDataURL(f) })
+                              const dataUrls = await Promise.all(imgFiles.map(toDataUrl))
+                              updateImages.mutate({ id:h.id, images: dataUrls })
+                              setUploadInfo({ type:'images', names: imgFiles.map(f=>f.name) })
+                            }
+                            const docNames = Array.from(new Set((docFiles[h.id]||[]).map(f=>f.name))).slice(0,10)
+                            if (docNames.length) { updateDocs.mutate({ id:h.id, docs: docNames }); setUploadInfo({ type:'documents', names: docNames }) }
+                          }}>Add</Button>
+                          <Button variant="destructive" onClick={()=>deleteHotel.mutate(h.id)}>Delete</Button>
                         </div>
                       </td>
                     </tr>
@@ -235,16 +294,66 @@ const OwnerDashboard = () => {
                   {rooms.map(r=>(
                     <tr key={r.id} className="border-t">
                       <td className="p-3">{r.hotelId}</td>
-                      <td className="p-3">{r.type}</td>
-                      <td className="p-3">₹{r.price}</td>
-                      <td className="p-3">{r.members}</td>
-                      <td className="p-3"><div className="flex gap-1 flex-wrap">{r.amenities?.map(a=>(<span key={a} className="px-2 py-1 bg-secondary rounded text-xs">{a}</span>))}</div></td>
-                      <td className="p-3">{r.photos?.length||0}</td>
-                      <td className="p-3"><span className={`inline-flex items-center px-2 py-1 rounded-full text-xs ${r.availability ? 'bg-primary/15 text-primary' : 'bg-muted text-foreground'}`}>{r.availability ? 'Available' : 'Unavailable'}</span></td>
-                      <td className="p-3"><span className={`inline-flex items-center px-2 py-1 rounded-full text-xs ${r.blocked ? 'bg-destructive/15 text-destructive' : 'bg-primary/15 text-primary'}`}>{r.blocked ? 'Blocked' : 'Free'}</span></td>
+                      <td className="p-3">
+                        <select className="px-2 py-1 rounded border bg-background text-sm" value={roomEdit[r.id]?.type ?? r.type} onChange={e=>setRoomEdit({ ...roomEdit, [r.id]: { ...(roomEdit[r.id]||{}), type: e.target.value } })} disabled={!roomEditing[r.id]}>
+                          <option value="Standard">Standard</option>
+                          <option value="Deluxe">Deluxe</option>
+                          <option value="Suite">Suite</option>
+                          <option value="Family">Family</option>
+                          {(!['Standard','Deluxe','Suite','Family'].includes(r.type)) && <option value={r.type}>{r.type}</option>}
+                        </select>
+                      </td>
+                      <td className="p-3">
+                        <Input type="number" className="w-24" placeholder="₹" value={(roomEdit[r.id]?.price ?? String(r.price))} onChange={e=>setRoomEdit({ ...roomEdit, [r.id]: { ...(roomEdit[r.id]||{}), price:e.target.value } })} disabled={!roomEditing[r.id]} />
+                      </td>
+                      <td className="p-3">
+                        <Input type="number" className="w-20" placeholder="#" value={(roomEdit[r.id]?.members ?? String(r.members))} onChange={e=>setRoomEdit({ ...roomEdit, [r.id]: { ...(roomEdit[r.id]||{}), members:e.target.value } })} disabled={!roomEditing[r.id]} />
+                      </td>
+                      <td className="p-3">
+                        <div className="flex gap-1 flex-wrap mb-2">{r.amenities?.map(a=>(<span key={a} className="px-2 py-1 bg-secondary rounded text-xs">{a}</span>))}</div>
+                        <Input placeholder="amenities" value={(roomEdit[r.id]?.amenities ?? '')} onChange={e=>setRoomEdit({ ...roomEdit, [r.id]: { ...(roomEdit[r.id]||{}), amenities:e.target.value } })} disabled={!roomEditing[r.id]} />
+                      </td>
+                      <td className="p-3">
+                        {(r.photos?.length||0)}
+                        <div className="mt-2">
+                          <input type="file" multiple accept="image/*" onChange={e=>setRoomPhotosById({ ...roomPhotosById, [r.id]: Array.from(e.target.files||[]).slice(0,10) })} disabled={!roomEditing[r.id]} />
+                        </div>
+                      </td>
+                      <td className="p-3">
+                        <div className="flex items-center gap-2">
+                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs ${r.availability ? 'bg-primary/15 text-primary' : 'bg-muted text-foreground'}`}>{r.availability ? 'Available' : 'Unavailable'}</span>
+                          <input type="checkbox" checked={(roomEdit[r.id]?.availability ?? r.availability)} onChange={e=>setRoomEdit({ ...roomEdit, [r.id]: { ...(roomEdit[r.id]||{}), availability:e.target.checked } })} disabled={!roomEditing[r.id]} />
+                        </div>
+                      </td>
+                      <td className="p-3">
+                        <div className="flex items-center gap-2">
+                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs ${r.blocked ? 'bg-destructive/15 text-destructive' : 'bg-primary/15 text-primary'}`}>{r.blocked ? 'Blocked' : 'Free'}</span>
+                          <input type="checkbox" checked={(roomEdit[r.id]?.blocked ?? r.blocked)} onChange={e=>setRoomEdit({ ...roomEdit, [r.id]: { ...(roomEdit[r.id]||{}), blocked:e.target.checked } })} disabled={!roomEditing[r.id]} />
+                        </div>
+                      </td>
                       <td className="p-3 flex gap-2 flex-wrap">
-                        <Button size="sm" variant="outline" onClick={()=>updateRoom.mutate({ id:r.id, availability: !r.availability })}>{r.availability ? 'Set Unavailable' : 'Set Available'}</Button>
-                        <Button size="sm" onClick={()=>blockRoom.mutate({ id:r.id, blocked: !r.blocked })}>{r.blocked ? 'Unblock' : 'Block'}</Button>
+                        <Button size="sm" variant="outline" onClick={()=>setRoomEditing({ ...roomEditing, [r.id]: !roomEditing[r.id] })}>{roomEditing[r.id]?'Stop Edit':'Edit'}</Button>
+                        <Button size="sm" onClick={async ()=>{
+                          const edits = roomEdit[r.id]||{}
+                          const payload: { price?:number; members?:number; amenities?:string[]; availability?:boolean; photos?:string[]; type?:string } = {}
+                          if (edits.price!==undefined) payload.price = Number(edits.price)
+                          if (edits.members!==undefined) payload.members = Number(edits.members)
+                          if (edits.amenities!==undefined) payload.amenities = (edits.amenities||'').split(',').map(s=>s.trim()).filter(Boolean)
+                          if (edits.availability!==undefined) payload.availability = !!edits.availability
+                          if (edits.type!==undefined) payload.type = String(edits.type)
+                          updateRoom.mutate({ id:r.id, ...payload })
+                          if (edits.blocked!==undefined) blockRoom.mutate({ id:r.id, blocked: !!edits.blocked })
+                        }}>Update</Button>
+                        <Button size="sm" variant="secondary" onClick={async ()=>{
+                          const files = (roomPhotosById[r.id]||[])
+                          if (files.length) {
+                            const toDataUrl = (f: File) => new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result||'')); reader.onerror = reject; reader.readAsDataURL(f) })
+                            const dataUrls = await Promise.all(files.map(toDataUrl))
+                            updateRoom.mutate({ id:r.id, photos: dataUrls })
+                            setUploadInfo({ type:'photos', names: files.map(f=>f.name) })
+                          }
+                        }}>Add</Button>
+                        <Button size="sm" variant="destructive" onClick={()=>apiDelete(`/api/owner/rooms/${r.id}`).then(()=>qc.invalidateQueries({ queryKey:["owner","rooms",ownerId] }))}>Delete</Button>
                       </td>
                     </tr>
                   ))}
@@ -329,7 +438,20 @@ const OwnerDashboard = () => {
                     const pf = pricingForm[h.id]||{ normalPrice:"", weekendPrice:"", seasonal:[], specials:[] }
                     return (
                       <tr key={h.id} className="border-t">
-                        <td className="p-2">{h.id} • {h.name}</td>
+                        <td className="p-2">
+                          {h.id} • {h.name}
+                          <div className="mt-2">
+                            <select className="px-2 py-1 rounded border bg-background text-xs" value={pricingType[h.id]||''} onChange={e=>{
+                              const sel = e.target.value
+                              setPricingType({ ...pricingType, [h.id]: sel })
+                              const rr = rooms.find(r=>r.hotelId===h.id && r.type===sel)
+                              if (rr) setPricingForm({ ...pricingForm, [h.id]: { ...pf, normalPrice: String(rr.price) } })
+                            }}>
+                              <option value="">Select room type</option>
+                              {rooms.filter(r=>r.hotelId===h.id).map(r=> (<option key={r.id} value={r.type}>{r.type}</option>))}
+                            </select>
+                          </div>
+                        </td>
                         <td className="p-2"><Input placeholder="₹" value={pf.normalPrice} onChange={e=>setPricingForm({ ...pricingForm, [h.id]: { ...pf, normalPrice: e.target.value } })} /></td>
                         <td className="p-2"><Input placeholder="₹" value={pf.weekendPrice} onChange={e=>setPricingForm({ ...pricingForm, [h.id]: { ...pf, weekendPrice: e.target.value } })} /></td>
                         <td className="p-2">
