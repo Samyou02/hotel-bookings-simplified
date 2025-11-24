@@ -9,6 +9,7 @@ import { apiGet } from "@/lib/api";
 import { useMutation } from "@tanstack/react-query";
 import { apiPost } from "@/lib/api";
 import { useState, useEffect } from "react";
+import { useToast } from "@/hooks/use-toast";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -38,7 +39,7 @@ const HotelDetail = () => {
   const [checkOutTime, setCheckOutTime] = useState(curHMInit)
   const raw = typeof window !== "undefined" ? localStorage.getItem("auth") : null
   const auth = raw ? JSON.parse(raw) as { user?: { id?: number } } : null
-  
+  const { toast } = useToast()
 
   const availableRooms = roomsQuery.data?.rooms || []
   const [roomType, setRoomType] = useState<string>(availableRooms[0]?.type || 'Standard')
@@ -70,13 +71,30 @@ const HotelDetail = () => {
   const grandTotal = subtotal
 
   type ReserveResp = { status: string; id: number; roomId: number; holdExpiresAt: string }
-  const reserve = useMutation({ mutationFn: (body: { userId:number; hotelId: number; checkIn: string; checkOut: string; guests: number; roomType: string }) => apiPost<ReserveResp, { userId:number; hotelId: number; checkIn: string; checkOut: string; guests: number; roomType: string }>("/api/bookings", body) })
+  const reserve = useMutation({
+    mutationFn: (body: { userId:number; hotelId: number; checkIn: string; checkOut: string; guests: number; roomType: string }) =>
+      apiPost<ReserveResp, { userId:number; hotelId: number; checkIn: string; checkOut: string; guests: number; roomType: string }>("/api/bookings", body),
+    onSuccess: (res) => {
+      toast({ title: "Reservation successful", description: `Booking #${res.id} is on hold` })
+    },
+    onError: () => {
+      toast({ title: "Reservation failed", variant: "destructive" })
+    }
+  })
 
   const [open, setOpen] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState<'upi'|'cod'|''>('')
   const [upiId, setUpiId] = useState("")
   const [paid, setPaid] = useState(false)
-  const confirm = useMutation({ mutationFn: (id:number) => apiPost(`/api/bookings/confirm/${id}`, {}) })
+  const confirm = useMutation({
+    mutationFn: (id:number) => apiPost(`/api/bookings/confirm/${id}`, {}),
+    onSuccess: (_res, vars) => {
+      toast({ title: "Payment confirmed", description: `Booking #${vars}` })
+    },
+    onError: () => {
+      toast({ title: "Payment failed", variant: "destructive" })
+    }
+  })
   const [remaining, setRemaining] = useState(0)
   const holdUntil = reserve.data?.holdExpiresAt
   const invoice = useQuery({ queryKey: ["booking","invoice", reserve.data?.id], queryFn: () => apiGet<{ invoice: { id:number; subtotal:number; taxRate:number; tax:number; total:number } }>(`/api/bookings/invoice/${reserve.data?.id}`), enabled: !!reserve.data?.id })

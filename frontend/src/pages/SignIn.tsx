@@ -9,6 +9,7 @@ import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { apiPost } from "@/lib/api";
 import { useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
 
 type SignInResponse = {
   token: string;
@@ -24,13 +25,18 @@ const SignIn = () => {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const navigate = useNavigate()
+  const { toast } = useToast()
   const mutation = useMutation({ mutationFn: () => apiPost<SignInResponse, { email: string; password: string }>("/api/auth/signin", { email, password }) ,
     onSuccess: (data) => {
       localStorage.setItem("auth", JSON.stringify(data))
       const role = data.user.role
+      toast({ title: "Signed in", description: role })
       if (role === "admin") navigate("/dashboard/admin")
       else if (role === "owner") navigate("/dashboard/owner")
       else navigate("/dashboard/user")
+    },
+    onError: () => {
+      toast({ title: "Sign in failed", variant: "destructive" })
     }
   })
   return (

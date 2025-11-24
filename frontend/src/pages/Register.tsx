@@ -8,6 +8,7 @@ import { Hotel } from "lucide-react";
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { apiPost } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
 
 const Register = () => {
   const [firstName, setFirstName] = useState("")
@@ -16,7 +17,8 @@ const Register = () => {
   const [phone, setPhone] = useState("")
   const [password, setPassword] = useState("")
   const [confirm, setConfirm] = useState("")
-  const mutation = useMutation({ mutationFn: () => apiPost("/api/auth/register", { firstName, lastName, email, phone, password }) })
+  const { toast } = useToast()
+  const mutation = useMutation({ mutationFn: () => apiPost("/api/auth/register", { firstName, lastName, email, phone, password }), onSuccess: () => { toast({ title: "Account created", description: "Welcome!" }) }, onError: () => { toast({ title: "Registration failed", variant: "destructive" }) } })
   return (
     <div className="min-h-screen flex flex-col">
       <Header />

@@ -17,7 +17,7 @@ import { useToast } from "@/hooks/use-toast"
 type OwnerStats = { totalRooms:number; totalBookings:number; totalRevenue:number; pendingBookings:number; hotelStatus:string }
   type Hotel = { id:number; name:string; location:string; status:string; price:number; amenities:string[]; images:string[]; docs:string[]; description?: string; pricing?: { normalPrice?: number; weekendPrice?: number; seasonal?: { start:string; end:string; price:number }[]; specials?: { date:string; price:number }[] } }
 type Room = { id:number; hotelId:number; type:string; price:number; members:number; availability:boolean; blocked:boolean; amenities:string[]; photos:string[] }
-type Booking = { id:number; hotelId:number; roomId?:number; checkIn:string; checkOut:string; guests:number; total:number; status:string }
+type Booking = { id:number; hotelId:number; roomId?:number; checkIn:string; checkOut:string; guests:number; total:number; status:string; createdAt?:string }
 type Review = { id:number; hotelId:number; rating:number; comment:string; createdAt:string; response?:string }
 
 const OwnerDashboard = () => {
@@ -57,8 +57,8 @@ const OwnerDashboard = () => {
   const bookings = bookingsQ.data?.bookings || []
   const [statusFilter, setStatusFilter] = React.useState<string>('all')
   const bookingsOrdered = React.useMemo(() => {
-    const arr = [...bookings]
-    arr.sort((a:any,b:any) => new Date(b.createdAt||0).getTime() - new Date(a.createdAt||0).getTime())
+    const arr: Booking[] = [...bookings]
+    arr.sort((a: Booking, b: Booking) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
     return arr
   }, [bookings])
   const bookingsFiltered = React.useMemo(() => {
@@ -68,27 +68,27 @@ const OwnerDashboard = () => {
       return s
     }
     if (statusFilter==='all') return bookingsOrdered
-    return bookingsOrdered.filter((b:any)=> String(b.status).trim().toLowerCase()===m(statusFilter))
+    return bookingsOrdered.filter((b: Booking)=> String(b.status).trim().toLowerCase()===m(statusFilter))
   }, [bookingsOrdered, statusFilter])
   const reviews = (reviewsQ.data?.reviews || []).filter(r => getSet("reviews").has(r.id))
 
   const [lastHotelRegId, setLastHotelRegId] = React.useState<number | null>(null)
-  const submitHotel = useMutation({ mutationFn: (p: { name:string; location:string; price:number; amenities:string[]; description?:string }) => apiPost<{ id:number }, { ownerId:number; name:string; location:string; price:number; amenities:string[]; description?:string }>(`/api/owner/hotels/submit`, { ownerId, ...p }), onSuccess: (res) => { if (res?.id) { addId("hotels", res.id); setLastHotelRegId(res.id) } qc.invalidateQueries({ queryKey: ["owner","hotels",ownerId] }) } })
-  const updateAmenities = useMutation({ mutationFn: (p: { id:number; amenities:string[] }) => apiPost(`/api/owner/hotels/${p.id}/amenities`, { amenities: p.amenities }), onSuccess: () => qc.invalidateQueries({ queryKey: ["owner","hotels",ownerId] }) })
-  const updateDescription = useMutation({ mutationFn: (p: { id:number; description:string }) => apiPost(`/api/owner/hotels/${p.id}/description`, { description: p.description }), onSuccess: () => qc.invalidateQueries({ queryKey: ["owner","hotels",ownerId] }) })
-  const updateImages = useMutation({ mutationFn: (p: { id:number; images:string[] }) => apiPost(`/api/owner/hotels/${p.id}/images`, { images: p.images }), onSuccess: (_res, vars) => { setImageUploaded(prev => ({ ...prev, [vars.id]: true })); qc.invalidateQueries({ queryKey: ["owner","hotels",ownerId] }) } })
-  const updateDocs = useMutation({ mutationFn: (p: { id:number; docs:string[] }) => apiPost(`/api/owner/hotels/${p.id}/docs`, { docs: p.docs }), onSuccess: (_res, vars) => { setDocUploaded(prev => ({ ...prev, [vars.id]: true })); qc.invalidateQueries({ queryKey: ["owner","hotels",ownerId] }) } })
-  const updateInfo = useMutation({ mutationFn: (p: { id:number; name?:string; location?:string; price?:number; description?:string; status?:string; featured?:boolean }) => apiPost(`/api/owner/hotels/${p.id}/info`, p), onSuccess: () => qc.invalidateQueries({ queryKey: ["owner","hotels",ownerId] }) })
-  const deleteHotel = useMutation({ mutationFn: (id:number) => apiDelete(`/api/owner/hotels/${id}`), onSuccess: () => qc.invalidateQueries({ queryKey: ["owner","hotels",ownerId] }) })
-  const createRoom = useMutation({ mutationFn: (p: { hotelId:number; type:string; price:number; members:number; amenities:string[]; photos:string[]; availability:boolean }) => apiPost<{ id:number }, { ownerId:number; hotelId:number; type:string; price:number; members:number; amenities:string[]; photos:string[]; availability:boolean }>(`/api/owner/rooms`, { ownerId, ...p }), onSuccess: (res) => { if (res?.id) { addId("rooms", res.id); setLastRoomId(res.id) } qc.invalidateQueries({ queryKey: ["owner","rooms",ownerId] }) } })
-  const updateRoom = useMutation({ mutationFn: (p: { id:number; price?:number; members?:number; availability?:boolean; amenities?:string[]; photos?:string[] }) => apiPost(`/api/owner/rooms/${p.id}`, p), onSuccess: () => qc.invalidateQueries({ queryKey: ["owner","rooms",ownerId] }) })
-  const blockRoom = useMutation({ mutationFn: (p: { id:number; blocked:boolean }) => apiPost(`/api/owner/rooms/${p.id}/block`, { blocked: p.blocked }), onSuccess: () => qc.invalidateQueries({ queryKey: ["owner","rooms",ownerId] }) })
-  const approveBooking = useMutation({ mutationFn: (id:number) => apiPost(`/api/owner/bookings/${id}/approve`, {}), onSuccess: () => qc.invalidateQueries({ queryKey: ["owner","bookings",ownerId] }) })
-  const cancelBooking = useMutation({ mutationFn: (p:{ id:number; reason:string }) => apiPost(`/api/owner/bookings/${p.id}/cancel`, { reason: p.reason }), onSuccess: () => qc.invalidateQueries({ queryKey: ["owner","bookings",ownerId] }) , onError: () => toast({ title: "Cancellation failed", description: "Provide valid reason and 24h prior notice", variant: "destructive" }) })
-  const checkinBooking = useMutation({ mutationFn: (id:number) => apiPost(`/api/owner/bookings/${id}/checkin`, {}), onSuccess: () => qc.invalidateQueries({ queryKey: ["owner","bookings",ownerId] }) })
-  const checkoutBooking = useMutation({ mutationFn: (id:number) => apiPost(`/api/owner/bookings/${id}/checkout`, {}), onSuccess: () => qc.invalidateQueries({ queryKey: ["owner","bookings",ownerId] }) })
-  const updatePricing = useMutation({ mutationFn: (p: { hotelId:number; normalPrice?:number; weekendPrice?:number; seasonal?:{start:string;end:string;price:number}[]; specials?:{date:string;price:number}[] }) => apiPost(`/api/owner/pricing/${p.hotelId}`, p), onSuccess: () => qc.invalidateQueries({ queryKey: ["owner","hotels",ownerId] }) })
-  const deletePricing = useMutation({ mutationFn: (hotelId:number) => apiDelete(`/api/owner/pricing/${hotelId}`), onSuccess: () => qc.invalidateQueries({ queryKey: ["owner","hotels",ownerId] }) })
+  const submitHotel = useMutation({ mutationFn: (p: { name:string; location:string; price:number; amenities:string[]; description?:string }) => apiPost<{ id:number }, { ownerId:number; name:string; location:string; price:number; amenities:string[]; description?:string }>(`/api/owner/hotels/submit`, { ownerId, ...p }), onSuccess: (res) => { if (res?.id) { addId("hotels", res.id); setLastHotelRegId(res.id); toast({ title: "Hotel submitted", description: `#${res.id}` }) } qc.invalidateQueries({ queryKey: ["owner","hotels",ownerId] }) } })
+  const updateAmenities = useMutation({ mutationFn: (p: { id:number; amenities:string[] }) => apiPost(`/api/owner/hotels/${p.id}/amenities`, { amenities: p.amenities }), onSuccess: (_res, vars) => { toast({ title: "Amenities updated", description: `Hotel #${vars.id}` }); qc.invalidateQueries({ queryKey: ["owner","hotels",ownerId] }) } })
+  const updateDescription = useMutation({ mutationFn: (p: { id:number; description:string }) => apiPost(`/api/owner/hotels/${p.id}/description`, { description: p.description }), onSuccess: (_res, vars) => { toast({ title: "Description updated", description: `Hotel #${vars.id}` }); qc.invalidateQueries({ queryKey: ["owner","hotels",ownerId] }) } })
+  const updateImages = useMutation({ mutationFn: (p: { id:number; images:string[] }) => apiPost(`/api/owner/hotels/${p.id}/images`, { images: p.images }), onSuccess: (_res, vars) => { setImageUploaded(prev => ({ ...prev, [vars.id]: true })); toast({ title: "Images uploaded", description: `Hotel #${vars.id} • ${vars.images.length} file(s)` }); qc.invalidateQueries({ queryKey: ["owner","hotels",ownerId] }) } })
+  const updateDocs = useMutation({ mutationFn: (p: { id:number; docs:string[] }) => apiPost(`/api/owner/hotels/${p.id}/docs`, { docs: p.docs }), onSuccess: (_res, vars) => { setDocUploaded(prev => ({ ...prev, [vars.id]: true })); toast({ title: "Documents uploaded", description: `Hotel #${vars.id} • ${vars.docs.length} file(s)` }); qc.invalidateQueries({ queryKey: ["owner","hotels",ownerId] }) } })
+  const updateInfo = useMutation({ mutationFn: (p: { id:number; name?:string; location?:string; price?:number; description?:string; status?:string; featured?:boolean }) => apiPost(`/api/owner/hotels/${p.id}/info`, p), onSuccess: (_res, vars) => { toast({ title: "Hotel updated", description: `#${vars.id}` }); qc.invalidateQueries({ queryKey: ["owner","hotels",ownerId] }) } })
+  const deleteHotel = useMutation({ mutationFn: (id:number) => apiDelete(`/api/owner/hotels/${id}`), onSuccess: (_res, vars) => { toast({ title: "Hotel deleted", description: `#${vars}` }); qc.invalidateQueries({ queryKey: ["owner","hotels",ownerId] }) } })
+  const createRoom = useMutation({ mutationFn: (p: { hotelId:number; type:string; price:number; members:number; amenities:string[]; photos:string[]; availability:boolean }) => apiPost<{ id:number }, { ownerId:number; hotelId:number; type:string; price:number; members:number; amenities:string[]; photos:string[]; availability:boolean }>(`/api/owner/rooms`, { ownerId, ...p }), onSuccess: (res) => { if (res?.id) { addId("rooms", res.id); setLastRoomId(res.id); toast({ title: "Room added", description: `#${res.id}` }) } qc.invalidateQueries({ queryKey: ["owner","rooms",ownerId] }) } })
+  const updateRoom = useMutation({ mutationFn: (p: { id:number; price?:number; members?:number; availability?:boolean; amenities?:string[]; photos?:string[] }) => apiPost(`/api/owner/rooms/${p.id}`, p), onSuccess: (_res, vars) => { toast({ title: "Room updated", description: `#${vars.id}` }); qc.invalidateQueries({ queryKey: ["owner","rooms",ownerId] }) } })
+  const blockRoom = useMutation({ mutationFn: (p: { id:number; blocked:boolean }) => apiPost(`/api/owner/rooms/${p.id}/block`, { blocked: p.blocked }), onSuccess: (_res, vars) => { toast({ title: vars.blocked ? "Room blocked" : "Room unblocked", description: `#${vars.id}` }); qc.invalidateQueries({ queryKey: ["owner","rooms",ownerId] }) } })
+  const approveBooking = useMutation({ mutationFn: (id:number) => apiPost(`/api/owner/bookings/${id}/approve`, {}), onSuccess: (_res, vars) => { toast({ title: "Booking approved", description: `#${vars}` }); qc.invalidateQueries({ queryKey: ["owner","bookings",ownerId] }) } })
+  const cancelBooking = useMutation({ mutationFn: (p:{ id:number; reason:string }) => apiPost(`/api/owner/bookings/${p.id}/cancel`, { reason: p.reason }), onSuccess: (_res, vars) => { toast({ title: "Booking cancelled", description: `#${vars.id}` }); qc.invalidateQueries({ queryKey: ["owner","bookings",ownerId] }) } , onError: () => toast({ title: "Cancellation failed", description: "Provide valid reason and 24h prior notice", variant: "destructive" }) })
+  const checkinBooking = useMutation({ mutationFn: (id:number) => apiPost(`/api/owner/bookings/${id}/checkin`, {}), onSuccess: (_res, vars) => { toast({ title: "Checked in", description: `Booking #${vars}` }); qc.invalidateQueries({ queryKey: ["owner","bookings",ownerId] }) } })
+  const checkoutBooking = useMutation({ mutationFn: (id:number) => apiPost(`/api/owner/bookings/${id}/checkout`, {}), onSuccess: (_res, vars) => { toast({ title: "Checked out", description: `Booking #${vars}` }); qc.invalidateQueries({ queryKey: ["owner","bookings",ownerId] }) } })
+  const updatePricing = useMutation({ mutationFn: (p: { hotelId:number; normalPrice?:number; weekendPrice?:number; seasonal?:{start:string;end:string;price:number}[]; specials?:{date:string;price:number}[] }) => apiPost(`/api/owner/pricing/${p.hotelId}`, p), onSuccess: (_res, vars) => { toast({ title: "Pricing updated", description: `Hotel #${vars.hotelId}` }); qc.invalidateQueries({ queryKey: ["owner","hotels",ownerId] }) } })
+  const deletePricing = useMutation({ mutationFn: (hotelId:number) => apiDelete(`/api/owner/pricing/${hotelId}`), onSuccess: (_res, vars) => { toast({ title: "Pricing deleted", description: `Hotel #${vars}` }); qc.invalidateQueries({ queryKey: ["owner","hotels",ownerId] }) } })
   const respondReview = useMutation({ mutationFn: (p: { id:number; response:string }) => apiPost(`/api/owner/reviews/${p.id}/respond`, { response: p.response }), onSuccess: (_res, vars) => { qc.invalidateQueries({ queryKey: ["owner","reviews",ownerId] }); toast({ title: "Response sent", description: `Review #${vars.id}` }) }, onError: () => toast({ title: "Response failed", variant: "destructive" }) })
 
   const [hotelForm, setHotelForm] = React.useState({ name:"", location:"", price:0, amenities:"", description:"" })
@@ -282,7 +282,7 @@ const OwnerDashboard = () => {
                       </td>
                       <td className="p-2">
                         <div className="flex gap-2">
-                          <Button variant="outline" onClick={()=>setEditing({ ...editing, [h.id]: !editing[h.id] })}>{editing[h.id] ? 'Stop Edit' : 'Edit'}</Button>
+                          <Button variant="outline" onClick={()=>{ const next = !editing[h.id]; setEditing({ ...editing, [h.id]: next }); toast({ title: next ? 'Edit enabled' : 'Edit disabled', description: `Hotel #${h.id}` }) }}>{editing[h.id] ? 'Stop Edit' : 'Edit'}</Button>
                           <Button onClick={async ()=>{
                             const name = (nameEdit[h.id] ?? h.name ?? '')
                             const location = (locationEdit[h.id] ?? h.location ?? '')
@@ -415,7 +415,7 @@ const OwnerDashboard = () => {
                         </div>
                       </td>
                       <td className="p-3 flex gap-2 flex-wrap">
-                        <Button size="sm" variant="outline" onClick={()=>setRoomEditing({ ...roomEditing, [r.id]: !roomEditing[r.id] })}>{roomEditing[r.id]?'Stop Edit':'Edit'}</Button>
+                        <Button size="sm" variant="outline" onClick={()=>{ const next = !roomEditing[r.id]; setRoomEditing({ ...roomEditing, [r.id]: next }); toast({ title: next ? 'Edit enabled' : 'Edit disabled', description: `Room #${r.id}` }) }}>{roomEditing[r.id]?'Stop Edit':'Edit'}</Button>
                         <Button size="sm" onClick={async ()=>{
                           const edits = roomEdit[r.id]||{}
                           const payload: { price?:number; members?:number; amenities?:string[]; availability?:boolean; photos?:string[]; type?:string } = {}
@@ -660,7 +660,7 @@ const OwnerDashboard = () => {
                           </div>
                         </td>
                         <td className="p-2 flex gap-2 flex-wrap">
-                          <Button size="sm" variant="outline" onClick={()=>setPricingEditing({ ...pricingEditing, [h.id]: !pricingEditing[h.id] })}>{pricingEditing[h.id] ? 'Stop Edit' : 'Edit'}</Button>
+                          <Button size="sm" variant="outline" onClick={()=>{ const next = !pricingEditing[h.id]; setPricingEditing({ ...pricingEditing, [h.id]: next }); toast({ title: next ? 'Edit enabled' : 'Edit disabled', description: `Pricing • Hotel #${h.id}` }) }}>{pricingEditing[h.id] ? 'Stop Edit' : 'Edit'}</Button>
                           <Button size="sm" onClick={()=>updatePricing.mutate({ hotelId: h.id, normalPrice: pf.normalPrice ? Number(pf.normalPrice) : undefined, weekendPrice: pf.weekendPrice ? Number(pf.weekendPrice) : undefined, seasonal: (pf.seasonal||[]).filter(s=>s.start&&s.end&&s.price).map(s=>({ start:s.start, end:s.end, price:Number(s.price) })), specials: (pf.specials||[]).filter(sp=>sp.date&&sp.price).map(sp=>({ date:sp.date, price:Number(sp.price) })) })} disabled={!pricingEditing[h.id]}>Update</Button>
                           <Button size="sm" variant="outline" onClick={()=>deletePricing.mutate(h.id)}>Delete</Button>
                         </td>
