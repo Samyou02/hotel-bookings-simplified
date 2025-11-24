@@ -7,5 +7,7 @@ module.exports = {
   Coupon: require('./Coupon'),
   Contact: require('./Contact'),
   Settings: require('./Settings'),
-  Wishlist: require('./Wishlist')
+  Wishlist: require('./Wishlist'),
+  MessageThread: require('./MessageThread'),
+  Message: require('./Message')
 }

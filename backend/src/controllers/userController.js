@@ -1,7 +1,7 @@
 const { connect } = require('../config/db')
 const ensureSeed = require('../seed')
 const { nextIdFor } = require('../utils/ids')
-const { Booking, Review, Wishlist } = require('../models')
+const { Booking, Review, Wishlist, MessageThread, Message, Hotel } = require('../models')
 
 async function bookings(req, res) {
   await connect(); await ensureSeed();
@@ -17,6 +17,15 @@ async function cancelBooking(req, res) {
   if (!b) return res.status(404).json({ error: 'Booking not found' })
   b.status = 'cancelled'
   await b.save()
+  let thread = await MessageThread.findOne({ bookingId: id })
+  if (!thread) {
+    const tid = await nextIdFor('MessageThread')
+    const h = await Hotel.findOne({ id: Number(b.hotelId) })
+    await MessageThread.create({ id: tid, bookingId: id, hotelId: Number(b.hotelId), userId: Number(b.userId)||null, ownerId: Number(h?.ownerId)||null })
+    thread = await MessageThread.findOne({ id: tid }).lean()
+  }
+  const mid = await nextIdFor('Message')
+  await Message.create({ id: mid, threadId: Number(thread?.id || 0), senderRole: 'system', senderId: null, content: `Booking #${id} cancelled by user`, readByUser: true, readByOwner: false })
   res.json({ status: 'updated' })
 }
 

@@ -70,7 +70,7 @@ const HotelDetail = () => {
   const grandTotal = subtotal
 
   type ReserveResp = { status: string; id: number; roomId: number; holdExpiresAt: string }
-  const reserve = useMutation({ mutationFn: () => apiPost<ReserveResp, { userId:number; hotelId: number; checkIn: string; checkOut: string; guests: number; roomType: string }>("/api/bookings", { userId: auth?.user?.id || 0, hotelId: Number(id), checkIn: hasDateTime ? `${checkIn}T${checkInTime}:00+05:30` : checkIn, checkOut: hasDateTime ? `${checkOut}T${checkOutTime}:00+05:30` : checkOut, guests, roomType }) })
+  const reserve = useMutation({ mutationFn: (body: { userId:number; hotelId: number; checkIn: string; checkOut: string; guests: number; roomType: string }) => apiPost<ReserveResp, { userId:number; hotelId: number; checkIn: string; checkOut: string; guests: number; roomType: string }>("/api/bookings", body) })
 
   const [open, setOpen] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState<'upi'|'cod'|''>('')
@@ -289,7 +289,18 @@ const HotelDetail = () => {
                   </div>
                 </div>
 
-                <Button className="w-full h-12 bg-accent hover:bg-accent/90 text-white mb-4" disabled={reserve.isPending || !hasDateTime} onClick={() => { setOpen(true); reserve.mutate(); }}>
+                <Button className="w-full h-12 bg-accent hover:bg-accent/90 text-white mb-4" disabled={reserve.isPending || !hasDateTime} onClick={() => {
+                  const nowHM = hmIST(new Date())
+                  const toMin = (s:string) => { const [h,m] = s.split(":").map(Number); return (h||0)*60 + (m||0) }
+                  let ciTime = checkInTime
+                  if (checkIn === todayIso) {
+                    if (toMin(ciTime) < toMin(nowHM)) ciTime = nowHM
+                  }
+                  const ciStr = `${checkIn}T${ciTime}:00+05:30`
+                  const coStr = `${checkOut}T${checkOutTime}:00+05:30`
+                  setOpen(true);
+                  reserve.mutate({ userId: auth?.user?.id || 0, hotelId: Number(id), checkIn: ciStr, checkOut: coStr, guests, roomType })
+                }}>
                   {reserve.isPending ? "Reserving..." : "Reserve Now"}
                 </Button>
                 {reserve.isError && <div className="text-red-600 text-sm">Reservation failed</div>}

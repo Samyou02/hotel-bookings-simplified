@@ -1,7 +1,7 @@
 const { connect } = require('../config/db')
 const ensureSeed = require('../seed')
 const { nextIdFor } = require('../utils/ids')
-const { Booking, Hotel, Room, Settings } = require('../models')
+const { Booking, Hotel, Room, Settings, MessageThread, Message } = require('../models')
 
 async function create(req, res) {
   await connect(); await ensureSeed();
@@ -52,7 +52,7 @@ async function create(req, res) {
   }
   let chosenRoomId = null
   for (const r of rooms) {
-    const existing = await Booking.find({ roomId: r.id, status: { $in: ['held','confirmed','checked_in'] } }).lean()
+    const existing = await Booking.find({ roomId: r.id, status: { $in: ['held','pending','confirmed','checked_in'] } }).lean()
     const overlaps = existing.some(b => {
       const bCi = new Date(b.checkIn)
       const bCo = new Date(b.checkOut)
@@ -133,6 +133,16 @@ async function create(req, res) {
   const holdExpiresAt = new Date(Date.now() + holdMinutes * 60 * 1000)
   await Booking.create({ id, userId: Number(userId) || null, hotelId: Number(hotelId), roomId: Number(chosenRoomId), checkIn, checkOut, guests: Number(guests), total: computedTotal, status: 'held', holdExpiresAt, paid: false })
   // Do not hard-block room for all dates; overlap logic prevents conflicts
+  let thread = await MessageThread.findOne({ bookingId: id })
+  if (!thread) {
+    const tid = await nextIdFor('MessageThread')
+    const ownerId = Number(hotel.ownerId) || null
+    const uid = Number(userId) || null
+    await MessageThread.create({ id: tid, bookingId: id, hotelId: Number(hotelId), userId: uid, ownerId })
+    thread = await MessageThread.findOne({ id: tid }).lean()
+  }
+  const mid = await nextIdFor('Message')
+  await Message.create({ id: mid, threadId: Number(thread?.id || 0), senderRole: 'system', senderId: null, content: `Reservation #${id} created`, readByUser: true, readByOwner: false })
   res.json({ status: 'reserved', id, roomId: chosenRoomId, holdExpiresAt })
 }
 
@@ -158,13 +168,16 @@ async function confirm(req, res) {
   const now = new Date()
   if (b.status !== 'held') return res.status(409).json({ error: 'Booking not in held state' })
   if (b.holdExpiresAt && new Date(b.holdExpiresAt) <= now) return res.status(409).json({ error: 'Hold expired' })
-  b.status = 'confirmed'
+  b.status = 'pending'
   b.paid = true
   await b.save()
   if (b.roomId) {
     const r = await Room.findOne({ id: Number(b.roomId) })
     if (r) { r.blocked = false; await r.save() }
   }
+  const thread = await MessageThread.findOne({ bookingId: id })
+  const mid = await nextIdFor('Message')
+  await Message.create({ id: mid, threadId: Number(thread?.id || 0), senderRole: 'system', senderId: null, content: `Booking #${id} pending owner approval`, readByUser: true, readByOwner: false })
   res.json({ status: 'confirmed' })
 }
 
