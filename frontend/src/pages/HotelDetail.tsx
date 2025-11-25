@@ -93,44 +93,13 @@ const HotelDetail = () => {
 
   const [roomType, setRoomType] = useState<string>(availableRooms[0]?.type || "Standard");
   useEffect(() => {
- 
-    const rs = roomsQuery.data?.rooms || []
-    if (rs.length && !rs.find(r => r.type === roomType)) setRoomType(rs[0].type)
-  }, [roomsQuery.data, roomType])
-  const selectedRoom = availableRooms.find(r => r.type === roomType) || availableRooms[0]
-  const price = Number(selectedRoom?.price ?? hotel?.price ?? 0)
-  const todayIso = ymdIST(new Date())
-  const hasDateTime = !!checkIn && !!checkOut && !!checkInTime && !!checkOutTime && (()=>{
-    const ci2 = new Date(`${checkIn}T${checkInTime}:00+05:30`)
-    const co2 = new Date(`${checkOut}T${checkOutTime}:00+05:30`)
-    const startOfToday = new Date(`${todayIso}T00:00:00+05:30`)
-    const notBeforeToday = ci2 >= startOfToday
-    const notAfter = co2 > ci2
-    return notBeforeToday && notAfter
-  })()
-  
-  const ci = hasDateTime ? new Date(`${checkIn}T${checkInTime}:00+05:30`) : null
-  const co = hasDateTime ? new Date(`${checkOut}T${checkOutTime}:00+05:30`) : null
-  const diffMs = ci && co ? Math.max(0, co.getTime() - ci.getTime()) : 0
-  const diffHours = Math.ceil(diffMs / (1000 * 60 * 60))
-  const stayDays = diffHours > 0 && diffHours <= 24 ? 1 : Math.floor(diffHours / 24)
-  const extraHours = diffHours > 24 ? (diffHours - stayDays * 24) : 0
-  const baseAmount = stayDays * price
-  const extraAmount = Math.round((price / 24) * extraHours)
-  const subtotal = baseAmount + extraAmount
-  const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null)
-  const discountAmount = Math.max(0, Math.round((appliedCoupon?.discount || 0) * subtotal / 100))
-  const grandTotal = Math.max(0, subtotal - discountAmount)
-  type Coupon = { id:number; code:string; discount:number; expiry:string|null; usageLimit:number; used:number; enabled:boolean; hotelId?:number }
-  const couponsQ = useQuery({ queryKey: ["hotel","coupons", id, checkIn], queryFn: () => apiGet<{ coupons: Coupon[] }>(`/api/hotels/${id}/coupons?date=${checkIn}`), enabled: !!id && !!checkIn })
-
     const rs = availableRooms;
     if (rs.length && !rs.find((r) => r.type === roomType)) {
       setRoomType(rs[0].type);
     }
   }, [availableRooms, roomType]);
- 
 
+ 
   const selectedRoom = availableRooms.find((r) => r.type === roomType) || availableRooms[0];
   const price = Number(selectedRoom?.price ?? hotel?.price ?? 0);
 
@@ -214,10 +183,6 @@ const HotelDetail = () => {
   // reservation mutation
   type ReserveResp = { status: string; id: number; roomId: number; holdExpiresAt: string };
   const reserve = useMutation({
- 
-    mutationFn: (body: { userId:number; hotelId: number; checkIn: string; checkOut: string; guests: number; roomType: string; couponCode?: string }) =>
-      apiPost<ReserveResp, { userId:number; hotelId: number; checkIn: string; checkOut: string; guests: number; roomType: string; couponCode?: string }>("/api/bookings", body),
-
     mutationFn: (body: {
       userId: number;
       hotelId: number;
@@ -227,7 +192,7 @@ const HotelDetail = () => {
       roomType: string;
       couponCode?: string;
     }) => apiPost<ReserveResp, typeof body>("/api/bookings", body),
- 
+
     onSuccess: (res) => {
       toast({ title: "Reservation successful", description: `Booking #${res.id} is on hold` });
     },
@@ -337,134 +302,11 @@ const HotelDetail = () => {
                       <MapPin className="h-5 w-5 mr-2" />
                       <span>{hotel.location}</span>
                     </div>
- 
-                  ))}
-                  {(!reviews.data?.reviews || reviews.data.reviews.length===0) && <div className="text-sm text-muted-foreground">No reviews yet</div>}
-                </div>
-              </div>
-            </div>
-
-            {/* Booking Card */}
-            <div className="lg:col-span-1">
-              <div className="sticky top-24 p-6 rounded-2xl border bg-card shadow-card">
-                <div className="mb-6">
-                  <div className="text-3xl font-bold text-primary mb-1">₹{price}</div>
-                  <p className="text-muted-foreground">per 24h</p>
-                </div>
-                <div className="mb-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Coupons for {checkIn}</span>
                   </div>
-                  {couponsQ.isLoading && <div className="text-xs text-muted-foreground">Checking coupons...</div>}
-                  {couponsQ.isError && <div className="text-xs text-muted-foreground">Failed to load coupons</div>}
-                  {!couponsQ.isLoading && !couponsQ.isError && (
-                    (couponsQ.data?.coupons||[]).length ? (
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        {(couponsQ.data?.coupons||[]).map(c => (
-                          <span
-                            key={c.id}
-                            onClick={() => setAppliedCoupon(appliedCoupon?.id===c.id ? null : c)}
-                            className={`inline-flex items-center px-2 py-1 rounded-full text-xs cursor-pointer ${appliedCoupon?.id===c.id ? 'bg-primary text-primary-foreground' : 'bg-secondary'}`}
-                          >
-                            {c.code} • {c.discount}%
-                          </span>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-xs text-muted-foreground mt-2">No coupons for selected date</div>
-                    )
-                  )}
-                </div>
-
-                <div className="space-y-4 mb-6">
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">Check-in</label>
-                  <input
-                    type="date"
-                    className="w-full px-4 py-2 rounded-lg border bg-background"
-                    value={checkIn}
-                    min={todayIso}
-                    onChange={(e) => setCheckIn(e.target.value)}
-                  />
-                  <input
-                    type="time"
-                    className="w-full mt-2 px-4 py-2 rounded-lg border bg-background"
-                    value={checkInTime}
-                    min={(checkIn===todayIso) ? hmIST(new Date()) : undefined}
-                    onChange={(e) => setCheckInTime(e.target.value)}
-                  />
-
- 
-                  </div>
-
                   <div className="mb-8">
                     <h2 className="text-2xl font-bold mb-4">Description</h2>
                     <p className="text-muted-foreground leading-relaxed">{hotel.description}</p>
                   </div>
-
-                  <div className="mb-8">
-                    <h2 className="text-2xl font-bold mb-4">Amenities</h2>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                      {(hotel.amenities || []).map((label, index) => (
-                        <div key={index} className="flex items-center space-x-3 p-4 rounded-lg bg-muted">
-                          <Wifi className="h-5 w-5 text-primary" />
-                          <span className="font-medium">{label}</span>
-                        </div>
-                      ))}
- 
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">Guests</label>
-                  <select className="w-full px-4 py-2 rounded-lg border bg-background" value={guests} onChange={(e) => setGuests(Number(e.target.value))}>
-                      <option value={1}>1 Guest</option>
-                      <option value={2}>2 Guests</option>
-                      <option value={3}>3 Guests</option>
-                      <option value={4}>4+ Guests</option>
-                    </select>
-                  </div>
-                </div>
-
-                <Button className="w-full h-12 bg-accent hover:bg-accent/90 text-white mb-4" disabled={reserve.isPending || !hasDateTime} onClick={() => {
-                  const nowHM = hmIST(new Date())
-                  const toMin = (s:string) => { const [h,m] = s.split(":").map(Number); return (h||0)*60 + (m||0) }
-                  let ciTime = checkInTime
-                  if (checkIn === todayIso) {
-                    if (toMin(ciTime) < toMin(nowHM)) ciTime = nowHM
-                  }
-                  const ciStr = `${checkIn}T${ciTime}:00+05:30`
-                  const coStr = `${checkOut}T${checkOutTime}:00+05:30`
-                  setOpen(true);
-                  reserve.mutate({ userId: auth?.user?.id || 0, hotelId: Number(id), checkIn: ciStr, checkOut: coStr, guests, roomType, couponCode: appliedCoupon?.code || undefined })
-                }}>
-                  {reserve.isPending ? "Reserving..." : "Reserve Now"}
-                </Button>
-                {reserve.isError && <div className="text-red-600 text-sm">Reservation failed</div>}
-
-                <div className="space-y-2 pt-4 border-t">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">₹{price} × {stayDays} days</span>
-                    <span className="font-medium">₹{baseAmount}</span>
-                  </div>
-                  {extraHours>0 && (
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Extra hours {extraHours}h</span>
-                      <span className="font-medium">₹{extraAmount}</span>
-                    </div>
-                  )}
-                  {appliedCoupon?.discount ? (
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Coupon {appliedCoupon.code} ({appliedCoupon.discount}%)</span>
-                      <span className="font-medium">-₹{discountAmount}</span>
-                    </div>
-                  ) : null}
-                  <div className="flex justify-between font-bold text-lg pt-2 border-t">
-                    <span>Total</span>
-                    <span>₹{grandTotal}</span>
-
-                    </div>
-                  </div>
-
                   <div className="mb-8">
                     <h2 className="text-2xl font-bold mb-4">Rooms</h2>
                     <div className="rounded-xl border overflow-hidden">
@@ -520,7 +362,6 @@ const HotelDetail = () => {
                       )}
                     </div>
                   </div>
-
                   <div>
                     <h2 className="text-2xl font-bold mb-4">Guest Reviews</h2>
                     <div className="space-y-4">
@@ -556,9 +397,10 @@ const HotelDetail = () => {
                         <div className="text-sm text-muted-foreground">No reviews yet</div>
                       )}
                     </div>
- 
                   </div>
                 </div>
+
+                
 
                 {/* Booking card */}
                 <div className="lg:col-span-1">
@@ -595,6 +437,8 @@ const HotelDetail = () => {
                         )
                       )}
                     </div>
+ 
+ 
 
                     <div className="space-y-4 mb-6">
                       <div>
