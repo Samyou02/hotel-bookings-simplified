@@ -238,8 +238,10 @@ const HotelDetail = () => {
   const resolveImage = (src?: string) => {
     const s = String(src || "");
     if (!s) return "https://placehold.co/800x600?text=Hotel";
-    if (s.startsWith("/uploads")) return `http://localhost:3015${s}`;
-    if (s.startsWith("uploads")) return `http://localhost:3015/${s}`;
+    const env = (typeof import.meta !== 'undefined' && (import.meta as unknown as { env?: Record<string, string> })?.env) || {} as Record<string, string>
+    const base = env?.VITE_API_URL || ''
+    if (s.startsWith("/uploads")) return `${base}${s}`;
+    if (s.startsWith("uploads")) return `${base}/${s}`;
     return s;
   };
 

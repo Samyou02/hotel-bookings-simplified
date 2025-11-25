@@ -69,7 +69,7 @@ const UserDashboard = () => {
   }, [bookingsQ.data, toast])
 
   const [hotelMap, setHotelMap] = React.useState<{ [id:number]: { id:number; name:string; image:string } }>({})
-  const resolveImage = (src?: string) => { const s = String(src||''); if (!s) return 'https://placehold.co/160x120?text=Hotel'; if (s.startsWith('/uploads')) return `http://localhost:3015${s}`; if (s.startsWith('uploads')) return `http://localhost:3015/${s}`; return s }
+  const resolveImage = (src?: string) => { const s = String(src||''); if (!s) return 'https://placehold.co/160x120?text=Hotel'; const env = (typeof import.meta !== 'undefined' && (import.meta as unknown as { env?: Record<string, string> })?.env) || {} as Record<string, string>; const base = env?.VITE_API_URL || ''; if (s.startsWith('/uploads')) return `${base}${s}`; if (s.startsWith('uploads')) return `${base}/${s}`; return s }
   React.useEffect(() => {
     const ids = Array.from(new Set(bookings.map(b=>b.hotelId).filter(Boolean)))
     const need = ids.filter(id => !hotelMap[id])

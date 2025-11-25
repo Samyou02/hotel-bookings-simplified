@@ -80,7 +80,7 @@ const MessageInbox = () => {
     if (ownerId) qc.invalidateQueries({ queryKey: ["owner","reviews", ownerId] })
   }, onError: () => { toast({ title: "Review submission failed", variant: "destructive" }) } })
 
-  const resolveImage = (src?: string) => { const s = String(src||''); if (!s) return 'https://placehold.co/64x64?text=Hotel'; if (s.startsWith('/uploads')) return `http://localhost:3015${s}`; if (s.startsWith('uploads')) return `http://localhost:3015/${s}`; if (s.startsWith('/src/assets')) { const origin = typeof window !== 'undefined' ? window.location.origin : ''; return origin ? `${origin}${s}` : 'https://placehold.co/64x64?text=Hotel' } return s }
+  const resolveImage = (src?: string) => { const s = String(src||''); if (!s) return 'https://placehold.co/64x64?text=Hotel'; const env = (typeof import.meta !== 'undefined' && (import.meta as unknown as { env?: Record<string, string> })?.env) || {} as Record<string, string>; const base = env?.VITE_API_URL || ''; if (s.startsWith('/uploads')) return `${base}${s}`; if (s.startsWith('uploads')) return `${base}/${s}`; if (s.startsWith('/src/assets')) { const origin = typeof window !== 'undefined' ? window.location.origin : ''; return origin ? `${origin}${s}` : 'https://placehold.co/64x64?text=Hotel' } return s }
   const [hotelMap, setHotelMap] = React.useState<{ [id:number]: { id:number; name:string; image:string } }>({})
   React.useEffect(() => {
     const ids = Array.from(new Set(threads.map(t=>t.hotelId))).filter(Boolean)

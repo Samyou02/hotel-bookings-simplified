@@ -206,12 +206,13 @@ const OwnerDashboard = () => {
     return h?.name || ""
   }
 
-  // Use backend port 3015
   const resolve = (u: string) => {
     if (!u) return ""
     const s = String(u)
-    if (s.startsWith("/uploads")) return "http://localhost:3015" + s
-    if (s.startsWith("uploads")) return "http://localhost:3015/" + s
+    const env = (typeof import.meta !== 'undefined' && (import.meta as unknown as { env?: Record<string, string> })?.env) || {} as Record<string, string>
+    const base = env?.VITE_API_URL || ''
+    if (s.startsWith("/uploads")) return `${base}${s}`
+    if (s.startsWith("uploads")) return `${base}/${s}`
     return s
   }
 
@@ -987,7 +988,7 @@ const OwnerDashboard = () => {
                         <div className="text-xs text-muted-foreground">DOB {g.user?.dob || '-'}</div>
                       </td>
                       <td className="p-3">
-                        {(() => { const u = String(g.user?.idDocUrl||''); if (!u) return (<span className="text-sm text-muted-foreground">No document</span>); const s = u.startsWith('/uploads') ? `http://localhost:3015${u}` : (u.startsWith('uploads') ? `http://localhost:3015/${u}` : u); return (<a href={s} target="_blank" rel="noreferrer" className="text-sm underline">View</a>) })()}
+                        {(() => { const u = String(g.user?.idDocUrl||''); if (!u) return (<span className="text-sm text-muted-foreground">No document</span>); const env = (typeof import.meta !== 'undefined' && (import.meta as unknown as { env?: Record<string, string> })?.env) || {} as Record<string, string>; const base = env?.VITE_API_URL || ''; const s = u.startsWith('/uploads') ? `${base}${u}` : (u.startsWith('uploads') ? `${base}/${u}` : u); return (<a href={s} target="_blank" rel="noreferrer" className="text-sm underline">View</a>) })()}
                       </td>
                       <td className="p-3">{g.user?.address || '-'}</td>
                       <td className="p-3">
@@ -2102,10 +2103,12 @@ const OwnerDashboard = () => {
                                     No document
                                   </span>
                                 )
+                              const env = (typeof import.meta !== 'undefined' && (import.meta as unknown as { env?: Record<string, string> })?.env) || {} as Record<string, string>
+                              const base = env?.VITE_API_URL || ''
                               const s = u.startsWith("/uploads")
-                                ? `http://localhost:3015${u}`
+                                ? `${base}${u}`
                                 : u.startsWith("uploads")
-                                  ? `http://localhost:3015/${u}`
+                                  ? `${base}/${u}`
                                   : u
                               return (
                                 <a
