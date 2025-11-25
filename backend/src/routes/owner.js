@@ -24,6 +24,8 @@ router.post('/bookings/:id/checkin', owner.checkinBooking)
 router.post('/bookings/:id/checkout', owner.checkoutBooking)
 router.post('/bookings/:id/cancel', owner.cancelBooking)
 
+router.get('/guests', owner.guests)
+
 router.post('/pricing/:hotelId', owner.pricing)
 router.delete('/pricing/:hotelId', owner.deletePricing)
 

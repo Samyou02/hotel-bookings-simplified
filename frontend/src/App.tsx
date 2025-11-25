@@ -17,6 +17,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import UserDashboard from "./pages/UserDashboard";
 import OwnerDashboard from "./pages/OwnerDashboard";
 import MessageInbox from "./pages/MessageInbox";
+import UserDetails from "./pages/UserDetails";
 
 const queryClient = new QueryClient();
 
@@ -38,6 +39,7 @@ const App = () => (
           <Route path="/dashboard/admin" element={<ProtectedRoute role="admin"><AdminDashboard /></ProtectedRoute>} />
           <Route path="/dashboard/admin/:feature" element={<ProtectedRoute role="admin"><AdminDashboard /></ProtectedRoute>} />
           <Route path="/dashboard/user" element={<ProtectedRoute role="user"><UserDashboard /></ProtectedRoute>} />
+          <Route path="/dashboard/user/details" element={<ProtectedRoute role="user"><UserDetails /></ProtectedRoute>} />
           <Route path="/dashboard/owner" element={<ProtectedRoute role="owner"><OwnerDashboard /></ProtectedRoute>} />
           <Route path="/dashboard/owner/:feature" element={<ProtectedRoute role="owner"><OwnerDashboard /></ProtectedRoute>} />
           <Route path="/inbox" element={<ProtectedRoute><MessageInbox /></ProtectedRoute>} />

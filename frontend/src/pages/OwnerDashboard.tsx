@@ -17,8 +17,10 @@ import { useToast } from "@/hooks/use-toast"
 type OwnerStats = { totalRooms:number; totalBookings:number; totalRevenue:number; pendingBookings:number; hotelStatus:string }
   type Hotel = { id:number; name:string; location:string; status:string; price:number; amenities:string[]; images:string[]; docs:string[]; description?: string; pricing?: { normalPrice?: number; weekendPrice?: number; seasonal?: { start:string; end:string; price:number }[]; specials?: { date:string; price:number }[] } }
 type Room = { id:number; hotelId:number; type:string; price:number; members:number; availability:boolean; blocked:boolean; amenities:string[]; photos:string[] }
-type Booking = { id:number; hotelId:number; roomId?:number; checkIn:string; checkOut:string; guests:number; total:number; status:string; createdAt?:string }
+type Booking = { id:number; hotelId:number; roomId?:number; checkIn:string; checkOut:string; guests:number; total:number; status:string; createdAt?:string; user?: { id:number; email?:string; firstName?:string; lastName?:string; fullName?:string } | null }
 type Review = { id:number; hotelId:number; rating:number; comment:string; createdAt:string; response?:string }
+type GuestUser = { id:number; email:string; firstName?:string; lastName?:string; phone?:string; fullName?:string; dob?:string; address?:string; idType?:string; idNumber?:string; idDocUrl?:string }
+type GuestItem = { user: GuestUser | null; lastBooking: { id:number; hotelId:number; checkIn:string; checkOut:string; status:string } | null }
 
 const OwnerDashboard = () => {
   const raw = typeof window !== "undefined" ? localStorage.getItem("auth") : null
@@ -47,6 +49,7 @@ const OwnerDashboard = () => {
   const roomsQ = useQuery({ queryKey: ["owner","rooms",ownerId], queryFn: () => apiGet<{ rooms: Room[] }>(`/api/owner/rooms?ownerId=${ownerId}`), enabled: !!ownerId })
   const bookingsQ = useQuery({ queryKey: ["owner","bookings",ownerId], queryFn: () => apiGet<{ bookings: Booking[] }>(`/api/owner/bookings?ownerId=${ownerId}`), enabled: !!ownerId })
   const reviewsQ = useQuery({ queryKey: ["owner","reviews",ownerId], queryFn: () => apiGet<{ reviews: Review[] }>(`/api/owner/reviews?ownerId=${ownerId}`), enabled: !!ownerId })
+  const guestsQ = useQuery({ queryKey: ["owner","guests",ownerId], queryFn: () => apiGet<{ guests: GuestItem[] }>(`/api/owner/guests?ownerId=${ownerId}`), enabled: !!ownerId, refetchInterval: 10000 })
 
   const allHotels = hotelsQ.data?.hotels || []
   const hotels = (hotelsQ.data?.hotels || []).filter(h => getSet("hotels").has(h.id))
@@ -71,6 +74,7 @@ const OwnerDashboard = () => {
     return bookingsOrdered.filter((b: Booking)=> String(b.status).trim().toLowerCase()===m(statusFilter))
   }, [bookingsOrdered, statusFilter])
   const reviews = reviewsQ.data?.reviews || []
+  const guests = guestsQ.data?.guests || []
 
   const [lastHotelRegId, setLastHotelRegId] = React.useState<number | null>(null)
   const submitHotel = useMutation({ mutationFn: (p: { name:string; location:string; price:number; amenities:string[]; description?:string }) => apiPost<{ id:number }, { ownerId:number; name:string; location:string; price:number; amenities:string[]; description?:string }>(`/api/owner/hotels/submit`, { ownerId, ...p }), onSuccess: (res) => { if (res?.id) { addId("hotels", res.id); setLastHotelRegId(res.id); toast({ title: "Hotel submitted", description: `#${res.id}` }) } qc.invalidateQueries({ queryKey: ["owner","hotels",ownerId] }) } })
@@ -502,12 +506,16 @@ const OwnerDashboard = () => {
           <CardContent>
             <div className="rounded-lg border overflow-hidden">
               <table className="w-full text-sm">
-                <thead className="bg-muted/50"><tr className="text-left"><th className="p-3">Booking</th><th className="p-3">Hotel</th><th className="p-3">Room</th><th className="p-3">Dates</th><th className="p-3">Guests</th><th className="p-3">Total</th><th className="p-3">Status</th><th className="p-3">Actions</th></tr></thead>
+                <thead className="bg-muted/50"><tr className="text-left"><th className="p-3">Booking</th><th className="p-3">Hotel</th><th className="p-3">User</th><th className="p-3">Room</th><th className="p-3">Dates</th><th className="p-3">Guests</th><th className="p-3">Total</th><th className="p-3">Status</th><th className="p-3">Actions</th></tr></thead>
                 <tbody className="[&_tr:hover]:bg-muted/30">
                   {bookingsFiltered.map(b=>(
                     <tr key={b.id} className="border-t">
                       <td className="p-3">#{b.id}</td>
                       <td className="p-3">{b.hotelId}</td>
+                      <td className="p-3">
+                        <div className="font-medium">{(b as any).user?.fullName || `${(b as any).user?.firstName||''} ${(b as any).user?.lastName||''}`.trim() || ((b as any).user?.email||`User #${(b as any).user?.id||''}`)}</div>
+                        <div className="text-xs text-muted-foreground">{(b as any).user?.email || '-'}</div>
+                      </td>
                       <td className="p-3">{b.roomId ?? '-'}</td>
                       <td className="p-3">{b.checkIn} → {b.checkOut}</td>
                       <td className="p-3">{b.guests}</td>
@@ -543,6 +551,49 @@ const OwnerDashboard = () => {
                       </td>
                     </tr>
                   ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+        )}
+
+        {feature === 'guests' && (
+        <Card className="shadow-card hover:shadow-card-hover transition-all">
+          <CardHeader><CardTitle>Guests</CardTitle></CardHeader>
+          <CardContent>
+            <div className="rounded-lg border overflow-hidden">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/50"><tr className="text-left"><th className="p-3">Guest</th><th className="p-3">Contact</th><th className="p-3">ID</th><th className="p-3">Document</th><th className="p-3">Address</th><th className="p-3">Last Booking</th></tr></thead>
+                <tbody className="[&_tr:hover]:bg-muted/30">
+                  {guests.map(g => (
+                    <tr key={String(g.user?.id||g.lastBooking?.id||Math.random())} className="border-t">
+                      <td className="p-3">
+                        <div className="font-medium">{g.user?.fullName || `${g.user?.firstName||''} ${g.user?.lastName||''}`.trim() || `User #${g.user?.id}`}</div>
+                        <div className="text-xs text-muted-foreground">#{g.user?.id}</div>
+                      </td>
+                      <td className="p-3">
+                        <div className="text-sm">{g.user?.email}</div>
+                        <div className="text-xs text-muted-foreground">{g.user?.phone}</div>
+                      </td>
+                      <td className="p-3">
+                        <div className="text-sm">{g.user?.idType} {g.user?.idNumber}</div>
+                        <div className="text-xs text-muted-foreground">DOB {g.user?.dob || '-'}</div>
+                      </td>
+                      <td className="p-3">
+                        {(() => { const u = String(g.user?.idDocUrl||''); if (!u) return (<span className="text-sm text-muted-foreground">No document</span>); const s = u.startsWith('/uploads') ? `http://localhost:5000${u}` : (u.startsWith('uploads') ? `http://localhost:5000/${u}` : u); return (<a href={s} target="_blank" rel="noreferrer" className="text-sm underline">View</a>) })()}
+                      </td>
+                      <td className="p-3">{g.user?.address || '-'}</td>
+                      <td className="p-3">
+                        {g.lastBooking ? (
+                          <div className="text-sm">#{g.lastBooking.id} • Hotel {g.lastBooking.hotelId}</div>
+                        ) : (
+                          <div className="text-sm text-muted-foreground">No booking</div>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                  {guests.length===0 && <tr><td className="p-3 text-muted-foreground" colSpan={5}>No guests yet</td></tr>}
                 </tbody>
               </table>
             </div>

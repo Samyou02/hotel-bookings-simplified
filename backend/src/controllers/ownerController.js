@@ -1,7 +1,7 @@
 const { connect } = require('../config/db')
 const ensureSeed = require('../seed')
 const { nextIdFor } = require('../utils/ids')
-const { Hotel, Booking, Room, Review, MessageThread, Message } = require('../models')
+const { Hotel, Booking, Room, Review, MessageThread, Message, User } = require('../models')
 const fs = require('fs')
 const path = require('path')
 
@@ -216,7 +216,34 @@ async function ownerBookings(req, res) {
   const ownerId = Number(req.query.ownerId)
   const hotelIds = (await Hotel.find({ ownerId }).lean()).map(h=>h.id)
   const bookings = await Booking.find({ hotelId: { $in: hotelIds } }).lean()
-  res.json({ bookings })
+  const userIds = Array.from(new Set(bookings.map(b=>Number(b.userId||0)).filter(Boolean)))
+  const users = userIds.length ? await User.find({ id: { $in: userIds } }).lean() : []
+  const umap = new Map(users.map(u=>[u.id, u]))
+  const items = bookings.map(b => ({ ...b, user: umap.get(Number(b.userId||0)) || null }))
+  res.json({ bookings: items })
+}
+
+async function guests(req, res) {
+  await connect(); await ensureSeed();
+  const ownerId = Number(req.query.ownerId)
+  const hotels = await Hotel.find({ ownerId }).lean()
+  const hotelIds = hotels.map(h=>h.id)
+  const bookings = await Booking.find({ hotelId: { $in: hotelIds } }).lean()
+  const byUser = {}
+  bookings.forEach(b => {
+    const key = Number(b.userId || 0)
+    if (!key) return
+    const cur = byUser[key]
+    const created = new Date(b.createdAt || 0).getTime()
+    if (!cur || created > new Date(cur.lastBooking?.createdAt || 0).getTime()) {
+      byUser[key] = { lastBooking: { id: b.id, hotelId: b.hotelId, checkIn: b.checkIn, checkOut: b.checkOut, status: b.status, createdAt: b.createdAt } }
+    }
+  })
+  const userIds = Object.keys(byUser).map(id=>Number(id))
+  const users = await User.find({ id: { $in: userIds } }).lean()
+  const map = new Map(users.map(u => [u.id, u]))
+  const guests = userIds.map(id => ({ user: map.get(id) || null, lastBooking: byUser[id]?.lastBooking || null }))
+  res.json({ guests })
 }
 
 async function approveBooking(req, res) {
@@ -362,5 +389,6 @@ module.exports = {
   pricing,
   deletePricing,
   ownerReviews,
-  respondReview
+  respondReview,
+  guests
 }

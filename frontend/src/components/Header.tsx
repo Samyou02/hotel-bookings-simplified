@@ -24,12 +24,16 @@ const Header = () => {
   }
   const unread = useQuery({ queryKey: ["inbox","count", role, userId], queryFn: () => role==='owner' ? apiGet<{ count:number }>(`/api/messages/unread-count?ownerId=${userId}`) : apiGet<{ count:number }>(`/api/messages/unread-count?userId=${userId}`), enabled: authed && !!userId, refetchInterval: 10000 })
 
-  const navLinks = [
-    { to: "/", label: "Home" },
-    { to: "/hotels", label: "Hotels" },
-    { to: "/about", label: "About" },
-    { to: "/contact", label: "Contact" },
-  ];
+  const navLinks = (() => {
+    const base = [
+      { to: "/", label: "Home" },
+      { to: "/hotels", label: "Hotels" },
+      { to: "/about", label: "About" },
+      { to: "/contact", label: "Contact" },
+    ]
+    if (authed && role === 'user') base.push({ to: "/dashboard/user/details", label: "User Details" })
+    return base
+  })()
 
   const hideNavLinks = pathname.startsWith("/dashboard/admin") || pathname.startsWith("/dashboard/owner") || pathname.startsWith("/inbox")
   const dashboardLinks = (() => {
@@ -49,6 +53,7 @@ const Header = () => {
         { to: "/dashboard/owner/register", label: "Register" },
         { to: "/dashboard/owner/rooms", label: "Rooms" },
         { to: "/dashboard/owner/bookings", label: "Bookings" },
+        { to: "/dashboard/owner/guests", label: "Guests" },
         { to: "/dashboard/owner/pricing", label: "Pricing" },
         { to: "/dashboard/owner/reviews", label: "Reviews" },
       ]

@@ -16,4 +16,7 @@ router.get('/wishlist', user.wishlist)
 router.post('/wishlist', user.addWishlist)
 router.delete('/wishlist/:hotelId', user.removeWishlist)
 
+router.get('/details', user.details)
+router.post('/details', user.updateDetails)
+
 module.exports = router

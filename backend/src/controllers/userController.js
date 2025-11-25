@@ -1,7 +1,12 @@
 const { connect } = require('../config/db')
 const ensureSeed = require('../seed')
 const { nextIdFor } = require('../utils/ids')
-const { Booking, Review, Wishlist, MessageThread, Message, Hotel } = require('../models')
+const { Booking, Review, Wishlist, MessageThread, Message, Hotel, User } = require('../models')
+const fs = require('fs')
+const path = require('path')
+
+function ensureUploadsDir() { const uploadsDir = path.join(__dirname, '../uploads'); try { fs.mkdirSync(uploadsDir, { recursive: true }) } catch {} return uploadsDir }
+function dataUrlToBuffer(dataUrl) { if (typeof dataUrl !== 'string') return null; const match = dataUrl.match(/^data:(.+);base64,(.+)$/); if (!match) return null; const mime = match[1]; const base64 = match[2]; const buf = Buffer.from(base64, 'base64'); let ext = 'png'; if (mime.includes('jpeg')) ext = 'jpg'; else if (mime.includes('png')) ext = 'png'; else if (mime.includes('gif')) ext = 'gif'; else if (mime.includes('webp')) ext = 'webp'; return { buf, ext } }
 
 async function bookings(req, res) {
   await connect(); await ensureSeed();
@@ -93,6 +98,51 @@ async function removeWishlist(req, res) {
   res.json({ status: 'removed' })
 }
 
+async function details(req, res) {
+  await connect(); await ensureSeed();
+  const userId = Number(req.query.userId)
+  if (!userId) return res.status(400).json({ error: 'Missing userId' })
+  const hasBooking = await Booking.findOne({ userId }).lean()
+  if (!hasBooking) return res.status(403).json({ error: 'No booking yet' })
+  const u = await User.findOne({ id: userId }).lean()
+  if (!u) return res.status(404).json({ error: 'User not found' })
+  res.json({ user: u })
+}
+
+async function updateDetails(req, res) {
+  await connect(); await ensureSeed();
+  const { userId, firstName, lastName, phone, fullName, dob, address, idType, idNumber, idIssueDate, idExpiryDate, idDocImage } = req.body || {}
+  if (!userId) return res.status(400).json({ error: 'Missing userId' })
+  const hasBooking = await Booking.findOne({ userId: Number(userId) }).lean()
+  if (!hasBooking) return res.status(403).json({ error: 'No booking yet' })
+  const u = await User.findOne({ id: Number(userId) })
+  if (!u) return res.status(404).json({ error: 'User not found' })
+  if (firstName !== undefined) u.firstName = String(firstName)
+  if (lastName !== undefined) u.lastName = String(lastName)
+  if (phone !== undefined) u.phone = String(phone)
+  if (fullName !== undefined) u.fullName = String(fullName)
+  if (dob !== undefined) u.dob = String(dob)
+  if (address !== undefined) u.address = String(address)
+  if (idType !== undefined) u.idType = String(idType)
+  if (idNumber !== undefined) u.idNumber = String(idNumber)
+  if (idIssueDate !== undefined) u.idIssueDate = String(idIssueDate)
+  if (idExpiryDate !== undefined) u.idExpiryDate = String(idExpiryDate)
+  if (idDocImage) {
+    try {
+      const parsed = dataUrlToBuffer(idDocImage)
+      if (parsed) {
+        const uploadsDir = ensureUploadsDir()
+        const filename = `user-doc-${u.id}-${Date.now()}.${parsed.ext}`
+        const filePath = path.join(uploadsDir, filename)
+        try { fs.writeFileSync(filePath, parsed.buf) } catch {}
+        u.idDocUrl = `/uploads/${filename}`
+      }
+    } catch {}
+  }
+  await u.save()
+  res.json({ status: 'updated' })
+}
+
 module.exports = {
   bookings,
   cancelBooking,
@@ -102,5 +152,7 @@ module.exports = {
   deleteReview,
   wishlist,
   addWishlist,
-  removeWishlist
+  removeWishlist,
+  details,
+  updateDetails
 }
