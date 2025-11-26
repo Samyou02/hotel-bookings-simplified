@@ -1,6 +1,6 @@
 // src/pages/HotelDetail.tsx
 
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -56,6 +56,7 @@ type Coupon = {
 const HotelDetail = () => {
   const { id } = useParams<{ id: string }>();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const qc = useQueryClient();
 
   // fetch hotel detail
@@ -146,7 +147,8 @@ const HotelDetail = () => {
 
   // auth
   const raw = typeof window !== "undefined" ? localStorage.getItem("auth") : null;
-  const auth = raw ? (JSON.parse(raw) as { user?: { id?: number } }) : null;
+  const auth = raw ? (JSON.parse(raw) as { token?: string; user?: { id?: number } }) : null;
+  const isAuthed = !!(auth?.token);
 
   const todayIso = ymdIST(new Date());
   const hasDateTime =
@@ -527,6 +529,12 @@ const HotelDetail = () => {
                       className="w-full h-12 bg-accent hover:bg-accent/90 text-white mb-4"
                       disabled={reserve.isPending || !hasDateTime || Number(selectedRoom?.available || 0) === 0}
                       onClick={() => {
+                        if (!isAuthed) {
+                          toast({ title: "Sign in required", description: "Please sign in to book a room" })
+                          try { localStorage.setItem('postLoginRedirect', `/hotel/${id}`) } catch (_e) { void 0 }
+                          navigate('/signin')
+                          return
+                        }
                         const nowHM = hmIST(new Date());
                         const toMin = (s: string) => {
                           const [h, m] = s.split(":").map(Number);

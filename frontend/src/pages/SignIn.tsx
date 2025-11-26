@@ -31,9 +31,23 @@ const SignIn = () => {
       localStorage.setItem("auth", JSON.stringify(data))
       const role = data.user.role
       toast({ title: "Signed in", description: role })
-      if (role === "admin") navigate("/dashboard/admin")
-      else if (role === "owner") navigate("/dashboard/owner")
-      else navigate("/dashboard/user")
+      if (role === "admin") {
+        navigate("/dashboard/admin")
+        return
+      }
+      if (role === "owner") {
+        navigate("/dashboard/owner")
+        return
+      }
+      try {
+        const r = localStorage.getItem('postLoginRedirect') || ''
+        if (r) {
+          localStorage.removeItem('postLoginRedirect')
+          navigate(r)
+          return
+        }
+      } catch (_e) { void 0 }
+      navigate("/dashboard/user")
     },
     onError: () => {
       toast({ title: "Sign in failed", variant: "destructive" })

@@ -31,12 +31,12 @@ const App = () => (
         <React.Suspense fallback={<div className="container py-8">Loading...</div>}>
         <Routes>
           <Route path="/" element={<Index />} />
-          <Route path="/hotels" element={<ProtectedRoute><Hotels /></ProtectedRoute>} />
+          <Route path="/hotels" element={<Hotels />} />
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/signin" element={<SignIn />} />
           <Route path="/register" element={<Register />} />
-          <Route path="/hotel/:id" element={<ProtectedRoute><HotelDetail /></ProtectedRoute>} />
+          <Route path="/hotel/:id" element={<HotelDetail />} />
           <Route path="/dashboard/admin" element={<ProtectedRoute role="admin"><AdminDashboard /></ProtectedRoute>} />
           <Route path="/dashboard/admin/:feature" element={<ProtectedRoute role="admin"><AdminDashboard /></ProtectedRoute>} />
           <Route path="/dashboard/user" element={<ProtectedRoute role="user"><UserDashboard /></ProtectedRoute>} />
