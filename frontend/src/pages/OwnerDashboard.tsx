@@ -1013,15 +1013,11 @@ const OwnerDashboard = () => {
                       <td className="p-3 flex gap-2 flex-wrap items-center">
                         {(() => {
                           const s = String(b.status || '').trim().toLowerCase();
-                          const canApprove = s === 'pending';
-                          const canCancel = s === 'pending' || s === 'confirmed';
+                          const canCancel = s === 'confirmed';
                           const canCheckin = s === 'confirmed';
                           const canCheckout = s === 'confirmed' || s === 'checked_in';
                           return (
                             <>
-                              {canApprove && (
-                                <Button size="sm" variant="outline" onClick={()=>approveBooking.mutate(b.id)}>Approve</Button>
-                              )}
                               {canCheckin && (
                                 <Button size="sm" onClick={()=>checkinBooking.mutate(b.id)}>Check-in</Button>
                               )}
@@ -1734,25 +1730,11 @@ const OwnerDashboard = () => {
                               const s = String(b.status || "")
                                 .trim()
                                 .toLowerCase()
-                              const canApprove = s === "pending"
-                              const canCancel =
-                                s === "pending" || s === "confirmed"
+                              const canCancel = s === "confirmed"
                               const canCheckin = s === "confirmed"
-                              const canCheckout =
-                                s === "confirmed" || s === "checked_in"
+                              const canCheckout = s === "confirmed" || s === "checked_in"
                               return (
                                 <>
-                                  {canApprove && (
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={() =>
-                                        approveBooking.mutate(b.id)
-                                      }
-                                    >
-                                      Approve
-                                    </Button>
-                                  )}
                                   {canCheckin && (
                                     <Button
                                       size="sm"

@@ -191,7 +191,7 @@ async function confirm(req, res) {
   const now = new Date()
   if (b.status !== 'held') return res.status(409).json({ error: 'Booking not in held state' })
   if (b.holdExpiresAt && new Date(b.holdExpiresAt) <= now) return res.status(409).json({ error: 'Hold expired' })
-  b.status = 'pending'
+  b.status = 'confirmed'
   b.paid = true
   await b.save()
   if (b.couponId) {
@@ -204,7 +204,7 @@ async function confirm(req, res) {
   }
   const thread = await MessageThread.findOne({ bookingId: id })
   const mid = await nextIdFor('Message')
-  await Message.create({ id: mid, threadId: Number(thread?.id || 0), senderRole: 'system', senderId: null, content: `Booking #${id} pending owner approval`, readByUser: true, readByOwner: false })
+  await Message.create({ id: mid, threadId: Number(thread?.id || 0), senderRole: 'system', senderId: null, content: `Booking #${id} confirmed`, readByUser: true, readByOwner: true })
   res.json({ status: 'confirmed' })
 }
 

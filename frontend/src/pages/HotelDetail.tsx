@@ -349,10 +349,17 @@ const HotelDetail = () => {
                                   </span>
                                 ))}
                               </div>
-                              <div className="flex gap-2 mt-2">
-                                <span className={`px-2 py-1 rounded text-xs ${Number(r?.available || 0) > 0 ? "bg-primary/15 text-primary" : "bg-muted text-foreground"}`}>
-                                  {Number(r?.available || 0) > 0 ? `${Number(r?.used || 0)}/${Number(r?.total || 0)}` : "Unavailable"}
-                                </span>
+                              <div className="flex gap-2 mt-2 items-center">
+                                {Number(r?.available || 0) > 0 ? (
+                                  <span className="px-2 py-1 rounded text-xs bg-primary/15 text-primary">
+                                    {`${Number(r?.available || 0)}/${Number(r?.total || 0)} left`}
+                                  </span>
+                                ) : (
+                                  <span className="px-2 py-1 rounded text-xs bg-muted text-foreground">Unavailable on {checkIn}</span>
+                                )}
+                                {typeof r?.used === 'number' && Number(r?.available || 0) > 0 ? (
+                                  <span className="px-2 py-1 rounded text-xs bg-muted text-foreground">Booked {Number(r?.used || 0)}</span>
+                                ) : null}
                                 {r.blocked && <span className="px-2 py-1 rounded text-xs bg-accent/20">Blocked</span>}
                               </div>
                             </div>
@@ -491,8 +498,12 @@ const HotelDetail = () => {
                           onChange={(e) => setRoomType(e.target.value)}
                         >
                           {availableRooms.map((r) => (
-                            <option key={r.id} value={r.type}>
-                              {r.type} • ₹{r.price}
+                            <option
+                              key={r.id}
+                              value={r.type}
+                              disabled={Number(r?.available || 0) === 0}
+                            >
+                              {r.type} • ₹{r.price} {Number(r?.available || 0) === 0 ? "(Unavailable)" : `(${Number(r?.available || 0)}/${Number(r?.total || 0)} left)`}
                             </option>
                           ))}
                         </select>
@@ -514,7 +525,7 @@ const HotelDetail = () => {
 
                     <Button
                       className="w-full h-12 bg-accent hover:bg-accent/90 text-white mb-4"
-                      disabled={reserve.isPending || !hasDateTime}
+                      disabled={reserve.isPending || !hasDateTime || Number(selectedRoom?.available || 0) === 0}
                       onClick={() => {
                         const nowHM = hmIST(new Date());
                         const toMin = (s: string) => {
@@ -541,6 +552,9 @@ const HotelDetail = () => {
                     >
                       {reserve.isPending ? "Reserving…" : "Reserve Now"}
                     </Button>
+                    {Number(selectedRoom?.available || 0) === 0 && (
+                      <div className="text-sm text-muted-foreground mb-4">Selected room type is unavailable for the chosen date.</div>
+                    )}
                     {reserve.isError && <div className="text-red-600 text-sm">Reservation failed</div>}
 
                     <div className="space-y-2 pt-4 border-t">

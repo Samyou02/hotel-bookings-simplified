@@ -136,9 +136,12 @@ async function getRooms(req, res) {
     const id = Number(req.params.id);
     const items = await Room.find({ hotelId: id }).lean();
 
-    const dateStr = String(req.query.date || '').slice(0, 10);
+    const dateStrRaw = String(req.query.date || '').slice(0, 10);
     const now = new Date();
-    const d = dateStr ? new Date(dateStr) : new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const curYMD = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+    const ymd = dateStrRaw || curYMD;
+    const dayStart = new Date(`${ymd}T00:00:00+05:30`);
+    const dayEnd   = new Date(`${ymd}T23:59:59+05:30`);
 
     const bookings = await Booking.find({ hotelId: id, status: { $in: ['held', 'pending', 'confirmed', 'checked_in'] } }).lean();
     const roomTypeMap = new Map(items.map(r => [Number(r.id), String(r.type || '')]));
@@ -148,7 +151,8 @@ async function getRooms(req, res) {
       const bCo = new Date(b.checkOut);
       const isHeldActive = b.status === 'held' ? (b.holdExpiresAt && new Date(b.holdExpiresAt) > now) : true;
       if (!isHeldActive) continue;
-      if (d >= bCi && d <= bCo) {
+      const overlaps = dayStart < bCo && dayEnd > bCi;
+      if (overlaps) {
         const t = roomTypeMap.get(Number(b.roomId || 0)) || String(b.roomType || '');
         if (!t) continue;
         typeUsed[t] = (typeUsed[t] || 0) + 1;
