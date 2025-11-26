@@ -4,7 +4,7 @@ import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Hotel } from "lucide-react";
+import { } from "lucide-react";
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { apiPost } from "@/lib/api";
@@ -58,10 +58,14 @@ const Register = () => {
       <main className="flex-1 flex items-center justify-center py-12 px-4">
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
-            <Hotel className="h-12 w-12 text-primary mx-auto mb-4" />
+            {(() => {
+              const env = (typeof import.meta !== 'undefined' && (import.meta as unknown as { env?: Record<string, string> })?.env) || {} as Record<string, string>
+              const logo = env?.VITE_LOGO_URL || "/logo.svg";
+              return <img src={logo} alt="Sana Stayz" className="h-12 w-12 mx-auto mb-4 rounded-full object-cover" onError={(e)=>{ e.currentTarget.src = "https://placehold.co/96x96?text=S" }} />
+            })()}
             <h1 className="text-3xl font-bold mb-2">Create Account</h1>
             <p className="text-muted-foreground">
-              Join StayBook and start your journey
+              Join Sana Stayz and start your journey
             </p>
           </div>
 

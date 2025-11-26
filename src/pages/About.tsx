@@ -16,7 +16,7 @@ const About = () => {
         {/* Hero Section */}
         <section className="bg-hero-gradient text-primary-foreground py-20">
           <div className="container text-center">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">About StayBook</h1>
+            <h1 className="text-4xl md:text-5xl font-bold mb-4">About Sana Stayz</h1>
             <p className="text-xl opacity-90 max-w-2xl mx-auto">
               Your trusted partner in finding the perfect accommodation worldwide
             </p>
@@ -55,7 +55,7 @@ const About = () => {
             <h2 className="text-3xl font-bold mb-6 text-center">Our Story</h2>
             <div className="space-y-4 text-muted-foreground">
               <p>
-                Founded in 2020, StayBook has revolutionized the way people discover and book
+                Founded in 2020, Sana Stayz has revolutionized the way people discover and book
                 accommodations. We believe that everyone deserves access to quality stays at
                 fair prices, whether you're traveling for business or pleasure.
               </p>

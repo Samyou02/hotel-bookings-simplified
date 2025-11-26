@@ -1,4 +1,4 @@
-import { Hotel, Facebook, Twitter, Instagram, Linkedin } from "lucide-react";
+import { Facebook, Twitter, Instagram, Linkedin } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const Footer = () => {
@@ -8,8 +8,12 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div>
             <Link to="/" className="flex items-center space-x-2 mb-4">
-              <Hotel className="h-6 w-6 text-primary" />
-              <span className="text-xl font-bold">StayBook</span>
+              {(() => {
+                const env = (typeof import.meta !== 'undefined' && (import.meta as unknown as { env?: Record<string, string> })?.env) || {} as Record<string, string>
+                const logo = env?.VITE_LOGO_URL || "/logo.svg";
+                return <img src={logo} alt="Sana Stayz" className="h-6 w-6 rounded-full object-cover" onError={(e)=>{ e.currentTarget.src = "https://placehold.co/48x48?text=S" }} />
+              })()}
+              <span className="text-xl font-bold">Sana Stayz</span>
             </Link>
             <p className="text-muted-foreground mb-4">
               Your trusted partner for finding the perfect accommodation worldwide.
@@ -62,7 +66,7 @@ const Footer = () => {
         </div>
 
         <div className="border-t mt-8 pt-8 text-center text-muted-foreground">
-          <p>&copy; 2024 StayBook. All rights reserved.</p>
+          <p>&copy; 2024 Sana Stayz. All rights reserved.</p>
         </div>
       </div>
     </footer>

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Hotel, User, Menu, X } from "lucide-react";
+import { User, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -19,8 +19,12 @@ const Header = () => {
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between">
         <Link to="/" className="flex items-center space-x-2">
-          <Hotel className="h-6 w-6 text-primary" />
-          <span className="text-xl font-bold">StayBook</span>
+          {(() => {
+            const env = (typeof import.meta !== 'undefined' && (import.meta as unknown as { env?: Record<string, string> })?.env) || {} as Record<string, string>
+            const logo = env?.VITE_LOGO_URL || "/logo.svg";
+            return <img src={logo} alt="Sana Stayz" className="h-8 w-8 rounded-full object-cover" onError={(e)=>{ e.currentTarget.src = "https://placehold.co/64x64?text=S" }} />
+          })()}
+          <span className="text-xl font-bold">Sana Stayz</span>
         </Link>
 
         <nav className="hidden md:flex items-center space-x-6">
