@@ -28,7 +28,7 @@ const Header = () => {
     const base = [
       { to: "/", label: "Home" },
       { to: "/hotels", label: "Hotels" },
-      { to: "/about", label: "About" },
+      { to: "/about", label: "About Us" },
     ]
     if (authed && role === 'user') {
       base.push({ to: "/dashboard/user/details", label: "User Details" })
@@ -46,6 +46,7 @@ const Header = () => {
         { to: "/dashboard/admin/hotels", label: "Hotels" },
         { to: "/dashboard/admin/bookings", label: "Bookings" },
         { to: "/dashboard/admin/contact", label: "Contact" },
+        { to: "/dashboard/admin/settings", label: "About Us" },
       ]
     }
     if (pathname.startsWith("/dashboard/owner")) {

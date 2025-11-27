@@ -185,13 +185,28 @@ async function settingsGet(req, res) {
 
 async function settingsUpdate(req, res) {
   await connect(); await ensureSeed();
-  const { taxRate, commissionRate } = req.body || {}
+  const { taxRate, commissionRate, ourStory, ourMission, contactName, contactEmail, contactPhone1, contactPhone2 } = req.body || {}
   const s = await Settings.findOne()
   if (!s) {
-    await Settings.create({ taxRate: Number(taxRate) || 10, commissionRate: Number(commissionRate) || 15 })
+    await Settings.create({
+      taxRate: Number(taxRate) || 10,
+      commissionRate: Number(commissionRate) || 15,
+      ourStory: typeof ourStory === 'string' ? ourStory : '',
+      ourMission: typeof ourMission === 'string' ? ourMission : '',
+      contactName: typeof contactName === 'string' ? contactName : '',
+      contactEmail: typeof contactEmail === 'string' ? contactEmail : '',
+      contactPhone1: typeof contactPhone1 === 'string' ? contactPhone1 : '',
+      contactPhone2: typeof contactPhone2 === 'string' ? contactPhone2 : ''
+    })
   } else {
     if (taxRate !== undefined) s.taxRate = Number(taxRate)
     if (commissionRate !== undefined) s.commissionRate = Number(commissionRate)
+    if (ourStory !== undefined) s.ourStory = String(ourStory)
+    if (ourMission !== undefined) s.ourMission = String(ourMission)
+    if (contactName !== undefined) s.contactName = String(contactName)
+    if (contactEmail !== undefined) s.contactEmail = String(contactEmail)
+    if (contactPhone1 !== undefined) s.contactPhone1 = String(contactPhone1)
+    if (contactPhone2 !== undefined) s.contactPhone2 = String(contactPhone2)
     await s.save()
   }
   res.json({ status: 'updated' })

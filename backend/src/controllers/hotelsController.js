@@ -1,6 +1,6 @@
 const { connect } = require('../config/db');
 const ensureSeed = require('../seed');
-const { Hotel, Booking, Review, Room, Coupon, User } = require('../models');
+const { Hotel, Booking, Review, Room, Coupon, User, Settings } = require('../models');
 const BASE_URL = process.env.API_BASE || `http://localhost:${process.env.PORT || 5000}`;
 
 function toPublicUrl(url) {
@@ -267,7 +267,16 @@ async function about(req, res) {
       { label: 'Countries', value: '180+' }
     ];
 
-    res.json({ stats });
+    const s = await Settings.findOne().lean();
+    const ourStory = s?.ourStory || '';
+    const ourMission = s?.ourMission || '';
+    const contact = {
+      name: s?.contactName || '',
+      email: s?.contactEmail || '',
+      phone1: s?.contactPhone1 || '',
+      phone2: s?.contactPhone2 || ''
+    };
+    res.json({ stats, ourStory, ourMission, contact });
 
   } catch (e) {
     console.error('[hotelsController.about] error:', e);

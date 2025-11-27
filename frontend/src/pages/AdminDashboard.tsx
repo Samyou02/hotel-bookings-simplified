@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom"
 import Header from "@/components/Header"
 import Footer from "@/components/Footer"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Shield, BarChart3, Building2 } from "lucide-react"
@@ -16,7 +17,7 @@ type User = { id: number; email: string; role: "admin"|"user"|"owner"; isApprove
 type Hotel = { id: number; name: string; location: string; ownerId?: number|null; status?: "approved"|"rejected"|"suspended"|"pending"; featured?: boolean; price?: number; createdAt?: string }
 type Booking = { id: number; hotelId: number; checkIn: string; checkOut: string; guests: number; total: number; status: string; refundIssued: boolean; hotel?: Hotel; createdAt?: string }
 type Coupon = { id: number; code: string; discount: number; expiry: string|null; usageLimit: number; used: number; enabled: boolean }
-type Settings = { taxRate: number; commissionRate: number }
+type Settings = { taxRate: number; commissionRate: number; ourStory?: string; ourMission?: string; contactName?: string; contactEmail?: string; contactPhone1?: string; contactPhone2?: string }
 
 const AdminDashboard = () => {
   const qc = useQueryClient()
@@ -71,7 +72,7 @@ const AdminDashboard = () => {
   })
   const createCoupon = useMutation({ mutationFn: (p: { code:string; discount:number; expiry:string; usageLimit:number; enabled:boolean }) => apiPost<{ id:number }, { code:string; discount:number; expiry:string; usageLimit:number; enabled:boolean }>("/api/admin/coupons", p), onSuccess: (res, vars) => { if (res?.id) addId("coupons", res.id); qc.invalidateQueries({ queryKey: ["admin","coupons"] }); toast({ title: "Coupon created", description: vars.code }) }, onError: () => toast({ title: "Create failed", variant: "destructive" }) })
   const setCouponStatus = useMutation({ mutationFn: (p: { id:number; enabled:boolean }) => apiPost("/api/admin/coupons/"+p.id+"/status", { enabled: p.enabled }), onSuccess: (_res, vars) => { qc.invalidateQueries({ queryKey: ["admin","coupons"] }); toast({ title: vars.enabled ? "Enabled" : "Disabled", description: `#${vars.id}` }) }, onError: () => toast({ title: "Update failed", variant: "destructive" }) })
-  const updateSettings = useMutation({ mutationFn: (p: Partial<Settings>) => apiPost("/api/admin/settings", p), onSuccess: () => { qc.invalidateQueries({ queryKey: ["admin","settings"] }); toast({ title: "Settings updated" }) }, onError: () => toast({ title: "Save failed", variant: "destructive" }) })
+  const updateSettings = useMutation({ mutationFn: (p: Partial<Settings>) => apiPost("/api/admin/settings", p), onSuccess: () => { qc.invalidateQueries({ queryKey: ["admin","settings"] }); qc.invalidateQueries({ queryKey: ["about"] }); toast({ title: "Settings updated" }) }, onError: () => toast({ title: "Save failed", variant: "destructive" }) })
   const createOwner = useMutation({
     mutationFn: (p: { email:string; password:string; firstName:string; lastName:string; phone:string }) =>
       apiPost<{ id:number }, { email:string; password:string; firstName:string; lastName:string; phone:string }>("/api/admin/owners", p),
@@ -93,6 +94,8 @@ const AdminDashboard = () => {
   
   const [taxInput, setTaxInput] = React.useState("")
   const [commInput, setCommInput] = React.useState("")
+  const [storyInput, setStoryInput] = React.useState("")
+  const [missionInput, setMissionInput] = React.useState("")
   const [ownerForm, setOwnerForm] = React.useState({ email:"", password:"", firstName:"", lastName:"", phone:"" })
   const [filterRole, setFilterRole] = React.useState<'all'|'user'|'owner'>('all')
   const [contactName, setContactName] = React.useState("")
@@ -101,17 +104,22 @@ const AdminDashboard = () => {
   const [contactEmail, setContactEmail] = React.useState("")
   const [contactEditing, setContactEditing] = React.useState(false)
   React.useEffect(() => {
-    try {
-      const raw = localStorage.getItem('adminContact') || ''
-      if (raw) {
-        const p = JSON.parse(raw) as { fullName?: string; phone1?: string; phone2?: string; email?: string }
-        setContactName(p.fullName || '')
-        setContactPhone1(p.phone1 || '')
-        setContactPhone2(p.phone2 || '')
-        setContactEmail(p.email || '')
-      }
-    } catch { void 0 }
-  }, [])
+    const s = settings.data?.settings
+    if (s) {
+      setContactName(s.contactName || '')
+      setContactEmail(s.contactEmail || '')
+      setContactPhone1(s.contactPhone1 || '')
+      setContactPhone2(s.contactPhone2 || '')
+    }
+  }, [settings.data])
+
+  React.useEffect(() => {
+    const s = settings.data?.settings
+    if (s) {
+      setStoryInput(s.ourStory || "")
+      setMissionInput(s.ourMission || "")
+    }
+  }, [settings.data])
 
   const periodStart = (p: 'all'|'yearly'|'monthly'|'weekly'|'daily') => {
     const now = new Date()
@@ -263,6 +271,30 @@ const AdminDashboard = () => {
         </Card>
         )}
 
+        {feature === 'settings' && (
+        <Card className="shadow-card hover:shadow-card-hover transition-all">
+          <CardHeader><CardTitle>About Us</CardTitle></CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div>
+                <div className="text-sm font-medium mb-2">Our Story</div>
+                <Textarea rows={6} placeholder="Enter our story" value={storyInput} onChange={e=>setStoryInput(e.target.value)} />
+                <div className="mt-2">
+                  <Button onClick={() => updateSettings.mutate({ ourStory: storyInput })} disabled={updateSettings.isPending}>Save</Button>
+                </div>
+              </div>
+              <div>
+                <div className="text-sm font-medium mb-2">Our Mission</div>
+                <Textarea rows={4} placeholder="Enter our mission" value={missionInput} onChange={e=>setMissionInput(e.target.value)} />
+                <div className="mt-2">
+                  <Button onClick={() => updateSettings.mutate({ ourMission: missionInput })} disabled={updateSettings.isPending}>Save</Button>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        )}
+
         {feature === 'bookings' && (
         <Card className="shadow-card hover:shadow-card-hover transition-all">
           <CardHeader><CardTitle>Booking Management</CardTitle></CardHeader>
@@ -323,8 +355,8 @@ const AdminDashboard = () => {
               </div>
               <div className="flex items-center gap-2">
                 <Button variant="outline" onClick={() => setContactEditing(!contactEditing)}>{contactEditing ? 'Stop Edit' : 'Edit'}</Button>
-                <Button onClick={() => { if (!contactEditing) return; try { const obj = { fullName: contactName, phone1: contactPhone1, phone2: contactPhone2, email: contactEmail }; localStorage.setItem('adminContact', JSON.stringify(obj)); toast({ title: 'Contact saved' }) } catch { toast({ title: 'Save failed', variant: 'destructive' }) } }} disabled={!contactEditing}>Save Contact</Button>
-                <Button variant="destructive" onClick={() => { try { localStorage.removeItem('adminContact'); setContactName(''); setContactPhone1(''); setContactPhone2(''); setContactEmail(''); toast({ title: 'Contact deleted' }) } catch { toast({ title: 'Delete failed', variant: 'destructive' }) } }}>Delete</Button>
+                <Button onClick={() => { if (!contactEditing) return; updateSettings.mutate({ contactName, contactEmail, contactPhone1, contactPhone2 }) }} disabled={!contactEditing || updateSettings.isPending}>Save Contact</Button>
+                <Button variant="destructive" onClick={() => { setContactName(''); setContactPhone1(''); setContactPhone2(''); setContactEmail(''); updateSettings.mutate({ contactName: '', contactEmail: '', contactPhone1: '', contactPhone2: '' }) }}>Delete</Button>
               </div>
               <div>
                 <h3 className="text-lg font-semibold mb-2">Support Inbox</h3>

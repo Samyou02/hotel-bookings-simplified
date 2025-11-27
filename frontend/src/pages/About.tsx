@@ -6,8 +6,11 @@ import { useQuery } from "@tanstack/react-query";
 import { apiGet } from "@/lib/api";
 
 const About = () => {
-  const { data, isLoading, isError } = useQuery({ queryKey: ["about"], queryFn: () => apiGet<{ stats: { label: string; value: string }[] }>("/api/about") })
+  const { data, isLoading, isError } = useQuery({ queryKey: ["about"], queryFn: () => apiGet<{ stats: { label: string; value: string }[]; ourStory?: string; ourMission?: string; contact?: { name?: string; email?: string; phone1?: string; phone2?: string } }>("/api/about"), refetchOnWindowFocus: true })
   const stats = data?.stats || []
+  const ourStory = data?.ourStory || ""
+  const ourMission = data?.ourMission || ""
+  const contact = data?.contact || {}
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -54,35 +57,34 @@ const About = () => {
           <div className="container max-w-4xl">
             <h2 className="text-3xl font-bold mb-6 text-center">Our Story</h2>
             <div className="space-y-4 text-muted-foreground">
-              <p>
-                Founded in 2020, Sana Stayz has revolutionized the way people discover and book
-                accommodations. We believe that everyone deserves access to quality stays at
-                fair prices, whether you're traveling for business or pleasure.
-              </p>
-              <p>
-                Our platform connects travelers with thousands of verified properties worldwide,
-                from budget-friendly hostels to luxury resorts. We work directly with property
-                owners to ensure the best rates and authentic experiences.
-              </p>
-              <p>
-                With a commitment to transparency, security, and customer satisfaction, we've
-                helped millions of travelers find their perfect stay. Our 24/7 customer support
-                and best price guarantee give you peace of mind throughout your booking journey.
-              </p>
+              {ourStory && <p>{ourStory}</p>}
             </div>
+          </div>
+      </section>
+
+      {/* Mission Section */}
+      <section className="py-16 bg-secondary">
+          <div className="container max-w-4xl">
+            <h2 className="text-3xl font-bold mb-6 text-center">Our Mission</h2>
+            {ourMission && (
+              <p className="text-center text-muted-foreground text-lg">{ourMission}</p>
+            )}
           </div>
         </section>
 
-        {/* Mission Section */}
-        <section className="py-16 bg-secondary">
-          <div className="container max-w-4xl">
-            <h2 className="text-3xl font-bold mb-6 text-center">Our Mission</h2>
-            <p className="text-center text-muted-foreground text-lg">
-              To make travel accessible and enjoyable for everyone by providing a seamless
-              booking experience, competitive prices, and outstanding customer service.
-            </p>
+        {/* Contact Section */}
+        {(contact?.name || contact?.email || contact?.phone1 || contact?.phone2) && (
+        <section className="py-16">
+          <div className="container max-w-4xl text-center">
+            <h2 className="text-3xl font-bold mb-6">Contact</h2>
+            {contact?.name && <p className="text-muted-foreground">{contact.name}</p>}
+            {contact?.email && <p className="text-muted-foreground">{contact.email}</p>}
+            {(contact?.phone1 || contact?.phone2) && (
+              <p className="text-muted-foreground">{[contact?.phone1, contact?.phone2].filter(Boolean).join(" · ")}</p>
+            )}
           </div>
         </section>
+        )}
       </main>
       <Footer />
     </div>
