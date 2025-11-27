@@ -74,6 +74,22 @@ const AdminDashboard = () => {
   const [commInput, setCommInput] = React.useState("")
   const [ownerForm, setOwnerForm] = React.useState({ email:"", password:"", firstName:"", lastName:"", phone:"" })
   const [filterRole, setFilterRole] = React.useState<'all'|'user'|'owner'>('all')
+  const [contactName, setContactName] = React.useState("")
+  const [contactPhone1, setContactPhone1] = React.useState("")
+  const [contactPhone2, setContactPhone2] = React.useState("")
+  const [contactEmail, setContactEmail] = React.useState("")
+  React.useEffect(() => {
+    try {
+      const raw = localStorage.getItem('adminContact') || ''
+      if (raw) {
+        const p = JSON.parse(raw) as { fullName?: string; phone1?: string; phone2?: string; email?: string }
+        setContactName(p.fullName || '')
+        setContactPhone1(p.phone1 || '')
+        setContactPhone2(p.phone2 || '')
+        setContactEmail(p.email || '')
+      }
+    } catch { void 0 }
+  }, [])
 
   const periodStart = (p: 'all'|'yearly'|'monthly'|'weekly'|'daily') => {
     const now = new Date()
@@ -158,12 +174,13 @@ const AdminDashboard = () => {
                 const rows = data.map(u=>({ id:u.id, email:u.email, role:u.role, blocked:u.blocked, createdAt:u.createdAt }))
                 downloadCsv(`users-${usersPeriod}`, rows)
               }}>Download</Button>
+              <Button variant="destructive" onClick={()=>{ try { const raw = localStorage.getItem('deletedAdminUsers') || '{}'; const map = JSON.parse(raw) as { [id:number]: boolean }; const data = sortRecent((users.data?.users||[]).filter(u=> (filterRole==='all'?true:u.role===filterRole) && inPeriod(usersPeriod, u.createdAt))); data.forEach(u=>{ map[u.id] = true }); localStorage.setItem('deletedAdminUsers', JSON.stringify(map)) } catch { void 0 } }}>Delete</Button>
             </div>
             <div className="rounded-lg border overflow-hidden">
               <table className="w-full text-sm">
                 <thead className="bg-muted/50"><tr className="text-left"><th className="p-3">S.No</th><th className="p-3">Email</th><th className="p-3">Role</th><th className="p-3">Status</th><th className="p-3">Actions</th></tr></thead>
                 <tbody className="[&_tr:hover]:bg-muted/30">
-                  {sortRecent((users.data?.users || []).filter(u => (filterRole==='all' ? true : u.role===filterRole) && inPeriod(usersPeriod, u.createdAt))).map((u, idx) => (
+                  {sortRecent((users.data?.users || []).filter(u => (filterRole==='all' ? true : u.role===filterRole) && inPeriod(usersPeriod, u.createdAt))).filter(u=>{ try { const raw = localStorage.getItem('deletedAdminUsers') || '{}'; const map = JSON.parse(raw) as { [id:number]: boolean }; return !map[u.id] } catch { return true } }).map((u, idx) => (
                     <tr key={u.id} className="border-t">
                       <td className="p-3">{idx+1}</td>
                       <td className="p-3">{u.email}</td>
@@ -198,6 +215,7 @@ const AdminDashboard = () => {
                 const rows = data.map(h=>({ id:h.id, name:h.name, location:h.location, status:h.status, featured:h.featured, createdAt:h.createdAt }))
                 downloadCsv(`hotels-${hotelsPeriod}`, rows)
               }}>Download</Button>
+              <Button variant="destructive" onClick={()=>{ const src = sortRecent((hotels.data?.hotels||[]).filter(h=> inPeriod(hotelsPeriod, h.createdAt as string | undefined))); if (src.length && window.confirm(`Delete ${src.length} hotel(s) in current filter?`)) { src.forEach(h=> deleteHotelOwner.mutate(h.id)) } }}>Delete</Button>
             </div>
             <div className="rounded-lg border overflow-hidden">
               <table className="w-full text-sm">
@@ -241,6 +259,7 @@ const AdminDashboard = () => {
                 const rows = data.map(b=>({ id:b.id, hotelId:b.hotelId, hotelName:b.hotel?.name, checkIn:b.checkIn, checkOut:b.checkOut, guests:b.guests, total:b.total, status:b.status, refundIssued:b.refundIssued, createdAt:b.createdAt }))
                 downloadCsv(`bookings-${bookingsPeriod}`, rows)
               }}>Download</Button>
+              <Button variant="destructive" onClick={()=>{ try { const raw = localStorage.getItem('deletedAdminBookings') || '{}'; const map = JSON.parse(raw) as { [id:number]: boolean }; const src = bookings.data?.bookings || []; const data = sortRecent(src.filter(b=> inPeriod(bookingsPeriod, b.createdAt as string | undefined))); data.forEach(b=>{ map[b.id] = true }); localStorage.setItem('deletedAdminBookings', JSON.stringify(map)) } catch { void 0 } }}>Delete</Button>
             </div>
             <div className="rounded-lg border overflow-hidden">
               <table className="w-full text-sm">
@@ -251,7 +270,7 @@ const AdminDashboard = () => {
                     const hmap: Record<number, Hotel> = {}
                     hotelsArr.forEach(h => { hmap[h.id] = h })
                     const src = bookings.data?.bookings || []
-                    return sortRecent(src.filter(b=> inPeriod(bookingsPeriod, b.createdAt as string | undefined))).map((b, idx) => (
+                    return sortRecent(src.filter(b=> inPeriod(bookingsPeriod, b.createdAt as string | undefined))).filter(b=>{ try { const raw = localStorage.getItem('deletedAdminBookings') || '{}'; const map = JSON.parse(raw) as { [id:number]: boolean }; return !map[b.id] } catch { return true } }).map((b, idx) => (
                     <tr key={b.id} className="border-t">
                       <td className="p-3">{idx+1}</td>
                       <td className="p-3">{b.hotel?.name || hmap[b.hotelId]?.name || `#${b.hotelId}`}</td>
@@ -270,15 +289,17 @@ const AdminDashboard = () => {
         )}
 
 
-        {feature === 'settings' && (
+        {feature === 'contact' && (
           <Card className="shadow-card hover:shadow-card-hover transition-all">
-            <CardHeader><CardTitle>System Settings</CardTitle></CardHeader>
+            <CardHeader><CardTitle>Contact</CardTitle></CardHeader>
             <CardContent className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
-                <Input placeholder="Tax Rate %" value={taxInput || String(settings.data?.settings.taxRate ?? '')} onChange={e => setTaxInput(e.target.value)} />
-                <Input placeholder="Commission %" value={commInput || String(settings.data?.settings.commissionRate ?? '')} onChange={e => setCommInput(e.target.value)} />
+                <Input placeholder="Full Name" value={contactName} onChange={e=>setContactName(e.target.value)} />
+                <Input placeholder="Email" value={contactEmail} onChange={e=>setContactEmail(e.target.value)} />
+                <Input placeholder="Phone 1" value={contactPhone1} onChange={e=>setContactPhone1(e.target.value)} />
+                <Input placeholder="Phone 2" value={contactPhone2} onChange={e=>setContactPhone2(e.target.value)} />
               </div>
-              <Button onClick={() => updateSettings.mutate({ taxRate: Number(taxInput || settings.data?.settings.taxRate || 0), commissionRate: Number(commInput || settings.data?.settings.commissionRate || 0) })}>Save Settings</Button>
+              <Button onClick={() => { try { const obj = { fullName: contactName, phone1: contactPhone1, phone2: contactPhone2, email: contactEmail }; localStorage.setItem('adminContact', JSON.stringify(obj)); toast({ title: 'Contact saved' }) } catch { toast({ title: 'Save failed', variant: 'destructive' }) } }}>Save Contact</Button>
               <div>
                 <h3 className="text-lg font-semibold mb-2">Support Inbox</h3>
                 <div className="space-y-2">

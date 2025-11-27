@@ -353,9 +353,17 @@ const OwnerDashboard = () => {
 
   const bookingsTimeFiltered = React.useMemo(
     () =>
-      bookingsFiltered.filter((b) =>
-        inRange(b.checkIn || b.createdAt || "", dateFilterBookings),
-      ),
+      bookingsFiltered
+        .filter((b) => inRange(b.checkIn || b.createdAt || "", dateFilterBookings))
+        .filter((b) => {
+          try {
+            const raw = localStorage.getItem("deletedOwnerBookings") || "{}"
+            const map = JSON.parse(raw) as { [id: number]: boolean }
+            return !map[b.id]
+          } catch {
+            return true
+          }
+        }),
     [bookingsFiltered, dateFilterBookings, inRange],
   )
 
@@ -364,7 +372,18 @@ const OwnerDashboard = () => {
   const guests = guestsQ.data?.guests || []
   const [dateFilterGuests, setDateFilterGuests] = React.useState<string>("all")
   const guestsTimeFiltered = React.useMemo(
-    () => guests.filter((g) => inRange(g.lastBooking?.checkIn || "", dateFilterGuests)),
+    () => guests
+      .filter((g) => inRange(g.lastBooking?.checkIn || "", dateFilterGuests))
+      .filter((g) => {
+        try {
+          const raw = localStorage.getItem("deletedOwnerGuests") || "{}"
+          const map = JSON.parse(raw) as { [id: number]: boolean }
+          const uid = Number(g.user?.id || 0)
+          return uid ? !map[uid] : true
+        } catch {
+          return true
+        }
+      }),
     [guests, dateFilterGuests, inRange],
   )
   const guestsOrdered = React.useMemo(() => {
@@ -616,8 +635,9 @@ const OwnerDashboard = () => {
     "Hotel Emergency",
     "Other"
   ]
-  const [ownerCancelSel, setOwnerCancelSel] = React.useState<{ [id:number]: string }>({})
-  const [ownerCancelOther, setOwnerCancelOther] = React.useState<{ [id:number]: string }>({})
+  const [ownerCancelVisible, setOwnerCancelVisible] = React.useState<{ [id: number]: boolean }>({})
+  const [ownerCancelSel, setOwnerCancelSel] = React.useState<{ [id: number]: string }>({})
+  const [ownerCancelOther, setOwnerCancelOther] = React.useState<{ [id: number]: string }>({})
 
   const checkinBooking = useMutation({
     mutationFn: (id: number) => apiPost(`/api/owner/bookings/${id}/checkin`, {}),
@@ -1561,7 +1581,7 @@ const OwnerDashboard = () => {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle>Manage Bookings</CardTitle>
-                  <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2">
                     {(() => {
                       const opts = [
                         { k: "all", v: "All" },
@@ -1671,6 +1691,19 @@ const OwnerDashboard = () => {
                     >
                       Download Excel
                     </Button>
+                    <Button
+                      variant="destructive"
+                      onClick={() => {
+                        try {
+                          const raw = localStorage.getItem("deletedOwnerBookings") || "{}"
+                          const map = JSON.parse(raw) as { [id: number]: boolean }
+                          bookingsTimeFiltered.forEach((b) => { map[b.id] = true })
+                          localStorage.setItem("deletedOwnerBookings", JSON.stringify(map))
+                        } catch { void 0 }
+                      }}
+                    >
+                      Delete
+                    </Button>
                   </div>
                 </div>
               </CardHeader>
@@ -1751,24 +1784,28 @@ const OwnerDashboard = () => {
                                     </Button>
                                   )}
                                   {canCancel && (
-                                    <div className="flex items-center gap-2">
-                                      <select className="px-2 py-1 rounded border text-sm" value={ownerCancelSel[b.id] || ''} onChange={(e)=> setOwnerCancelSel({ ...ownerCancelSel, [b.id]: e.target.value })}>
-                                        <option value="">Select reason</option>
-                                        {ownerCancelOptions.map(opt => (<option key={opt} value={opt}>{opt}</option>))}
-                                      </select>
-                                      {(ownerCancelSel[b.id] === 'Other') && (
-                                        <Input className="w-48" placeholder="Please specify" value={ownerCancelOther[b.id] || ''} onChange={(e)=> setOwnerCancelOther({ ...ownerCancelOther, [b.id]: e.target.value })} />
-                                      )}
-                                      {(() => {
-                                        const chosen = ownerCancelSel[b.id] || ''
-                                        const extra = chosen === 'Other' ? (ownerCancelOther[b.id] || '') : ''
-                                        const reason = `${chosen}${extra ? (': ' + extra) : ''}`.trim()
-                                        const valid = !!chosen && reason.length >= 5
-                                        return (
-                                          <Button size="sm" variant="destructive" disabled={!valid} onClick={()=> cancelBooking.mutate({ id: b.id, reason })}>Confirm</Button>
-                                        )
-                                      })()}
-                                    </div>
+                                    <>
+                                      <Button size="sm" variant="outline" onClick={() => setOwnerCancelVisible({ ...ownerCancelVisible, [b.id]: !(ownerCancelVisible[b.id] || false) })}>Cancel</Button>
+                                      {ownerCancelVisible[b.id] ? (
+                                        <div className="flex items-center gap-2">
+                                          <select className="px-2 py-1 rounded border text-sm" value={ownerCancelSel[b.id] || ''} onChange={(e)=> setOwnerCancelSel({ ...ownerCancelSel, [b.id]: e.target.value })}>
+                                            <option value="">Select reason</option>
+                                            {ownerCancelOptions.map(opt => (<option key={opt} value={opt}>{opt}</option>))}
+                                          </select>
+                                          {(ownerCancelSel[b.id] === 'Other') && (
+                                            <Input className="w-48" placeholder="Please specify" value={ownerCancelOther[b.id] || ''} onChange={(e)=> setOwnerCancelOther({ ...ownerCancelOther, [b.id]: e.target.value })} />
+                                          )}
+                                          {(() => {
+                                            const chosen = ownerCancelSel[b.id] || ''
+                                            const extra = chosen === 'Other' ? (ownerCancelOther[b.id] || '') : ''
+                                            const reason = `${chosen}${extra ? (': ' + extra) : ''}`.trim()
+                                            return (
+                                              <Button size="sm" variant="destructive" onClick={()=> cancelBooking.mutate({ id: b.id, reason })}>Confirm</Button>
+                                            )
+                                          })()}
+                                        </div>
+                                      ) : null}
+                                    </>
                                   )}
                                 </>
                               )
@@ -1878,6 +1915,22 @@ const OwnerDashboard = () => {
                       }}
                     >
                       Download Excel
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      onClick={() => {
+                        try {
+                          const raw = localStorage.getItem("deletedOwnerGuests") || "{}"
+                          const map = JSON.parse(raw) as { [id: number]: boolean }
+                          guestsTimeFiltered.forEach((g) => {
+                            const uid = Number(g.user?.id || 0)
+                            if (uid) map[uid] = true
+                          })
+                          localStorage.setItem("deletedOwnerGuests", JSON.stringify(map))
+                        } catch { void 0 }
+                      }}
+                    >
+                      Delete
                     </Button>
                   </div>
                 </div>
@@ -2033,28 +2086,41 @@ const OwnerDashboard = () => {
 
         {feature === "contact" && (
           <Card className="shadow-card hover:shadow-card-hover transition-all">
-            <CardHeader><CardTitle>Admin Details</CardTitle></CardHeader>
+            <CardHeader><CardTitle>Admin Contact Details</CardTitle></CardHeader>
             <CardContent>
               <div className="rounded-lg border overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead className="bg-muted/50">
                     <tr className="text-left">
+                      <th className="p-3">Full Name</th>
+                      <th className="p-3">Phone 1</th>
+                      <th className="p-3">Phone 2</th>
                       <th className="p-3">Email</th>
-                      <th className="p-3">Name</th>
-                      <th className="p-3">Phone</th>
                     </tr>
                   </thead>
                   <tbody className="[&_tr:hover]:bg-muted/30">
                     {(() => {
-                      const list = (adminsQ.data?.users || []).filter(u => u.role === 'admin')
-                      const admin = list[0]
-                      return (
-                        <tr className="border-t">
-                          <td className="p-3">{admin?.email || '-'}</td>
-                          <td className="p-3">{`${admin?.firstName || ''} ${admin?.lastName || ''}`.trim() || '-'}</td>
-                          <td className="p-3">{admin?.phone || '-'}</td>
-                        </tr>
-                      )
+                      try {
+                        const raw = localStorage.getItem('adminContact') || ''
+                        const p = raw ? JSON.parse(raw) as { fullName?: string; phone1?: string; phone2?: string; email?: string } : {}
+                        return (
+                          <tr className="border-t">
+                            <td className="p-3">{p.fullName || '-'}</td>
+                            <td className="p-3">{p.phone1 || '-'}</td>
+                            <td className="p-3">{p.phone2 || '-'}</td>
+                            <td className="p-3">{p.email || '-'}</td>
+                          </tr>
+                        )
+                      } catch {
+                        return (
+                          <tr className="border-t">
+                            <td className="p-3">-</td>
+                            <td className="p-3">-</td>
+                            <td className="p-3">-</td>
+                            <td className="p-3">-</td>
+                          </tr>
+                        )
+                      }
                     })()}
                   </tbody>
                 </table>

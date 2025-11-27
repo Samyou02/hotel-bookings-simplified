@@ -45,7 +45,7 @@ const Header = () => {
         { to: "/dashboard/admin/users", label: "Users" },
         { to: "/dashboard/admin/hotels", label: "Hotels" },
         { to: "/dashboard/admin/bookings", label: "Bookings" },
-        { to: "/dashboard/admin/settings", label: "Settings" },
+        { to: "/dashboard/admin/contact", label: "Contact" },
       ]
     }
     if (pathname.startsWith("/dashboard/owner")) {

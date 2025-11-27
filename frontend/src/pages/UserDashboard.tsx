@@ -51,6 +51,15 @@ const UserDashboard = () => {
     return true
   }, [])
   const bookingsTimeFiltered = React.useMemo(() => bookings.filter(b => inRange(b.checkIn || b.createdAt || '', dateFilterBookings)), [bookings, dateFilterBookings, inRange])
+  const bookingsTimeFilteredVisible = React.useMemo(() => {
+    try {
+      const raw = localStorage.getItem('deletedUserBookings') || '{}'
+      const map = JSON.parse(raw) as { [id:number]: boolean }
+      return bookingsTimeFiltered.filter(b => !map[b.id])
+    } catch {
+      return bookingsTimeFiltered
+    }
+  }, [bookingsTimeFiltered])
   const statusPrevRef = React.useRef<{ [id:number]: string }>({})
   React.useEffect(() => {
     const list = bookingsQ.data?.bookings || []
@@ -126,6 +135,7 @@ const UserDashboard = () => {
   ]
   const [userCancelSel, setUserCancelSel] = React.useState<{ [id:number]: string }>({})
   const [userCancelOther, setUserCancelOther] = React.useState<{ [id:number]: string }>({})
+  const [userCancelVisible, setUserCancelVisible] = React.useState<{ [id:number]: boolean }>({})
   
 
   
@@ -192,6 +202,7 @@ const UserDashboard = () => {
                   a.click()
                   setTimeout(()=>URL.revokeObjectURL(url), 2000)
                 }}>Download Excel</Button>
+                <Button variant="destructive" onClick={() => { try { const raw = localStorage.getItem('deletedUserBookings') || '{}'; const map = JSON.parse(raw) as { [id:number]: boolean }; bookingsTimeFiltered.forEach(b => { map[b.id] = true }); localStorage.setItem('deletedUserBookings', JSON.stringify(map)) } catch { void 0 } }}>Delete</Button>
               </div>
             </div>
           </CardHeader>
@@ -202,7 +213,9 @@ const UserDashboard = () => {
                 <tbody className="[&_tr:hover]:bg-muted/30">
                   {(() => {
                     const ordered = [...bookingsTimeFiltered].sort((a,b)=> new Date(b.createdAt||0).getTime() - new Date(a.createdAt||0).getTime())
-                    return ordered.map(b => (
+                    return ordered.filter(b => {
+                      try { const raw = localStorage.getItem('deletedUserBookings') || '{}'; const map = JSON.parse(raw) as { [id:number]: boolean }; return !map[b.id] } catch { return true }
+                    }).map(b => (
                       <tr key={b.id} className="border-t">
                         <td className="p-3">#{b.id}</td>
                         <td className="p-3">
@@ -220,16 +233,21 @@ const UserDashboard = () => {
                         <td className="p-3"><span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-secondary">{b.status}</span></td>
                         <td className="p-3 flex gap-2">
                           {(['pending','confirmed'].includes(String(b.status||''))) && (
-                            <div className="flex items-center gap-2">
-                              <select className="px-2 py-1 rounded border text-sm" value={userCancelSel[b.id] || ''} onChange={(e)=> setUserCancelSel({ ...userCancelSel, [b.id]: e.target.value })}>
-                                <option value="">Select reason</option>
-                                {userCancelOptions.map(opt => (<option key={opt} value={opt}>{opt}</option>))}
-                              </select>
-                              {(userCancelSel[b.id] === 'Other') && (
-                                <Input className="w-48" placeholder="Please specify" value={userCancelOther[b.id] || ''} onChange={(e)=> setUserCancelOther({ ...userCancelOther, [b.id]: e.target.value })} />
-                              )}
-                              {(() => { const chosen = userCancelSel[b.id] || ''; const extra = chosen === 'Other' ? (userCancelOther[b.id] || '') : ''; const reason = `${chosen}${extra ? (': ' + extra) : ''}`.trim(); const valid = !!chosen && reason.length >= 3; return (<Button size="sm" variant="destructive" disabled={!valid} onClick={()=> cancelBooking.mutate({ id: b.id, reason })}>Confirm</Button>) })()}
-                            </div>
+                            <>
+                              <Button size="sm" variant="outline" onClick={() => setUserCancelVisible({ ...userCancelVisible, [b.id]: !(userCancelVisible[b.id] || false) })}>Cancel</Button>
+                              {userCancelVisible[b.id] ? (
+                                <div className="flex items-center gap-2">
+                                  <select className="px-2 py-1 rounded border text-sm" value={userCancelSel[b.id] || ''} onChange={(e)=> setUserCancelSel({ ...userCancelSel, [b.id]: e.target.value })}>
+                                    <option value="">Select reason</option>
+                                    {userCancelOptions.map(opt => (<option key={opt} value={opt}>{opt}</option>))}
+                                  </select>
+                                  {(userCancelSel[b.id] === 'Other') && (
+                                    <Input className="w-48" placeholder="Please specify" value={userCancelOther[b.id] || ''} onChange={(e)=> setUserCancelOther({ ...userCancelOther, [b.id]: e.target.value })} />
+                                  )}
+                                  {(() => { const chosen = userCancelSel[b.id] || ''; const extra = chosen === 'Other' ? (userCancelOther[b.id] || '') : ''; const reason = `${chosen}${extra ? (': ' + extra) : ''}`.trim(); return (<Button size="sm" variant="destructive" onClick={()=> cancelBooking.mutate({ id: b.id, reason })}>Confirm</Button>) })()}
+                                </div>
+                              ) : null}
+                            </>
                           )}
                           <Button size="sm" variant="outline" onClick={() => window.open(`/api/user/invoices/${b.id}`, '_blank')}>Invoice</Button>
                         </td>
