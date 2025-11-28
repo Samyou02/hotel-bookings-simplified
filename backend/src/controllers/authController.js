@@ -2,6 +2,9 @@ const { connect } = require('../config/db')
 const ensureSeed = require('../seed')
 const { nextIdFor } = require('../utils/ids')
 const { User } = require('../models')
+const crypto = require('crypto')
+let mailer = null
+try { mailer = require('nodemailer') } catch { mailer = null }
 const fs = require('fs')
 const path = require('path')
 
@@ -60,3 +63,59 @@ async function seedAdmin(req, res) {
 }
 
 module.exports = { signin, register, seedAdmin }
+
+async function forgot(req, res) {
+  try {
+    await connect(); await ensureSeed();
+    const { email } = req.body || {}
+    if (!email) return res.status(400).json({ error: 'Missing email' })
+    const u = await User.findOne({ email })
+    if (!u) return res.status(404).json({ error: 'User not found' })
+    const token = crypto.randomBytes(20).toString('hex')
+    u.resetToken = token
+    u.resetExpires = new Date(Date.now() + 60 * 60 * 1000)
+    await u.save()
+    const frontBase = (process.env.SERVER_URL || (req.headers.origin && String(req.headers.origin)) || 'http://localhost:8080')
+    const link = `${frontBase}/reset-password?token=${token}`
+    if (mailer) {
+      try {
+        const transporter = mailer.createTransport({
+          host: process.env.SMTP_HOST,
+          service: /gmail\.com$/i.test(String(process.env.SMTP_HOST||'')) ? 'gmail' : undefined,
+          port: Number(process.env.SMTP_PORT || 587),
+          secure: String(process.env.SMTP_SECURE||'false') === 'true',
+          auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
+        })
+        await transporter.sendMail({ from: process.env.SMTP_USER, to: email, subject: 'Reset your password', text: `Create a new password: ${link}`, html: `<p>Create a new password:</p><p><a href="${link}">${link}</a></p>` })
+      } catch (e) {
+        console.warn('[ForgotPassword] email send failed', e?.message || e)
+      }
+    }
+    res.json({ status: 'sent', link })
+  } catch (e) {
+    console.error('[ForgotPassword] error', e?.message || e)
+    res.status(503).json({ error: 'Database unavailable' })
+  }
+}
+
+async function reset(req, res) {
+  try {
+    await connect(); await ensureSeed();
+    const { token, password } = req.body || {}
+    if (!token || !password) return res.status(400).json({ error: 'Missing fields' })
+    const u = await User.findOne({ resetToken: token })
+    if (!u) return res.status(404).json({ error: 'Invalid token' })
+    if (!u.resetExpires || new Date(u.resetExpires).getTime() < Date.now()) return res.status(400).json({ error: 'Token expired' })
+    u.password = String(password)
+    u.resetToken = undefined
+    u.resetExpires = undefined
+    await u.save()
+    res.json({ status: 'updated' })
+  } catch (e) {
+    console.error('[ResetPassword] error', e?.message || e)
+    res.status(503).json({ error: 'Database unavailable' })
+  }
+}
+
+module.exports.forgot = forgot
+module.exports.reset = reset

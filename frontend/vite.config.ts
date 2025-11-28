@@ -8,6 +8,7 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+    strictPort: true,
     proxy: {
       "/api": { target: process.env.VITE_API_URL || "http://localhost:5000", changeOrigin: true },
       "/uploads": { target: process.env.VITE_API_URL || "http://localhost:5000", changeOrigin: true },

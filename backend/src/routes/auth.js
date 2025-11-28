@@ -5,5 +5,7 @@ const auth = require('../controllers/authController')
 router.post('/signin', auth.signin)
 router.post('/register', auth.register)
 router.get('/seed/admin', auth.seedAdmin)
+router.post('/forgot', auth.forgot)
+router.post('/reset', auth.reset)
 
 module.exports = router
