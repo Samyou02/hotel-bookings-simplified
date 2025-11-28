@@ -7,14 +7,23 @@ import { apiPost } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import * as React from "react";
 import { useNavigate } from "react-router-dom";
+import { Eye, EyeOff } from "lucide-react";
 
 const ResetPassword = () => {
   const [password, setPassword] = React.useState("");
   const [confirm, setConfirm] = React.useState("");
+  const [showA, setShowA] = React.useState(false);
+  const [showB, setShowB] = React.useState(false);
   const params = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
   const token = params.get("token") || "";
   const { toast } = useToast();
   const navigate = useNavigate();
+  React.useEffect(() => {
+    if (!token) {
+      toast({ title: "Reset link required", description: "Open the link from your email to create a new password" })
+      navigate("/");
+    }
+  }, [token, navigate, toast]);
 
   const m = useMutation({
     mutationFn: () => apiPost<{ status: string }, { token: string; password: string }>("/api/auth/reset", { token, password }),
@@ -31,17 +40,24 @@ const ResetPassword = () => {
         <div className="w-full max-w-md">
           <div className="bg-card rounded-lg shadow-card p-8">
             <h1 className="text-2xl font-bold mb-4">Create New Password</h1>
+            {token ? (
             <form onSubmit={(e)=>{ e.preventDefault(); if (canSubmit) m.mutate(); }} className="space-y-4">
-              <div>
+              <div className="relative">
                 <label className="text-sm font-medium mb-2 block">New Password</label>
-                <Input type="password" placeholder="Enter new password" value={password} onChange={(e)=> setPassword(e.target.value)} />
+                <Input type={showA?"text":"password"} placeholder="Enter new password" value={password} onChange={(e)=> setPassword(e.target.value)} />
+                <button type="button" className="absolute right-3 top-[52px] text-muted-foreground" onClick={()=>setShowA(!showA)}>{showA? <EyeOff className="h-4 w-4"/> : <Eye className="h-4 w-4"/>}</button>
               </div>
-              <div>
+              <div className="relative">
                 <label className="text-sm font-medium mb-2 block">Confirm Password</label>
-                <Input type="password" placeholder="Confirm password" value={confirm} onChange={(e)=> setConfirm(e.target.value)} />
+                <Input type={showB?"text":"password"} placeholder="Confirm password" value={confirm} onChange={(e)=> setConfirm(e.target.value)} />
+                <button type="button" className="absolute right-3 top-[52px] text-muted-foreground" onClick={()=>setShowB(!showB)}>{showB? <EyeOff className="h-4 w-4"/> : <Eye className="h-4 w-4"/>}</button>
               </div>
+              {password && confirm && password !== confirm && (
+                <div className="text-xs text-destructive">Passwords must match</div>
+              )}
               <Button className="w-full" disabled={!canSubmit || m.isPending}>{m.isPending?"Updating...":"Update Password"}</Button>
             </form>
+            ) : null}
           </div>
         </div>
       </main>

@@ -4,7 +4,7 @@ import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { apiPost } from "@/lib/api";
@@ -27,6 +27,7 @@ const SignIn = () => {
   const [password, setPassword] = useState("")
   const navigate = useNavigate()
   const { toast } = useToast()
+  const [show, setShow] = useState(false)
   const mutation = useMutation({ mutationFn: () => apiPost<SignInResponse, { email: string; password: string }>("/api/auth/signin", { email, password }) ,
     onSuccess: (data) => {
       localStorage.setItem("auth", JSON.stringify(data))
@@ -80,9 +81,10 @@ const SignIn = () => {
                 <Input type="email" placeholder="your@email.com" value={email} onChange={(e) => setEmail(e.target.value)} />
               </div>
 
-              <div>
+              <div className="relative">
                 <label className="text-sm font-medium mb-2 block">Password</label>
-                <Input type="password" placeholder="Enter your password" value={password} onChange={(e) => setPassword(e.target.value)} />
+                <Input type={show?"text":"password"} placeholder="Enter your password" value={password} onChange={(e) => setPassword(e.target.value)} />
+                <button type="button" className="absolute right-3 top-[52px] text-muted-foreground" onClick={()=>setShow(!show)}>{show? <EyeOff className="h-4 w-4"/> : <Eye className="h-4 w-4"/>}</button>
               </div>
 
               <div className="flex items-center justify-between">

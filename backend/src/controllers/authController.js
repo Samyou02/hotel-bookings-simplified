@@ -70,7 +70,9 @@ async function forgot(req, res) {
     const { email } = req.body || {}
     if (!email) return res.status(400).json({ error: 'Missing email' })
     const u = await User.findOne({ email })
-    if (!u) return res.status(404).json({ error: 'User not found' })
+    if (!u) {
+      return res.json({ status: 'sent' })
+    }
     const token = crypto.randomBytes(20).toString('hex')
     u.resetToken = token
     u.resetExpires = new Date(Date.now() + 60 * 60 * 1000)

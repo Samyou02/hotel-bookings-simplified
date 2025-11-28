@@ -4,7 +4,7 @@ import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { apiPost } from "@/lib/api";
@@ -26,6 +26,8 @@ const Register = () => {
   const [idExpiryDate, setIdExpiryDate] = useState("")
   const [idDocImage, setIdDocImage] = useState<string>("")
   const [agree, setAgree] = useState(false)
+  const [showA, setShowA] = useState(false)
+  const [showB, setShowB] = useState(false)
   const idPatterns: { [k:string]: RegExp } = {
     "Aadhaar Card": /^\d{12}$/,
     "Passport": /^[A-Za-z]{1}\d{7}$/,
@@ -92,15 +94,20 @@ const Register = () => {
                 <Input type="tel" placeholder="10 digits, starts 6-9" value={phone} onChange={(e) => setPhone(e.target.value.replace(/\D/g,""))} maxLength={10} />
               </div>
 
-              <div>
+              <div className="relative">
                 <label className="text-sm font-medium mb-2 block">Password *</label>
-                <Input type="password" placeholder="Create a strong password" value={password} onChange={(e) => setPassword(e.target.value)} />
+                <Input type={showA?"text":"password"} placeholder="Create a strong password" value={password} onChange={(e) => setPassword(e.target.value)} />
+                <button type="button" className="absolute right-3 top-[52px] text-muted-foreground" onClick={()=>setShowA(!showA)}>{showA? <EyeOff className="h-4 w-4"/> : <Eye className="h-4 w-4"/>}</button>
               </div>
 
-              <div>
+              <div className="relative">
                 <label className="text-sm font-medium mb-2 block">Confirm Password *</label>
-                <Input type="password" placeholder="Confirm your password" value={confirm} onChange={(e) => setConfirm(e.target.value)} />
+                <Input type={showB?"text":"password"} placeholder="Confirm your password" value={confirm} onChange={(e) => setConfirm(e.target.value)} />
+                <button type="button" className="absolute right-3 top-[52px] text-muted-foreground" onClick={()=>setShowB(!showB)}>{showB? <EyeOff className="h-4 w-4"/> : <Eye className="h-4 w-4"/>}</button>
               </div>
+              {password && confirm && password !== confirm && (
+                <div className="text-xs text-destructive">Passwords must match</div>
+              )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>

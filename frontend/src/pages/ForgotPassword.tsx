@@ -13,9 +13,6 @@ const ForgotPassword = () => {
   const m = useMutation({
     mutationFn: () => apiPost<{ status: string; link?: string }, { email: string }>("/api/auth/forgot", { email }),
     onSuccess: (data) => {
-      if (data?.link) {
-        try { window.location.href = data.link } catch { /* noop */ }
-      }
       toast({ title: "Email sent", description: "Check your inbox for the reset link" })
     },
     onError: () => toast({ title: "Failed to send", variant: "destructive" }),
