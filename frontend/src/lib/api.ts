@@ -12,11 +12,12 @@ export async function apiGet<T>(path: string): Promise<T> {
       if (res.ok) {
         return res.json() as Promise<T>;
       }
+      let msg = ''
       try {
         const j = await res.json().catch(() => null) as unknown as { error?: string; message?: string } | null
-        const msg = (j?.error || j?.message || res.statusText || '').trim()
-        if (msg) throw new Error(msg)
-      } catch (_) { void 0 }
+        msg = (j?.error || j?.message || res.statusText || '').trim()
+      } catch (_) { /* ignore */ }
+      if (msg) return Promise.reject(new Error(msg))
     } catch (err) {
       // swallow and try next fallback
     }
@@ -35,11 +36,12 @@ export async function apiPost<T, B extends object>(path: string, body: B): Promi
       if (res.ok) {
         return res.json() as Promise<T>;
       }
+      let msg = ''
       try {
         const j = await res.json().catch(() => null) as unknown as { error?: string; message?: string } | null
-        const msg = (j?.error || j?.message || res.statusText || '').trim()
-        if (msg) throw new Error(msg)
-      } catch (_) { void 0 }
+        msg = (j?.error || j?.message || res.statusText || '').trim()
+      } catch (_) { /* ignore */ }
+      if (msg) return Promise.reject(new Error(msg))
     } catch (err) {
       // swallow and try next fallback
     }

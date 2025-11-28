@@ -8,14 +8,24 @@ import { apiPost } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 
 const ForgotPassword = () => {
-  const [email, setEmail] = useState("");
+  const params = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '')
+  const initialEmail = params.get('email') || ""
+  const [email, setEmail] = useState(initialEmail);
   const { toast } = useToast();
   const m = useMutation({
     mutationFn: () => apiPost<{ status: string; link?: string }, { email: string }>("/api/auth/forgot", { email }),
     onSuccess: (data) => {
       toast({ title: "Email sent", description: "Check your inbox for the reset link" })
     },
-    onError: () => toast({ title: "Failed to send", variant: "destructive" }),
+    onError: (err) => {
+      const msg = err instanceof Error ? String(err.message || '') : ''
+      const lower = msg.toLowerCase()
+      if (lower.includes('not registered')) {
+        toast({ title: "Email not registered", description: "Please sign up first", variant: "destructive" })
+      } else {
+        toast({ title: "Failed to send", variant: "destructive" })
+      }
+    },
   });
 
   return (

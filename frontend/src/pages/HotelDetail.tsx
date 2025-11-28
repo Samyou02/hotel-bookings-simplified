@@ -208,6 +208,10 @@ const HotelDetail = () => {
 
  
   const selectedRoom = availableRooms.find((r) => r.type === roomType) || availableRooms[0];
+  const maxGuests = Math.max(1, Number(selectedRoom?.members || 1));
+  useEffect(() => {
+    if (guests > maxGuests) setGuests(maxGuests);
+  }, [maxGuests]);
   const price = Number(selectedRoom?.price ?? hotel?.price ?? 0);
 
   const dynPricing = hotel?.pricing || {};
@@ -640,17 +644,17 @@ const HotelDetail = () => {
                           value={guests}
                           onChange={(e) => setGuests(Number(e.target.value))}
                         >
-                          <option value={1}>1 Guest</option>
-                          <option value={2}>2 Guests</option>
-                          <option value={3}>3 Guests</option>
-                          <option value={4}>4+ Guests</option>
+                          {Array.from({ length: maxGuests }, (_, i) => i + 1).map((n) => (
+                            <option key={n} value={n}>{n} {n===1? 'Guest':'Guests'}</option>
+                          ))}
                         </select>
+                        <div className="text-xs text-muted-foreground mt-1">Max {maxGuests} guests for {selectedRoom?.type || 'room'}.</div>
                       </div>
                     </div>
 
                     <Button
                       className="w-full h-12 bg-accent hover:bg-accent/90 text-white mb-4"
-                      disabled={reserve.isPending || !hasDateTime || Number(selectedRoom?.available || 0) === 0}
+                      disabled={reserve.isPending || !hasDateTime || Number(selectedRoom?.available || 0) === 0 || guests > maxGuests}
                       onClick={() => {
                         if (!isAuthed) {
                           toast({ title: "Sign in required", description: "Please sign in to book a room" })

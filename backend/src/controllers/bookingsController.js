@@ -32,9 +32,7 @@ async function create(req, res) {
     const existingHeld = await Booking.findOne({ userId: Number(userId), hotelId: Number(hotelId), status: 'held' })
     if (existingHeld) {
       const notExpired = existingHeld.holdExpiresAt && new Date(existingHeld.holdExpiresAt) > now
-      if (notExpired) {
-        return res.json({ status: 'reserved', id: existingHeld.id, roomId: existingHeld.roomId, holdExpiresAt: existingHeld.holdExpiresAt })
-      } else {
+      if (!notExpired) {
         existingHeld.status = 'expired'
         await existingHeld.save()
         if (existingHeld.roomId) {
@@ -42,6 +40,7 @@ async function create(req, res) {
           if (r) { r.blocked = false; await r.save() }
         }
       }
+      // If notExpired, allow creating another hold — do not return early
     }
   }
   const filter = { hotelId: Number(hotelId), availability: true }
@@ -71,6 +70,9 @@ async function create(req, res) {
     chosenRoomId = newRoomId
   }
   const chosenRoom = rooms.find(x => x.id === chosenRoomId) || await Room.findOne({ id: Number(chosenRoomId) }).lean()
+  if (chosenRoom && Number(guests) > Number(chosenRoom.members || 0)) {
+    return res.status(400).json({ error: 'Guests exceed room capacity' })
+  }
   const basePricePerDay = Number(chosenRoom?.price || 0)
   const diffMs = co.getTime() - ci.getTime()
   const diffHours = Math.ceil(diffMs / (1000 * 60 * 60))
@@ -175,7 +177,7 @@ async function create(req, res) {
   try {
     const owner = hotel.ownerId ? await User.findOne({ id: Number(hotel.ownerId) }).lean() : null
     const user = userId ? await User.findOne({ id: Number(userId) }).lean() : null
-    const base = process.env.API_BASE || `http://localhost:${process.env.PORT || 5001}`
+    const base = process.env.API_BASE || `http://localhost:${process.env.PORT || 5000}`
     const ownerConfirmLink = `${base}/api/bookings/email/owner-confirm/${id}?token=${ownerActionToken}`
     const ownerCancelLink = `${base}/api/bookings/email/owner-cancel-query?id=${id}&token=${ownerActionToken}`
     const userCancelLink = `${base}/api/bookings/email/user-cancel-query?id=${id}&token=${userActionToken}`
@@ -244,7 +246,7 @@ async function confirm(req, res) {
   try {
     const hotel = await Hotel.findOne({ id: Number(b.hotelId) }).lean()
     const user = b.userId ? await User.findOne({ id: Number(b.userId) }).lean() : null
-    const base = process.env.API_BASE || `http://localhost:${process.env.PORT || 5001}`
+    const base = process.env.API_BASE || `http://localhost:${process.env.PORT || 5000}`
     const userCancelLink = `${base}/api/bookings/email/user-cancel-query?id=${id}&token=${b.userActionToken || ''}`
     if (mailer && user?.email) {
       try {

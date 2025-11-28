@@ -54,7 +54,16 @@ const SignIn = () => {
     onError: (err) => {
       const msg = err instanceof Error ? String(err.message || '') : ''
       try { localStorage.removeItem('auth') } catch { /* ignore */ }
-      toast({ title: "Account blocked", description: msg ? msg : "Please contact support", variant: "destructive" })
+      const lower = msg.toLowerCase()
+      if (lower.includes('blocked')) {
+        toast({ title: "Sign in failed", description: "Your account is blocked", variant: "destructive" })
+      } else if (lower.includes('email not registered') || lower.includes('not registered')) {
+        toast({ title: "Sign in failed", description: "Account not registered. Please sign up and then sign in", variant: "destructive" })
+      } else if (lower.includes('invalid credentials') || lower.includes('invalid')) {
+        toast({ title: "Sign in failed", description: "Invalid credentials", variant: "destructive" })
+      } else {
+        toast({ title: "Sign in failed", description: msg || "Try again later", variant: "destructive" })
+      }
     }
   })
   return (
@@ -94,15 +103,13 @@ const SignIn = () => {
                     Remember me
                   </label>
                 </div>
-                <Link to="/forgot-password" className="text-sm text-primary hover:underline">
+                <Link to={`/forgot-password${email ? `?email=${encodeURIComponent(email)}` : ''}`} className="text-sm text-primary hover:underline">
                   Forgot password?
                 </Link>
               </div>
 
               <Button className="w-full" disabled={mutation.isPending}>{mutation.isPending ? "Signing in..." : "Sign In"}</Button>
-              {mutation.isError && (
-                <div className="text-red-600 text-sm">Account blocked</div>
-              )}
+              {mutation.isError && (()=>{ const m = mutation.error instanceof Error ? String(mutation.error.message||'') : ''; const lower = m.toLowerCase(); const txt = lower.includes('blocked') ? 'Sign in failed: your account is blocked' : (lower.includes('email not registered') || lower.includes('not registered') ? 'Sign in failed: account not registered — please sign up and then sign in' : (lower.includes('invalid credentials') || lower.includes('invalid') ? 'Sign in failed: invalid credentials' : 'Sign in failed')); return (<div className="text-red-600 text-sm">{txt}</div>) })()}
               {mutation.isSuccess && <div className="text-green-600 text-sm">Signed in</div>}
 
               <div className="relative my-6">

@@ -17,8 +17,9 @@ async function signin(req, res) {
     const { email, password } = req.body || {}
     if (!email || !password) return res.status(400).json({ error: 'Missing credentials' })
     const user = await User.findOne({ email }).lean()
-    if (!user || user.password !== password) return res.status(401).json({ error: 'Invalid credentials' })
+    if (!user) return res.status(404).json({ error: 'Email not registered' })
     if (user.blocked) return res.status(403).json({ error: 'User is blocked' })
+    if (user.password !== password) return res.status(401).json({ error: 'Invalid credentials' })
     res.json({ token: 'mock-token', user: { id: user.id, email: user.email, role: user.role, isApproved: user.isApproved !== false, blocked: !!user.blocked } })
   } catch (e) {
     const { email, password } = req.body || {}
@@ -71,7 +72,7 @@ async function forgot(req, res) {
     if (!email) return res.status(400).json({ error: 'Missing email' })
     const u = await User.findOne({ email })
     if (!u) {
-      return res.json({ status: 'sent' })
+      return res.status(404).json({ error: 'Email not registered' })
     }
     const token = crypto.randomBytes(20).toString('hex')
     u.resetToken = token
