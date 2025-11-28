@@ -1,7 +1,9 @@
 import { Facebook, Twitter, Instagram, Linkedin } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 
 const Footer = () => {
+  const location = useLocation();
+  const isOwnerDashboard = location.pathname.startsWith("/dashboard/owner");
   return (
     <footer className="bg-card border-t">
       <div className="container py-12">
@@ -44,9 +46,10 @@ const Footer = () => {
           <div>
             <h4 className="font-bold mb-4">Support</h4>
             <ul className="space-y-2">
-              <li><Link to="/help" className="text-muted-foreground hover:text-primary transition-colors">Help Center</Link></li>
+              {!isOwnerDashboard && (
+                <li><Link to="/help" className="text-muted-foreground hover:text-primary transition-colors">Help Center</Link></li>
+              )}
               <li><Link to="/contact" className="text-muted-foreground hover:text-primary transition-colors">Contact Us</Link></li>
-              <li><Link to="/cancellation" className="text-muted-foreground hover:text-primary transition-colors">Cancellation Policy</Link></li>
             </ul>
           </div>
 

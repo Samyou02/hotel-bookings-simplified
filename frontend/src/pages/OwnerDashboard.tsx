@@ -212,6 +212,13 @@ const OwnerDashboard = () => {
     enabled: !!ownerId,
   })
 
+  const settingsQ = useQuery({
+    queryKey: ["admin","settings"],
+    queryFn: () => apiGet<{ settings: { contactName?: string; contactEmail?: string; contactPhone1?: string; contactPhone2?: string } }>(`/api/admin/settings`),
+    staleTime: 30_000,
+    refetchInterval: 5000,
+  })
+
   const guestsQ = useQuery({
     queryKey: ["owner", "guests", ownerId],
     queryFn: () => apiGet<{ guests: GuestItem[] }>(`/api/owner/guests?ownerId=${ownerId}`),
@@ -1737,6 +1744,7 @@ const OwnerDashboard = () => {
                   <table className="w-full text-sm">
                     <thead className="bg-muted/50">
                       <tr className="text-left">
+                        <th className="p-3">S.No</th>
                         <th className="p-3">Booking</th>
                         <th className="p-3">Hotel</th>
                         <th className="p-3">User</th>
@@ -1749,8 +1757,9 @@ const OwnerDashboard = () => {
                       </tr>
                     </thead>
                     <tbody className="[&_tr:hover]:bg-muted/30">
-                      {bookingsTimeFiltered.map((b) => (
+                      {bookingsTimeFiltered.map((b, idx) => (
                         <tr key={b.id} className="border-t">
+                          <td className="p-3">{idx + 1}</td>
                           <td className="p-3">#{b.id}</td>
                           <td className="p-3">{b.hotelId}</td>
                           <td className="p-3">
@@ -2144,29 +2153,12 @@ const OwnerDashboard = () => {
                     </tr>
                   </thead>
                   <tbody className="[&_tr:hover]:bg-muted/30">
-                    {(() => {
-                      try {
-                        const raw = localStorage.getItem('adminContact') || ''
-                        const p = raw ? JSON.parse(raw) as { fullName?: string; phone1?: string; phone2?: string; email?: string } : {}
-                        return (
-                          <tr className="border-t">
-                            <td className="p-3">{p.fullName || '-'}</td>
-                            <td className="p-3">{p.phone1 || '-'}</td>
-                            <td className="p-3">{p.phone2 || '-'}</td>
-                            <td className="p-3">{p.email || '-'}</td>
-                          </tr>
-                        )
-                      } catch {
-                        return (
-                          <tr className="border-t">
-                            <td className="p-3">-</td>
-                            <td className="p-3">-</td>
-                            <td className="p-3">-</td>
-                            <td className="p-3">-</td>
-                          </tr>
-                        )
-                      }
-                    })()}
+                    <tr className="border-t">
+                      <td className="p-3">{settingsQ.data?.settings?.contactName || '-'}</td>
+                      <td className="p-3">{settingsQ.data?.settings?.contactPhone1 || '-'}</td>
+                      <td className="p-3">{settingsQ.data?.settings?.contactPhone2 || '-'}</td>
+                      <td className="p-3">{settingsQ.data?.settings?.contactEmail || '-'}</td>
+                    </tr>
                   </tbody>
                 </table>
               </div>

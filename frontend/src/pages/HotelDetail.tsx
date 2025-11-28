@@ -30,6 +30,14 @@ type Hotel = {
   contactPhone1?: string;
   contactPhone2?: string;
   ownerName?: string;
+  pricing?: {
+    normalPrice?: number;
+    weekendPrice?: number;
+    extraHourRate?: number;
+    cancellationHourRate?: number;
+    seasonal?: { start: string; end: string; price: number }[];
+    specials?: { date: string; price: number }[];
+  };
 };
 
 type RoomInfo = {
@@ -201,6 +209,34 @@ const HotelDetail = () => {
  
   const selectedRoom = availableRooms.find((r) => r.type === roomType) || availableRooms[0];
   const price = Number(selectedRoom?.price ?? hotel?.price ?? 0);
+
+  const dynPricing = hotel?.pricing || {};
+  const isWeekend = (() => {
+    const d = new Date(`${checkIn}T00:00:00+05:30`);
+    const day = d.getDay();
+    return day === 0 || day === 6;
+  })();
+  const seasonalPrice = (() => {
+    const list = Array.isArray(dynPricing.seasonal) ? dynPricing.seasonal : [];
+    const di = new Date(`${checkIn}T00:00:00+05:30`).getTime();
+    const f = list.find((x) => {
+      const st = new Date(`${x.start}T00:00:00+05:30`).getTime();
+      const en = new Date(`${x.end}T00:00:00+05:30`).getTime();
+      return di >= st && di <= en;
+    });
+    return f?.price;
+  })();
+  const specialPrice = (() => {
+    const list = Array.isArray(dynPricing.specials) ? dynPricing.specials : [];
+    const f = list.find((x) => String(x.date) === String(checkIn));
+    return f?.price;
+  })();
+  const appliedRate = Number(
+    specialPrice ??
+    seasonalPrice ??
+    (isWeekend ? dynPricing.weekendPrice : dynPricing.normalPrice) ??
+    price,
+  );
 
 
   // auth
@@ -496,32 +532,50 @@ const HotelDetail = () => {
                       <p className="text-muted-foreground">per 24h</p>
                     </div>
 
-                    {/* coupon section */}
-                    <div className="mb-4">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium">Coupons for {checkIn}</span>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                      <div className="rounded-lg border p-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium">Coupons for {checkIn}</span>
+                        </div>
+                        {couponsQ.isLoading && <div className="text-xs text-muted-foreground">Checking coupons…</div>}
+                        {couponsQ.isError && <div className="text-xs text-muted-foreground">Failed to load coupons</div>}
+                        {!couponsQ.isLoading && !couponsQ.isError && (
+                          (couponsQ.data?.coupons || []).length ? (
+                            <div className="flex flex-wrap gap-2 mt-2">
+                              {(couponsQ.data?.coupons || []).map((c) => (
+                                <span
+                                  key={c.id}
+                                  onClick={() => setAppliedCoupon(appliedCoupon?.id === c.id ? null : c)}
+                                  className={`inline-flex items-center px-2 py-1 rounded-full text-xs cursor-pointer ${
+                                    appliedCoupon?.id === c.id ? "bg-primary text-primary-foreground" : "bg-secondary"
+                                  }`}
+                                >
+                                  {c.code} • {c.discount}%
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="text-xs text-muted-foreground mt-2">No coupons for selected date</div>
+                          )
+                        )}
                       </div>
-                      {couponsQ.isLoading && <div className="text-xs text-muted-foreground">Checking coupons…</div>}
-                      {couponsQ.isError && <div className="text-xs text-muted-foreground">Failed to load coupons</div>}
-                      {!couponsQ.isLoading && !couponsQ.isError && (
-                        (couponsQ.data?.coupons || []).length ? (
-                          <div className="flex flex-wrap gap-2 mt-2">
-                            {(couponsQ.data?.coupons || []).map((c) => (
-                              <span
-                                key={c.id}
-                                onClick={() => setAppliedCoupon(appliedCoupon?.id === c.id ? null : c)}
-                                className={`inline-flex items-center px-2 py-1 rounded-full text-xs cursor-pointer ${
-                                  appliedCoupon?.id === c.id ? "bg-primary text-primary-foreground" : "bg-secondary"
-                                }`}
-                              >
-                                {c.code} • {c.discount}%
-                              </span>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="text-xs text-muted-foreground mt-2">No coupons for selected date</div>
-                        )
-                      )}
+
+                      <div className="rounded-lg border p-3">
+                        <div className="text-sm font-medium">Dynamic Pricing</div>
+                        <div className="mt-2 space-y-1 text-xs text-muted-foreground">
+                          <div>Applied Rate: ₹{appliedRate}</div>
+                          <div>Normal: ₹{Number(dynPricing.normalPrice ?? hotel?.price ?? 0)}</div>
+                          <div>Weekend: ₹{Number(dynPricing.weekendPrice ?? hotel?.price ?? 0)}</div>
+                          <div>Extra Hour: ₹{Number(dynPricing.extraHourRate ?? 0)}</div>
+                          <div>Cancellation Hour: ₹{Number(dynPricing.cancellationHourRate ?? 0)}</div>
+                          {specialPrice !== undefined ? (
+                            <div>Special Day: ₹{Number(specialPrice)}</div>
+                          ) : null}
+                          {seasonalPrice !== undefined ? (
+                            <div>Seasonal: ₹{Number(seasonalPrice)}</div>
+                          ) : null}
+                        </div>
+                      </div>
                     </div>
  
  
