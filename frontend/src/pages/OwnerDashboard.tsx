@@ -2345,7 +2345,7 @@ const OwnerDashboard = () => {
                                       </Button>
                                     </PopoverTrigger>
                                     <PopoverContent
-                                      className="p-0"
+                                      className="w-auto p-0 bg-popover z-50"
                                       align="start"
                                     >
                                       <Calendar
