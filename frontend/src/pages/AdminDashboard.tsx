@@ -17,7 +17,7 @@ type User = { id: number; email: string; role: "admin"|"user"|"owner"; isApprove
 type Hotel = { id: number; name: string; location: string; ownerId?: number|null; status?: "approved"|"rejected"|"suspended"|"pending"; featured?: boolean; price?: number; createdAt?: string }
 type Booking = { id: number; hotelId: number; checkIn: string; checkOut: string; guests: number; total: number; status: string; refundIssued: boolean; hotel?: Hotel; createdAt?: string }
 type Coupon = { id: number; code: string; discount: number; expiry: string|null; usageLimit: number; used: number; enabled: boolean }
-type Settings = { taxRate: number; commissionRate: number; ourStory?: string; ourMission?: string; contactName?: string; contactEmail?: string; contactPhone1?: string; contactPhone2?: string }
+type Settings = { taxRate: number; commissionRate: number; ourStory?: string; ourMission?: string; contactName?: string; contactEmail?: string; contactPhone1?: string; contactPhone2?: string; cities?: string[] }
 
 const AdminDashboard = () => {
   const qc = useQueryClient()
@@ -96,6 +96,11 @@ const AdminDashboard = () => {
   const [commInput, setCommInput] = React.useState("")
   const [storyInput, setStoryInput] = React.useState("")
   const [missionInput, setMissionInput] = React.useState("")
+  const [citiesInput, setCitiesInput] = React.useState("")
+  React.useEffect(()=>{
+    const c = (settings.data?.settings?.cities || []) as string[]
+    setCitiesInput(c.join(', '))
+  }, [settings.data])
   const [ownerForm, setOwnerForm] = React.useState({ email:"", password:"", firstName:"", lastName:"", phone:"" })
   const [filterRole, setFilterRole] = React.useState<'all'|'user'|'owner'>('all')
   const [contactName, setContactName] = React.useState("")
@@ -182,7 +187,19 @@ const AdminDashboard = () => {
               <Input placeholder="Password" type="password" value={ownerForm.password} onChange={e=>setOwnerForm({ ...ownerForm, password: e.target.value })} />
               <Input placeholder="First Name" value={ownerForm.firstName} onChange={e=>setOwnerForm({ ...ownerForm, firstName: e.target.value })} />
               <Input placeholder="Last Name" value={ownerForm.lastName} onChange={e=>setOwnerForm({ ...ownerForm, lastName: e.target.value })} />
-              <Input placeholder="Phone" value={ownerForm.phone} onChange={e=>setOwnerForm({ ...ownerForm, phone: e.target.value })} />
+              <Input
+                placeholder="Phone"
+                value={ownerForm.phone}
+                inputMode="numeric"
+                maxLength={10}
+                onChange={e=>{
+                const  v = (e.target.value || '')
+                           .replace(/\D/g, '')       // keep only numbers
+                           .replace(/^[0-5]/, '')    // remove if starting digit is NOT 6-9
+                           .slice(0, 10);            // allow max 10 digits
+                  setOwnerForm({ ...ownerForm, phone: v })
+                }}
+              />
               <Button onClick={() => { if (!ownerForm.email || !ownerForm.password) return; createOwner.mutate(ownerForm) }} disabled={createOwner.isPending || !ownerForm.email || !ownerForm.password}>{createOwner.isPending ? "Adding..." : "Add Hotel Owner"}</Button>
             </div>
             <div className="flex items-center gap-2 mb-3">
@@ -288,6 +305,13 @@ const AdminDashboard = () => {
                 <Textarea rows={4} placeholder="Enter our mission" value={missionInput} onChange={e=>setMissionInput(e.target.value)} />
                 <div className="mt-2">
                   <Button onClick={() => updateSettings.mutate({ ourMission: missionInput })} disabled={updateSettings.isPending}>Save</Button>
+                </div>
+              </div>
+              <div>
+                <div className="text-sm font-medium mb-2">Cities</div>
+                <Textarea rows={3} placeholder="Enter cities separated by commas" value={citiesInput} onChange={e=>setCitiesInput(e.target.value)} />
+                <div className="mt-2">
+                  <Button onClick={() => updateSettings.mutate({ cities: citiesInput.split(',').map(s=>s.trim()).filter(Boolean) })} disabled={updateSettings.isPending}>Save</Button>
                 </div>
               </div>
             </div>

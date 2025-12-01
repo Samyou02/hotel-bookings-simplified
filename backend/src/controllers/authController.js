@@ -78,17 +78,25 @@ async function forgot(req, res) {
     u.resetToken = token
     u.resetExpires = new Date(Date.now() + 60 * 60 * 1000)
     await u.save()
-    const frontBase = (process.env.SERVER_URL || (req.headers.origin && String(req.headers.origin)) || 'http://localhost:8080')
+    const frontBase = ((req.headers.origin && String(req.headers.origin)) || process.env.SERVER_URL || 'http://localhost:8080')
     const link = `${frontBase}/reset-password?token=${token}`
     if (mailer) {
       try {
+        const hostRaw = String(process.env.SMTP_HOST || '').trim()
+        const userRaw = String(process.env.SMTP_USER || '').trim()
+        const passRaw = String(process.env.SMTP_PASS || '').trim()
+        if (!userRaw || !passRaw) {
+          throw new Error('SMTP credentials missing')
+        }
+        const isGmailUser = /@gmail\.com$/i.test(userRaw)
+        const host = hostRaw || (isGmailUser ? 'smtp.gmail.com' : '')
         const transporter = mailer.createTransport({
-          host: process.env.SMTP_HOST,
-          service: /gmail\.com$/i.test(String(process.env.SMTP_HOST||'')) ? 'gmail' : undefined,
-          port: Number(process.env.SMTP_PORT || 587),
-          secure: String(process.env.SMTP_SECURE||'false') === 'true',
-          auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
+          host,
+          port: Number(String(process.env.SMTP_PORT||'').trim() || 587),
+          secure: String(process.env.SMTP_SECURE||'false').trim().toLowerCase() === 'true',
+          auth: { user: userRaw, pass: passRaw }
         })
+        console.log('[SMTP] using', { host, port: Number(String(process.env.SMTP_PORT||'').trim() || 587), secure: String(process.env.SMTP_SECURE||'false').trim().toLowerCase() === 'true', user: userRaw })
         await transporter.sendMail({ from: process.env.SMTP_USER, to: email, subject: 'Reset your password', text: `Create a new password: ${link}`, html: `<p>Create a new password:</p><p><a href="${link}">${link}</a></p>` })
       } catch (e) {
         console.warn('[ForgotPassword] email send failed', e?.message || e)

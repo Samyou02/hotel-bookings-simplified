@@ -14,7 +14,7 @@ const ForgotPassword = () => {
   const { toast } = useToast();
   const m = useMutation({
     mutationFn: () => apiPost<{ status: string; link?: string }, { email: string }>("/api/auth/forgot", { email }),
-    onSuccess: (data) => {
+    onSuccess: (_data) => {
       toast({ title: "Email sent", description: "Check your inbox for the reset link" })
     },
     onError: (err) => {

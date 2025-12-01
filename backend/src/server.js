@@ -7,6 +7,19 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 dotenv.config();
 
+const nodemailer = require("nodemailer");   // <-- ADDED
+                                             
+// Create SMTP transporter (Gmail)
+const transporter = nodemailer.createTransport({   // <-- ADDED
+  host: process.env.SMTP_HOST,
+  port: Number(process.env.SMTP_PORT),
+  secure: false,
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS
+  }
+});
+
 const { connect, isConnected } = require('./config/db');
 const ensureSeed = require('./seed');
 const { nextIdFor } = require('./utils/ids');
@@ -58,7 +71,7 @@ app.get('/uploads/:name', (req, res) => {
 
 app.use('/uploads', express.static(uploadsDir));
 
-const port = Number(process.env.PORT || 5000);
+const port = 5000 ;
 
 (async () => {
   try {
@@ -127,13 +140,18 @@ app.get('/api/db/health', async (req, res) => {
   }
 });
 
+// ---------------------
+// CONTACT API + EMAIL
+// ---------------------
 app.post('/api/contact', async (req, res) => {
   await connect();
   await ensureSeed();
   const { firstName, lastName, email, subject, message } = req.body || {};
+
   if (!email || !message) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
+
   const id = await nextIdFor('Contact');
   await Contact.create({
     id,
@@ -143,6 +161,21 @@ app.post('/api/contact', async (req, res) => {
     subject,
     message,
   });
+
+  // ----- SEND EMAIL USING SMTP (OPTIONAL) -----
+  try {
+    await transporter.sendMail({
+      from: process.env.SMTP_USER,
+      to: email,  // send to user
+      subject: `Thanks for contacting us`,
+      text: `We received your message: ${message}`,
+    });
+
+    console.log("Email sent successfully");
+  } catch (err) {
+    console.log("Email send error:", err.message);
+  }
+
   res.json({ status: 'received', id });
 });
 

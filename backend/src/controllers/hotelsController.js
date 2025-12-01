@@ -260,13 +260,13 @@ async function about(req, res) {
     const totalHotels = await Hotel.countDocuments();
     const totalBookings = await Booking.countDocuments();
 
+    const s = await Settings.findOne().lean();
+    const citiesCount = Array.isArray(s?.cities) ? s.cities.filter(Boolean).length : 0;
     const stats = [
       { label: 'Hotels', value: String(totalHotels) },
       { label: 'Happy Customers', value: String(totalBookings) },
-      { label: 'Countries', value: '180+' }
+      { label: 'Cities', value: String(citiesCount) }
     ];
-
-    const s = await Settings.findOne().lean();
     const ourStory = s?.ourStory || '';
     const ourMission = s?.ourMission || '';
     const contact = {
