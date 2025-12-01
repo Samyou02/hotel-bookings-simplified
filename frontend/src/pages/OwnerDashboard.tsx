@@ -2738,6 +2738,87 @@ const OwnerDashboard = () => {
                     </tbody>
                   </table>
                 </div>
+                <div className="mt-6">
+                  <div className="text-sm font-medium mb-2">Saved Pricing</div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="text-left">
+                          <th className="p-2">Hotel</th>
+                          <th className="p-2">Normal ₹</th>
+                          <th className="p-2">Weekend ₹</th>
+                          <th className="p-2">Extra Hour ₹</th>
+                          <th className="p-2">Cancellation Hour ₹</th>
+                          <th className="p-2">Seasonal</th>
+                          <th className="p-2">Special Days</th>
+                          <th className="p-2">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {hotels.map((h) => {
+                          const p = h.pricing || {}
+                          const seasonal = Array.isArray(p.seasonal) ? p.seasonal : []
+                          const specials = Array.isArray(p.specials) ? p.specials : []
+                          return (
+                            <tr key={`saved-${h.id}`} className="border-t">
+                              <td className="p-2">{h.id} • {h.name}</td>
+                              <td className="p-2">{p.normalPrice !== undefined ? `₹${Number(p.normalPrice)}` : '-'}</td>
+                              <td className="p-2">{p.weekendPrice !== undefined ? `₹${Number(p.weekendPrice)}` : '-'}</td>
+                              <td className="p-2">{p.extraHourRate !== undefined ? `₹${Number(p.extraHourRate)}` : '-'}</td>
+                              <td className="p-2">{p.cancellationHourRate !== undefined ? `₹${Number(p.cancellationHourRate)}` : '-'}</td>
+                              <td className="p-2">
+                                <div className="flex flex-wrap gap-2">
+                                  {seasonal.length === 0 && <span className="text-xs text-muted-foreground">None</span>}
+                                  {seasonal.map((s, idx) => (
+                                    <div key={`season-${h.id}-${idx}`} className="inline-flex items-center gap-2">
+                                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-secondary">{String(s.start)} → {String(s.end)} • ₹{Number(s.price||0)}</span>
+                                      <Button size="sm" variant="outline" onClick={() => {
+                                        const next = seasonal.filter((_, i) => i !== idx)
+                                        updatePricing.mutate({ hotelId: h.id, seasonal: next.map(ss => ({ start: String(ss.start), end: String(ss.end), price: Number(ss.price||0) })) })
+                                      }}>Remove</Button>
+                                    </div>
+                                  ))}
+                                </div>
+                              </td>
+                              <td className="p-2">
+                                <div className="flex flex-wrap gap-2">
+                                  {specials.length === 0 && <span className="text-xs text-muted-foreground">None</span>}
+                                  {specials.map((sp, idx) => (
+                                    <div key={`special-${h.id}-${idx}`} className="inline-flex items-center gap-2">
+                                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-secondary">{String(sp.date)} • ₹{Number(sp.price||0)}</span>
+                                      <Button size="sm" variant="outline" onClick={() => {
+                                        const next = specials.filter((_, i) => i !== idx)
+                                        updatePricing.mutate({ hotelId: h.id, specials: next.map(ssp => ({ date: String(ssp.date), price: Number(ssp.price||0) })) })
+                                      }}>Remove</Button>
+                                    </div>
+                                  ))}
+                                </div>
+                              </td>
+                              <td className="p-2 flex gap-2 flex-wrap">
+                                <Button size="sm" variant="outline" onClick={() => {
+                                  setPricingEditing({ ...pricingEditing, [h.id]: true })
+                                  setPricingForm(prev => ({
+                                    ...prev,
+                                    [h.id]: {
+                                      normalPrice: String(p.normalPrice ?? prev[h.id]?.normalPrice ?? ''),
+                                      weekendPrice: String(p.weekendPrice ?? prev[h.id]?.weekendPrice ?? ''),
+                                      extraHourRate: String(p.extraHourRate ?? prev[h.id]?.extraHourRate ?? ''),
+                                      cancellationHourRate: String(p.cancellationHourRate ?? prev[h.id]?.cancellationHourRate ?? ''),
+                                      seasonal: seasonal.map(s => ({ start: String(s.start||''), end: String(s.end||''), price: String(Number(s.price||0)) })),
+                                      specials: specials.map(sp => ({ date: String(sp.date||''), price: String(Number(sp.price||0)) }))
+                                    }
+                                  }))
+                                  toast({ title: 'Edit enabled', description: `Pricing • Hotel #${h.id}` })
+                                }}>Edit</Button>
+                                <Button size="sm" variant="destructive" onClick={() => deletePricing.mutate(h.id)}>Delete</Button>
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           )}
