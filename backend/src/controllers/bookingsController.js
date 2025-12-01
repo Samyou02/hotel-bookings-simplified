@@ -62,8 +62,7 @@ async function create(req, res) {
   const extraHours = diffHours > 24 ? (diffHours - stayDays * 24) : 0
 
   const pricing = hotel?.pricing || { normalPrice: Number(hotel.price)||0, weekendPrice: Number(hotel.price)||0, seasonal: [], specials: [] }
-  const normalPrice = Number(pricing?.normalPrice || basePricePerDay)
-  const weekendPrice = Number(pricing?.weekendPrice || basePricePerDay)
+  const weekendSurcharge = Number(pricing?.weekendPrice || 0)
   const seasonal = Array.isArray(pricing?.seasonal) ? pricing.seasonal : []
   const specials = Array.isArray(pricing?.specials) ? pricing.specials : []
 
@@ -75,31 +74,30 @@ async function create(req, res) {
     const d = new Date(s)
     return (d instanceof Date && !isNaN(d.getTime())) ? d : null
   }
-  function inSeason(d) {
+  function seasonExtra(d) {
     for (const s of seasonal) {
       const st = parseDateStr(s?.start)
       const en = parseDateStr(s?.end)
       const price = Number(s?.price || 0)
       if (st && en && d >= st && d <= en) return price
     }
-    return null
+    return 0
   }
   function specialFor(d) {
     for (const sp of specials) {
       const sd = parseDateStr(sp?.date)
       if (sd && isSameDay(sd, d)) return Number(sp?.price || 0)
     }
-    return null
+    return 0
   }
   function applyPricing(d, base) {
-    const special = specialFor(d)
-    if (special !== null && !isNaN(special) && special > 0) return special
-    const seasonPrice = inSeason(d)
-    if (seasonPrice !== null && !isNaN(seasonPrice) && seasonPrice > 0) return seasonPrice
     const dow = d.getDay() // 0 Sun ... 6 Sat
-    const isWeekend = dow === 5 || dow === 6 || dow === 0 // Fri-Sun
-    if (isWeekend) return weekendPrice || base
-    return normalPrice || base
+    const isWknd = dow === 5 || dow === 6 || dow === 0 // Fri-Sun
+    const weekendExtra = isWknd ? weekendSurcharge : 0
+    const seasonalExtra = seasonExtra(d)
+    const specialExtra = specialFor(d)
+    const total = Number(base || 0) + Number(weekendExtra || 0) + Number(seasonalExtra || 0) + Number(specialExtra || 0)
+    return Math.max(0, total)
   }
 
   let computedTotal = 0

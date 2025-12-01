@@ -237,21 +237,10 @@ const HotelDetail = () => {
     const f = list.find((x) => String(x.date) === String(checkIn));
     return f?.price;
   })();
-  const [rateSelection, setRateSelection] = useState<"normal"|"weekend"|"seasonal"|"special"|null>(null);
-  const appliedRateAuto = Number(
-    specialPrice ??
-    seasonalPrice ??
-    (isWeekend ? dynPricing.weekendPrice : dynPricing.normalPrice) ??
-    price,
-  );
-  const appliedRateManual = (() => {
-    if (rateSelection === "special") return Number(specialPrice ?? NaN);
-    if (rateSelection === "seasonal") return Number(seasonalPrice ?? NaN);
-    if (rateSelection === "weekend") return Number(dynPricing.weekendPrice ?? NaN);
-    if (rateSelection === "normal") return Number(dynPricing.normalPrice ?? NaN);
-    return NaN;
-  })();
-  const appliedRate = Number.isFinite(appliedRateManual) ? appliedRateManual : appliedRateAuto;
+  const weekendExtra = isWeekend ? Number(dynPricing.weekendPrice || 0) : 0
+  const seasonalExtra = Number(seasonalPrice || 0)
+  const specialExtra = Number(specialPrice || 0)
+  const appliedRate = Math.max(0, Number(price || 0) + weekendExtra + seasonalExtra + specialExtra)
 
 
   // auth
@@ -280,16 +269,9 @@ const HotelDetail = () => {
   const diffHours = Math.ceil(diffMs / (1000 * 60 * 60));
   const stayDays = diffHours > 0 && diffHours <= 24 ? 1 : Math.floor(diffHours / 24);
   const extraHours = diffHours > 24 ? diffHours - stayDays * 24 : 0;
-  const baseAmountStandard = stayDays * price;
-  const extraAmountStandard = Math.round((price / 24) * extraHours);
-  const subtotalStandard = baseAmountStandard + extraAmountStandard;
-  const baseAmountRate = stayDays * appliedRate;
-  const extraAmountRate = Math.round((appliedRate / 24) * extraHours);
-  const subtotalRate = baseAmountRate + extraAmountRate;
-  const rateDiscount = rateSelection ? Math.max(0, subtotalStandard - subtotalRate) : 0;
-  const baseAmount = Math.max(0, baseAmountStandard - (rateSelection ? Math.max(0, baseAmountStandard - baseAmountRate) : 0));
-  const extraAmount = Math.max(0, extraAmountStandard - (rateSelection ? Math.max(0, extraAmountStandard - extraAmountRate) : 0));
-  const subtotal = Math.max(0, subtotalStandard - rateDiscount);
+  const baseAmount = stayDays * appliedRate
+  const extraAmount = Math.round((appliedRate / 24) * extraHours)
+  const subtotal = baseAmount + extraAmount
 
   const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null);
   const discountAmount = Math.max(0, Math.round((appliedCoupon?.discount || 0) * subtotal / 100));
@@ -571,70 +553,58 @@ const HotelDetail = () => {
 
                     <div className="rounded-lg border p-3 mb-6">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium">Coupons for {checkIn}</span>
+                        <span className="text-sm font-medium">Rates for {checkIn}</span>
                         <div className="flex items-center gap-2">
-                          {(() => {
-                            const lbl = rateSelection
-                              ? (rateSelection === 'normal' ? 'Normal' : rateSelection === 'weekend' ? 'Weekend' : rateSelection === 'seasonal' ? 'Seasonal' : 'Special Day')
-                              : (specialPrice !== undefined ? 'Auto • Special Day' : seasonalPrice !== undefined ? 'Auto • Seasonal' : isWeekend ? 'Auto • Weekend' : 'Auto • Normal')
-                            return <Badge variant="secondary" className="text-xs">{lbl}</Badge>
-                          })()}
-                          <Button size="sm" variant="outline" onClick={() => setRateSelection(null)}>Clear</Button>
+                          <Badge variant="secondary" className="text-xs">Auto</Badge>
                         </div>
                       </div>
 
                       {couponsQ.isLoading && <div className="text-xs text-muted-foreground mt-2">Checking coupons…</div>}
                       {couponsQ.isError && <div className="text-xs text-muted-foreground mt-2">Failed to load coupons</div>}
                       {!couponsQ.isLoading && !couponsQ.isError && (
-                        (couponsQ.data?.coupons || []).length ? (
-                          <div className="mt-3 space-y-2">
-                            {(couponsQ.data?.coupons || []).map((c) => (
-                              <div key={c.id} className="grid grid-cols-3 items-center gap-2 rounded border px-3 py-2 bg-card">
-                                <div className="text-sm">{c.code}</div>
-                                <div className="text-sm">{c.discount}%</div>
-                                <div className="text-right">
-                                  <Button size="sm" variant={appliedCoupon?.id === c.id ? "default" : "outline"} onClick={() => setAppliedCoupon(appliedCoupon?.id === c.id ? null : c)}>
-                                    {appliedCoupon?.id === c.id ? "Remove" : "Apply"}
-                                  </Button>
-                                </div>
-                              </div>
-                            ))}
+                        <div className="mt-3 space-y-2">
+                          <div className="grid grid-cols-3 items-center gap-2 rounded border px-3 py-2 bg-card">
+                            <div className="text-sm">Base</div>
+                            <div className="text-sm">₹{price}</div>
+                            <div></div>
                           </div>
-                        ) : (
-                          <div className="text-xs text-muted-foreground mt-2">No coupons for selected date</div>
-                        )
+                          <div className={`grid grid-cols-3 items-center gap-2 rounded border px-3 py-2 ${weekendExtra>0 ? 'bg-secondary' : 'bg-card'}`}>
+                            <div className="text-sm">Weekend</div>
+                            <div className="text-sm">₹{weekendExtra}</div>
+                            <div></div>
+                          </div>
+                          <div className={`grid grid-cols-3 items-center gap-2 rounded border px-3 py-2 ${seasonalExtra>0 ? 'bg-secondary' : 'bg-card'}`}>
+                            <div className="text-sm">Seasonal</div>
+                            <div className="text-sm">₹{seasonalExtra}</div>
+                            <div></div>
+                          </div>
+                          <div className={`grid grid-cols-3 items-center gap-2 rounded border px-3 py-2 ${specialExtra>0 ? 'bg-secondary' : 'bg-card'}`}>
+                            <div className="text-sm">Special Day</div>
+                            <div className="text-sm">₹{specialExtra}</div>
+                            <div></div>
+                          </div>
+                          <div className="mt-4 text-xs text-muted-foreground">Coupons</div>
+                          {(couponsQ.data?.coupons || []).length ? (
+                            <div className="space-y-2">
+                              {(couponsQ.data?.coupons || []).map((c) => (
+                                <div key={c.id} className="grid grid-cols-3 items-center gap-2 rounded border px-3 py-2 bg-card">
+                                  <div className="text-sm">{c.code}</div>
+                                  <div className="text-sm">{c.discount}%</div>
+                                  <div className="text-right">
+                                    <Button size="sm" variant={appliedCoupon?.id === c.id ? "default" : "outline"} onClick={() => setAppliedCoupon(appliedCoupon?.id === c.id ? null : c)}>
+                                      {appliedCoupon?.id === c.id ? "Remove" : "Apply"}
+                                    </Button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="text-sm text-muted-foreground">No coupons</div>
+                          )}
+                        </div>
                       )}
 
-                      <div className="mt-3 space-y-2">
-                        <div className={`grid grid-cols-3 items-center gap-2 rounded border px-3 py-2 ${rateSelection==='normal' ? 'bg-secondary' : 'bg-card'}`}>
-                          <div className="text-sm">Normal</div>
-                          <div className="text-sm">₹{Number(dynPricing.normalPrice ?? hotel?.price ?? 0)}</div>
-                          <div className="text-right">
-                            <Button size="sm" variant={rateSelection==='normal' ? 'default' : 'outline'} onClick={() => setRateSelection(rateSelection==='normal' ? null : 'normal')}>{rateSelection==='normal' ? 'Remove' : 'Apply'}</Button>
-                          </div>
-                        </div>
-                        <div className={`grid grid-cols-3 items-center gap-2 rounded border px-3 py-2 ${rateSelection==='weekend' ? 'bg-secondary' : 'bg-card'}`}>
-                          <div className="text-sm">Weekend</div>
-                          <div className="text-sm">₹{Number(dynPricing.weekendPrice ?? hotel?.price ?? 0)}</div>
-                          <div className="text-right">
-                            <Button size="sm" variant={rateSelection==='weekend' ? 'default' : 'outline'} onClick={() => setRateSelection(rateSelection==='weekend' ? null : 'weekend')}>{rateSelection==='weekend' ? 'Remove' : 'Apply'}</Button>
-                          </div>
-                        </div>
-                        <div className={`grid grid-cols-3 items-center gap-2 rounded border px-3 py-2 ${rateSelection==='seasonal' ? 'bg-secondary' : 'bg-card'}`}>
-                          <div className="text-sm">Seasonal</div>
-                          <div className="text-sm">₹{seasonalPrice !== undefined ? Number(seasonalPrice) : 0}</div>
-                          <div className="text-right">
-                            <Button size="sm" variant={rateSelection==='seasonal' ? 'default' : 'outline'} disabled={seasonalPrice === undefined} onClick={() => setRateSelection(rateSelection==='seasonal' ? null : 'seasonal')}>{rateSelection==='seasonal' ? 'Remove' : 'Apply'}</Button>
-                          </div>
-                        </div>
-                        <div className={`grid grid-cols-3 items-center gap-2 rounded border px-3 py-2 ${rateSelection==='special' ? 'bg-secondary' : 'bg-card'}`}>
-                          <div className="text-sm">Special Day</div>
-                          <div className="text-sm">₹{specialPrice !== undefined ? Number(specialPrice) : 0}</div>
-                          <div className="text-right">
-                            <Button size="sm" variant={rateSelection==='special' ? 'default' : 'outline'} disabled={specialPrice === undefined} onClick={() => setRateSelection(rateSelection==='special' ? null : 'special')}>{rateSelection==='special' ? 'Remove' : 'Apply'}</Button>
-                          </div>
-                        </div>
-                      </div>
+                      {/* manual rate toggles removed; rates apply automatically */}
                     </div>
  
  
@@ -749,12 +719,7 @@ const HotelDetail = () => {
                             <span className="font-medium">₹{extraAmount}</span>
                           </div>
                         )}
-                      {rateSelection && rateDiscount > 0 ? (
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Rate ({rateSelection === 'normal' ? 'Normal' : rateSelection === 'weekend' ? 'Weekend' : rateSelection === 'seasonal' ? 'Seasonal' : 'Special Day'})</span>
-                          <span className="font-medium">-₹{rateDiscount}</span>
-                        </div>
-                      ) : null}
+                      {/* manual rate discount removed; additive pricing applied above */}
                         {appliedCoupon?.discount ? (
                           <div className="flex justify-between text-sm">
                             <span className="text-muted-foreground">Coupon {appliedCoupon.code} ({appliedCoupon.discount}%)</span>
