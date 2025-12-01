@@ -96,11 +96,7 @@ const AdminDashboard = () => {
   const [commInput, setCommInput] = React.useState("")
   const [storyInput, setStoryInput] = React.useState("")
   const [missionInput, setMissionInput] = React.useState("")
-  const [citiesInput, setCitiesInput] = React.useState("")
-  React.useEffect(()=>{
-    const c = (settings.data?.settings?.cities || []) as string[]
-    setCitiesInput(c.join(', '))
-  }, [settings.data])
+  
   const [ownerForm, setOwnerForm] = React.useState({ email:"", password:"", firstName:"", lastName:"", phone:"" })
   const [filterRole, setFilterRole] = React.useState<'all'|'user'|'owner'>('all')
   const [contactName, setContactName] = React.useState("")
@@ -307,13 +303,7 @@ const AdminDashboard = () => {
                   <Button onClick={() => updateSettings.mutate({ ourMission: missionInput })} disabled={updateSettings.isPending}>Save</Button>
                 </div>
               </div>
-              <div>
-                <div className="text-sm font-medium mb-2">Cities</div>
-                <Textarea rows={3} placeholder="Enter cities separated by commas" value={citiesInput} onChange={e=>setCitiesInput(e.target.value)} />
-                <div className="mt-2">
-                  <Button onClick={() => updateSettings.mutate({ cities: citiesInput.split(',').map(s=>s.trim()).filter(Boolean) })} disabled={updateSettings.isPending}>Save</Button>
-                </div>
-              </div>
+              
             </div>
           </CardContent>
         </Card>

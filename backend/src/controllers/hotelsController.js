@@ -60,7 +60,7 @@ async function list(req, res) {
       const primary = h.image || (Array.isArray(h.images) && h.images.length > 0 ? h.images[0] : '');
       const resolved = toPublicUrl(primary);
       const g = group[h.id] || { sum: 0, count: 0 };
-      const avg = g.count ? (g.sum / g.count) : Number(h.rating || 0);
+      const avg = g.count ? (g.sum / g.count) : 0;
       return {
         ...h,
         rating: Math.round(avg * 10) / 10,
@@ -241,7 +241,7 @@ async function featured(req, res) {
       const primary = h.image || (Array.isArray(h.images) && h.images.length > 0 ? h.images[0] : '');
       const resolved = toPublicUrl(primary);
       const g = group[h.id] || { sum: 0, count: 0 };
-      const avg = g.count ? (g.sum / g.count) : Number(h.rating || 0);
+      const avg = g.count ? (g.sum / g.count) : 0;
       return {
         ...h,
         rating: Math.round(avg * 10) / 10,
