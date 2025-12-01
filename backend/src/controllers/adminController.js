@@ -6,7 +6,7 @@ const { User, Hotel, Booking, Coupon, Contact, Settings } = require('../models')
 async function stats(req, res) {
   try {
     await connect(); await ensureSeed();
-    const hotels = await Hotel.find().lean()
+    const hotels = await Hotel.find({ ownerId: { $ne: null }, status: 'approved' }).lean()
     const bookings = await Booking.find().lean()
     const totalHotels = hotels.length
     const totalBookings = bookings.length

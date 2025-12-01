@@ -263,11 +263,17 @@ async function about(req, res) {
     await connect();
     await ensureSeed();
 
-    const totalHotels = await Hotel.countDocuments();
+    const totalHotels = await Hotel.countDocuments({ ownerId: { $ne: null }, status: 'approved' });
     const totalBookings = await Booking.countDocuments();
 
     const s = await Settings.findOne().lean();
-    const citiesCount = Array.isArray(s?.cities) ? s.cities.filter(Boolean).length : 0;
+    const activeHotels = await Hotel.find({ ownerId: { $ne: null }, status: 'approved' }).lean();
+    const citiesSet = new Set(
+      activeHotels
+        .map(h => String(h?.location || '').split(',')[0].trim())
+        .filter(Boolean)
+    );
+    const citiesCount = citiesSet.size;
     const stats = [
       { label: 'Hotels', value: String(totalHotels) },
       { label: 'Happy Customers', value: String(totalBookings) },
