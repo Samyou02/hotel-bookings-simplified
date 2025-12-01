@@ -166,14 +166,12 @@ async function getRooms(req, res) {
     const dayStart = new Date(`${ymd}T00:00:00+05:30`);
     const dayEnd   = new Date(`${ymd}T23:59:59+05:30`);
 
-    const bookings = await Booking.find({ hotelId: id, status: { $in: ['held', 'pending', 'confirmed', 'checked_in'] } }).lean();
+    const bookings = await Booking.find({ hotelId: id, status: { $in: ['pending', 'confirmed', 'checked_in'] } }).lean();
     const roomTypeMap = new Map(items.map(r => [Number(r.id), String(r.type || '')]));
     const typeUsed = {};
     for (const b of bookings) {
       const bCi = new Date(b.checkIn);
       const bCo = new Date(b.checkOut);
-      const isHeldActive = b.status === 'held' ? (b.holdExpiresAt && new Date(b.holdExpiresAt) > now) : true;
-      if (!isHeldActive) continue;
       const overlaps = dayStart < bCo && dayEnd > bCi;
       if (overlaps) {
         const t = roomTypeMap.get(Number(b.roomId || 0)) || String(b.roomType || '');
@@ -219,7 +217,7 @@ async function featured(req, res) {
     await connect();
     await ensureSeed();
 
-    const items = await Hotel.find({ ownerId: { $ne: null }, status: 'approved' }).limit(4).lean();
+    const items = await Hotel.find({ ownerId: { $ne: null }, status: 'approved' }).lean();
 
     // compute review aggregates like in list()
     const hotelIds = items.map(h => h.id);
@@ -250,7 +248,8 @@ async function featured(req, res) {
       };
     });
 
-    res.json({ hotels });
+    const sorted = hotels.sort((a, b) => Number(b.rating || 0) - Number(a.rating || 0));
+    res.json({ hotels: sorted.slice(0, 4) });
 
   } catch (e) {
     console.error('[hotelsController.featured] error:', e);

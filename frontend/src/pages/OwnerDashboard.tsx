@@ -64,6 +64,7 @@ type Room = {
   id: number
   hotelId: number
   type: string
+  roomNumber?: string
   price: number
   members: number
   availability: boolean
@@ -76,6 +77,7 @@ type Booking = {
   id: number
   hotelId: number
   roomId?: number
+  roomNumber?: string
   checkIn: string
   checkOut: string
   guests: number
@@ -248,12 +250,12 @@ const OwnerDashboard = () => {
   }, [rooms])
 
   const roomSummaries = React.useMemo(() => {
-    const map: { [k: string]: { key: string; hotelId: number; type: string; ids: number[]; count: number; price: number; members: number; amenities: string[]; photos: string[]; availability: boolean; blocked: boolean } } = {}
+    const map: { [k: string]: { key: string; hotelId: number; type: string; ids: number[]; count: number; price: number; members: number; amenities: string[]; photos: string[]; availability: boolean; blocked: boolean; roomNumbers: string[] } } = {}
     rooms.forEach((r) => {
       const k = `${r.hotelId}|${r.type}`
       const m = map[k]
       if (!m) {
-        map[k] = { key: k, hotelId: r.hotelId, type: r.type, ids: [r.id], count: 1, price: r.price, members: r.members, amenities: r.amenities || [], photos: r.photos || [], availability: r.availability, blocked: r.blocked }
+        map[k] = { key: k, hotelId: r.hotelId, type: r.type, ids: [r.id], count: 1, price: r.price, members: r.members, amenities: r.amenities || [], photos: r.photos || [], availability: r.availability, blocked: r.blocked, roomNumbers: r.roomNumber ? [r.roomNumber] : [] }
       } else {
         m.ids.push(r.id)
         m.count += 1
@@ -263,6 +265,7 @@ const OwnerDashboard = () => {
         if ((r.photos || []).length) m.photos = r.photos || []
         m.availability = r.availability
         m.blocked = r.blocked
+        if (r.roomNumber) m.roomNumbers.push(r.roomNumber)
       }
     })
     return Object.values(map).sort((a, b) => {
@@ -539,6 +542,7 @@ const OwnerDashboard = () => {
       amenities: string[]
       photos: string[]
       availability: boolean
+      roomNumber?: string
     }) =>
       apiPost<
         { id: number },
@@ -551,6 +555,7 @@ const OwnerDashboard = () => {
           amenities: string[]
           photos: string[]
           availability: boolean
+          roomNumber?: string
         }
       >(`/api/owner/rooms`, { ownerId, ...p }),
     onSuccess: (res, vars) => {
@@ -564,6 +569,7 @@ const OwnerDashboard = () => {
             id: res.id,
             hotelId: vars.hotelId,
             type: vars.type,
+            roomNumber: vars.roomNumber,
             price: vars.price,
             members: vars.members,
             availability: vars.availability,
@@ -587,6 +593,7 @@ const OwnerDashboard = () => {
       amenities?: string[]
       photos?: string[]
       type?: string
+      roomNumber?: string
     }) => apiPost(`/api/owner/rooms/${p.id}`, p),
     onSuccess: (_res, vars) => {
       toast({ title: "Room updated", description: `#${vars.id}` })
@@ -737,6 +744,7 @@ const OwnerDashboard = () => {
     amenities: "",
     availability: true,
     count: 1,
+    roomNumbers: "",
   })
 
   const [roomPhotoFiles, setRoomPhotoFiles] = React.useState<File[]>([])
@@ -1359,6 +1367,14 @@ const OwnerDashboard = () => {
                     </select>
                   </div>
                   <div className="col-span-2">
+                    <label className="text-sm font-medium mb-2 block">Room Numbers (comma-separated)</label>
+                    <Input
+                      placeholder="e.g., 501, 502, 503"
+                      value={roomForm.roomNumbers}
+                      onChange={(e) => setRoomForm({ ...roomForm, roomNumbers: e.target.value })}
+                    />
+                  </div>
+                  <div className="col-span-2">
                     <label className="text-sm font-medium mb-2 block">
                       Amenities (comma-separated)
                     </label>
@@ -1411,7 +1427,7 @@ const OwnerDashboard = () => {
                         const photos = files.length
                           ? await Promise.all(files.map(toDataUrl))
                           : []
-                        const payload = {
+                        const payloadBase = {
                           hotelId: roomForm.hotelId,
                           type: roomForm.type,
                           price: roomForm.price,
@@ -1424,7 +1440,10 @@ const OwnerDashboard = () => {
                           availability: roomForm.availability,
                         }
                         const n = Math.max(1, Math.min(20, Number(roomForm.count)||1))
+                        const nums = String(roomForm.roomNumbers||"").split(",").map(s=>s.trim()).filter(Boolean)
                         for (let i = 0; i < n; i++) {
+                          const roomNumber = nums[i] || ""
+                          const payload: { hotelId:number; type:string; price:number; members:number; amenities:string[]; photos:string[]; availability:boolean; roomNumber?: string } = { ...payloadBase, roomNumber }
                           createRoom.mutate(payload)
                         }
                         setUploadInfo({
@@ -1448,6 +1467,7 @@ const OwnerDashboard = () => {
                         <th className="p-3">Price</th>
                         <th className="p-3">Members</th>
                         <th className="p-3">Rooms Available</th>
+                        <th className="p-3">Room Numbers</th>
                         <th className="p-3">Amenities</th>
                         <th className="p-3">Photos</th>
                         <th className="p-3">Availability</th>
@@ -1472,6 +1492,17 @@ const OwnerDashboard = () => {
                               <Input type="number" className="w-16" value={roomGroupEdit[g.key]?.availableRooms ?? String(g.count)} onChange={(e)=> setRoomGroupEdit({ ...roomGroupEdit, [g.key]: { ...(roomGroupEdit[g.key]||{}), availableRooms: e.target.value } })} />
                             ) : (
                               <div>{g.count}</div>
+                            )}
+                          </td>
+                          <td className="p-3">
+                            {g.roomNumbers && g.roomNumbers.length ? (
+                              <div className="flex gap-1 flex-wrap">
+                                {g.roomNumbers.map((rn) => (
+                                  <span key={`${g.key}-${rn}`} className="px-2 py-1 bg-secondary rounded text-xs">{rn}</span>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="text-xs text-muted-foreground">-</div>
                             )}
                           </td>
                           <td className="p-3">
@@ -1775,7 +1806,7 @@ const OwnerDashboard = () => {
                               {b.user?.email || "-"}
                             </div>
                           </td>
-                          <td className="p-3">{b.roomId ?? "-"}</td>
+                          <td className="p-3">{b.roomNumber ? b.roomNumber : (b.roomId ?? "-")}</td>
                           <td className="p-3">
                             {b.checkIn} → {b.checkOut}
                             {(() => {

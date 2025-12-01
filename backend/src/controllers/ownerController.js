@@ -55,7 +55,7 @@ async function stats(req, res) {
   const totalRevenue = ownerBookings.reduce((s, b) => s + (Number(b.total) || 0), 0);
   const rooms = await Room.find({ hotelId: { $in: hotelIds } }).lean();
   const totalRooms = rooms.length;
-  const pendingBookings = ownerBookings.filter(b => ['held','pending'].includes(String(b.status || ''))).length;
+  const pendingBookings = ownerBookings.filter(b => ['pending'].includes(String(b.status || ''))).length;
   let hotelStatus = 'pending';
   if (hotels && hotels.length) {
     const statuses = new Set(hotels.map(h => String(h.status || 'pending')));
@@ -192,7 +192,7 @@ async function rooms(req, res) {
 
 async function createRoom(req, res) {
   await connect(); await ensureSeed();
-  const { ownerId, hotelId, type, price, amenities, photos, availability, members } = req.body || {};
+  const { ownerId, hotelId, type, price, amenities, photos, availability, members, roomNumber } = req.body || {};
   const h = await Hotel.findOne({ id: Number(hotelId) });
   if (!h) return res.status(404).json({ error: 'Hotel not found' });
   if (h.ownerId == null && ownerId) {
@@ -208,6 +208,7 @@ async function createRoom(req, res) {
     id,
     hotelId: Number(hotelId),
     type: String(type || 'Standard'),
+    roomNumber: String(roomNumber || ''),
     price: Number(price) || 0,
     members: Number(members) || 1,
     amenities: Array.isArray(amenities) ? amenities : [],
@@ -221,13 +222,14 @@ async function createRoom(req, res) {
 async function updateRoom(req, res) {
   await connect(); await ensureSeed();
   const id = Number(req.params.id);
-  const { price, availability, amenities, photos, members, type } = req.body || {};
+  const { price, availability, amenities, photos, members, type, roomNumber } = req.body || {};
   const r = await Room.findOne({ id });
   if (!r) return res.status(404).json({ error: 'Room not found' });
   if (price !== undefined) r.price = Number(price);
   if (availability !== undefined) r.availability = !!availability;
   if (members !== undefined) r.members = Number(members);
   if (type !== undefined) r.type = String(type || r.type);
+  if (roomNumber !== undefined) r.roomNumber = String(roomNumber);
   if (Array.isArray(amenities)) r.amenities = amenities;
   if (Array.isArray(photos)) {
     const savedUrls = saveImagesFromDataUrls('room', id, photos);

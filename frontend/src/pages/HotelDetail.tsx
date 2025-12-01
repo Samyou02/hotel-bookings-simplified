@@ -304,7 +304,7 @@ const HotelDetail = () => {
   });
 
   // reservation mutation
-  type ReserveResp = { status: string; id: number; roomId: number; holdExpiresAt: string };
+  type ReserveResp = { status: string; id: number; roomId: number; roomNumber?: string };
   const reserve = useMutation({
     mutationFn: (body: {
       userId: number;
@@ -317,7 +317,7 @@ const HotelDetail = () => {
     }) => apiPost<ReserveResp, typeof body>("/api/bookings", body),
 
     onSuccess: (res) => {
-      toast({ title: "Reservation successful", description: `Booking #${res.id} is on hold` });
+      toast({ title: "Booking created", description: `Booking #${res.id}` });
       qc.invalidateQueries({ queryKey: ["hotel", "rooms", id, checkIn] });
     },
     onError: () => {
@@ -334,6 +334,7 @@ const HotelDetail = () => {
   const confirm = useMutation({
     mutationFn: (id: number) => apiPost(`/api/bookings/confirm/${id}`, {}),
     onSuccess: (_res, vars) => {
+      setPaid(true);
       toast({ title: "Payment confirmed", description: `Booking #${vars}` });
       qc.invalidateQueries({ queryKey: ["hotel", "rooms", id, checkIn] });
     },
@@ -342,8 +343,7 @@ const HotelDetail = () => {
     },
   });
 
-  const [remaining, setRemaining] = useState<number>(0);
-  const holdUntil = reserve.data?.holdExpiresAt;
+  const [receiptUrl, setReceiptUrl] = useState<string>("");
   const invoice = useQuery({
     queryKey: ["booking", "invoice", reserve.data?.id],
     queryFn: () => apiGet<{ invoice: { id: number; subtotal: number; taxRate: number; tax: number; total: number } }>(`/api/bookings/invoice/${reserve.data?.id}`),
@@ -351,15 +351,28 @@ const HotelDetail = () => {
   });
 
   useEffect(() => {
-    if (reserve.isSuccess && holdUntil) {
-      const end = new Date(holdUntil).getTime();
-      const tick = () => setRemaining(Math.max(0, Math.floor((end - Date.now()) / 1000)));
-      tick();
-      const i = setInterval(tick, 1000);
-      return () => clearInterval(i);
+    if (reserve.isSuccess && reserve.data?.id) {
+      const canvas = document.createElement("canvas");
+      canvas.width = 720; canvas.height = 480;
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        ctx.fillStyle = "#ffffff"; ctx.fillRect(0,0,canvas.width,canvas.height);
+        ctx.fillStyle = "#000000"; ctx.font = "bold 24px Arial";
+        ctx.fillText("Booking Receipt", 24, 40);
+        ctx.font = "16px Arial";
+        ctx.fillText(`Booking #${reserve.data.id}`, 24, 80);
+        ctx.fillText(`Hotel: ${hotel?.name || ''} (#${id})`, 24, 110);
+        ctx.fillText(`Room: ${reserve.data.roomNumber || ('#'+reserve.data.roomId)}`, 24, 140);
+        ctx.fillText(`Check-in: ${checkIn} ${checkInTime}`, 24, 170);
+        ctx.fillText(`Check-out: ${checkOut} ${checkOutTime}`, 24, 200);
+        ctx.fillText(`Guests: ${guests}`, 24, 230);
+        ctx.fillText(`Amount: ₹${grandTotal}`, 24, 260);
+        ctx.fillText(`Date: ${new Date().toLocaleString()}`, 24, 290);
+        ctx.strokeStyle = "#cccccc"; ctx.strokeRect(12, 12, canvas.width-24, canvas.height-24);
+        setReceiptUrl(canvas.toDataURL("image/png"));
+      }
     }
-    return undefined;
-  }, [reserve.isSuccess, holdUntil]);
+  }, [reserve.isSuccess, reserve.data?.id, reserve.data?.roomNumber, reserve.data?.roomId, hotel?.name, id, checkIn, checkInTime, checkOut, checkOutTime, guests, grandTotal]);
 
   const resolveImage = (src?: string) => {
     const s = String(src || "");
@@ -662,22 +675,10 @@ const HotelDetail = () => {
                         />
                       </div>
                       <div>
-                        <label className="text-sm font-medium mb-2 block">Room Type</label>
-                        <select
-                          className="w-full px-4 py-2 rounded-lg border bg-background"
-                          value={roomType}
-                          onChange={(e) => setRoomType(e.target.value)}
-                        >
-                          {availableRooms.map((r) => (
-                            <option
-                              key={r.id}
-                              value={r.type}
-                              disabled={Number(r?.available || 0) === 0}
-                            >
-                              {r.type} • ₹{r.price} {Number(r?.available || 0) === 0 ? "(Unavailable)" : `(${Number(r?.available || 0)}/${Number(r?.total || 0)} left)`}
-                            </option>
-                          ))}
-                        </select>
+                        <label className="text-sm font-medium mb-2 block">Selected Room</label>
+                        <div className="w-full px-4 py-2 rounded-lg border bg-background text-sm">
+                          {selectedRoom ? `${selectedRoom.type} • ₹${selectedRoom.price} (${Number(selectedRoom?.available || 0)}/${Number(selectedRoom?.total || 0)} left)` : 'Tap a room above to select'}
+                        </div>
                       </div>
                       <div>
                         <label className="text-sm font-medium mb-2 block">Guests</label>
@@ -715,6 +716,9 @@ const HotelDetail = () => {
                         }
                         const ciStr = `${checkIn}T${ciTime}:00+05:30`;
                         const coStr = `${checkOut}T${checkOutTime}:00+05:30`;
+                        setPaid(false);
+                        setPaymentMethod("");
+                        setUpiId("");
                         setOpen(true);
                         reserve.mutate({
                           userId: auth?.user?.id || 0,
@@ -780,7 +784,7 @@ const HotelDetail = () => {
               }
             }}
           >
-            <DialogContent>
+            <DialogContent className="max-h-[80vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>
                   {reserve.isPending
@@ -804,12 +808,7 @@ const HotelDetail = () => {
 
               {reserve.isSuccess && !paid && (
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between p-3 rounded bg-muted">
-                    <div className="text-sm">Hold expires in</div>
-                    <div className="font-mono font-bold">
-                      {String(Math.floor(remaining / 60)).padStart(2, "0")}:{String(remaining % 60).padStart(2, "0")}
-                    </div>
-                  </div>
+                  <div className="p-3 rounded bg-muted text-sm">Room reserved: {reserve.data?.roomNumber || ('#'+(reserve.data?.roomId||''))}</div>
 
                   <div className="space-y-2">
                     <Label>Payment method</Label>
@@ -849,6 +848,16 @@ const HotelDetail = () => {
                     </div>
                   )}
 
+                  {receiptUrl && (
+                    <div className="space-y-2 border-t pt-3">
+                      <div className="text-sm font-medium">Receipt</div>
+                      <img src={receiptUrl} alt="Receipt" className="w-full max-w-[540px] border rounded" />
+                      <div className="flex gap-2">
+                        <Button variant="outline" onClick={() => { const a = document.createElement('a'); a.href = receiptUrl; a.download = `receipt-${reserve.data?.id}.png`; a.click(); }}>Download</Button>
+                      </div>
+                    </div>
+                  )}
+
                   <DialogFooter>
                     <Button variant="secondary" onClick={() => setOpen(false)}>
                       Close
@@ -856,11 +865,9 @@ const HotelDetail = () => {
                     <Button
                       disabled={
                         paymentMethod === "" ||
-                        (paymentMethod === "upi" && !upiId) ||
-                        remaining <= 0
+                        (paymentMethod === "upi" && !upiId)
                       }
                       onClick={() => {
-                        setPaid(true);
                         const bid = reserve.data?.id;
                         if (bid) confirm.mutate(bid);
                       }}
@@ -875,6 +882,12 @@ const HotelDetail = () => {
                 <div className="space-y-4">
                   <div className="text-green-600 font-medium">Payment confirmed</div>
                   <div className="text-sm text-muted-foreground">Booking completed. Thank you!</div>
+                  {receiptUrl && (
+                    <div className="flex gap-2">
+                      <Button variant="outline" onClick={() => { const a = document.createElement('a'); a.href = receiptUrl; a.download = `receipt-${reserve.data?.id}.png`; a.click(); }}>Download Image</Button>
+                      <Button variant="secondary" onClick={() => { const w = window.open('', '_blank'); if (!w) return; const html = `<!doctype html><html><head><title>Receipt #${reserve.data?.id}</title><style>body{font-family:Arial,sans-serif;padding:24px;} .img{max-width:720px;border:1px solid #ddd;border-radius:8px}</style></head><body><h2>Booking Receipt</h2><img class="img" src="${receiptUrl}"/><script>window.onload=()=>window.print();</script></body></html>`; w.document.write(html); w.document.close(); }}>Download PDF</Button>
+                    </div>
+                  )}
                   <DialogFooter>
                     <Button onClick={() => setOpen(false)}>Done</Button>
                   </DialogFooter>

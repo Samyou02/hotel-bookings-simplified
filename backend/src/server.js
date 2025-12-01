@@ -93,33 +93,7 @@ const port = 5000 ;
   }
 })();
 
-setInterval(async () => {
-  try {
-    await connect();
-    const { Booking, Room } = require('./models');
-    const now = new Date();
-    const holds = await Booking.find({
-      status: 'held',
-      holdExpiresAt: { $lte: now },
-    }).lean();
-    for (const b of holds) {
-      const doc = await Booking.findOne({ id: b.id });
-      if (doc) {
-        doc.status = 'expired';
-        await doc.save();
-      }
-      if (b.roomId) {
-        const r = await Room.findOne({ id: Number(b.roomId) });
-        if (r) {
-          r.blocked = false;
-          await r.save();
-        }
-      }
-    }
-  } catch (e) {
-    // optionally log error
-  }
-}, 30000);
+// removed held-expiry timer: bookings create directly as 'pending'
 
 app.get('/', async (req, res) => {
   await connect();

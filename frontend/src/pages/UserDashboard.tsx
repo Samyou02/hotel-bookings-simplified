@@ -10,7 +10,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { apiGet, apiPost } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
 
-type Booking = { id:number; hotelId:number; checkIn:string; checkOut:string; guests:number; total:number; status:string; createdAt:string; extraHours?: number; extraCharges?: number; cancellationFee?: number }
+type Booking = { id:number; hotelId:number; roomId?:number; roomNumber?:string; checkIn:string; checkOut:string; guests:number; total:number; status:string; createdAt:string; extraHours?: number; extraCharges?: number; cancellationFee?: number }
 
 const UserDashboard = () => {
   const raw = typeof window !== "undefined" ? localStorage.getItem("auth") : null
@@ -206,7 +206,7 @@ const UserDashboard = () => {
           <CardContent>
             <div className="rounded-lg border overflow-hidden">
               <table className="w-full text-sm">
-                <thead className="bg-muted/50"><tr className="text-left"><th className="p-3">Booking</th><th className="p-3">Hotel</th><th className="p-3">Dates</th><th className="p-3">Guests</th><th className="p-3">Extra Time</th><th className="p-3">Extra Charges</th><th className="p-3">Cancellation Fee</th><th className="p-3">Total</th><th className="p-3">Status</th><th className="p-3">Actions</th></tr></thead>
+                <thead className="bg-muted/50"><tr className="text-left"><th className="p-3">Booking</th><th className="p-3">Hotel</th><th className="p-3">Room</th><th className="p-3">Dates</th><th className="p-3">Guests</th><th className="p-3">Extra Time</th><th className="p-3">Extra Charges</th><th className="p-3">Cancellation Fee</th><th className="p-3">Total</th><th className="p-3">Status</th><th className="p-3">Actions</th></tr></thead>
                 <tbody className="[&_tr:hover]:bg-muted/30">
                   {(() => {
                     const ordered = [...bookingsTimeFiltered].sort((a,b)=> new Date(b.createdAt||0).getTime() - new Date(a.createdAt||0).getTime())
@@ -224,6 +224,7 @@ const UserDashboard = () => {
                             </div>
                           </div>
                         </td>
+                        <td className="p-3">{b.roomNumber ? b.roomNumber : (b.roomId ? `#${b.roomId}` : '-')}</td>
                         <td className="p-3">{b.checkIn} → {b.checkOut}</td>
                         <td className="p-3">{b.guests}</td>
                         <td className="p-3">{Number(b.extraHours||0) > 0 ? `${Number(b.extraHours||0)}h` : '-'}</td>

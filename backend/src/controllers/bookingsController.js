@@ -27,22 +27,6 @@ async function create(req, res) {
     if (ciMinutes < nowMinutes) return res.status(400).json({ error: 'Check-in time must be later than now' })
   }
   const settings = await Settings.findOne().lean()
-  const holdMinutes = Number(settings?.holdMinutes || 15)
-  if (userId) {
-    const existingHeld = await Booking.findOne({ userId: Number(userId), hotelId: Number(hotelId), status: 'held' })
-    if (existingHeld) {
-      const notExpired = existingHeld.holdExpiresAt && new Date(existingHeld.holdExpiresAt) > now
-      if (!notExpired) {
-        existingHeld.status = 'expired'
-        await existingHeld.save()
-        if (existingHeld.roomId) {
-          const r = await Room.findOne({ id: Number(existingHeld.roomId) })
-          if (r) { r.blocked = false; await r.save() }
-        }
-      }
-      // If notExpired, allow creating another hold — do not return early
-    }
-  }
   const filter = { hotelId: Number(hotelId), availability: true }
   if (roomType) filter.type = String(roomType)
   let rooms = await Room.find(filter).lean()
@@ -54,12 +38,10 @@ async function create(req, res) {
   }
   let chosenRoomId = null
   for (const r of rooms) {
-    const existing = await Booking.find({ roomId: r.id, status: { $in: ['held','pending','confirmed','checked_in'] } }).lean()
+    const existing = await Booking.find({ roomId: r.id, status: { $in: ['pending','confirmed','checked_in'] } }).lean()
     const overlaps = existing.some(b => {
       const bCi = new Date(b.checkIn)
       const bCo = new Date(b.checkOut)
-      const isHeldActive = b.status === 'held' ? (b.holdExpiresAt && new Date(b.holdExpiresAt) > now) : true
-      if (!isHeldActive) return false
       return ci < bCo && co > bCi
     })
     if (!overlaps) { chosenRoomId = r.id; break }
@@ -158,10 +140,10 @@ async function create(req, res) {
     }
   }
   const id = await nextIdFor('Booking')
-  const holdExpiresAt = new Date(Date.now() + holdMinutes * 60 * 1000)
   const ownerActionToken = Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2)
   const userActionToken = Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2)
-  await Booking.create({ id, userId: Number(userId) || null, hotelId: Number(hotelId), roomId: Number(chosenRoomId), checkIn, checkOut, guests: Number(guests), total: computedTotal, couponId: appliedCouponId, couponCode: appliedCouponCode, status: 'held', holdExpiresAt, paid: false, ownerActionToken, userActionToken })
+  const chosenRoomDoc = await Room.findOne({ id: Number(chosenRoomId) }).lean()
+  await Booking.create({ id, userId: Number(userId) || null, hotelId: Number(hotelId), roomId: Number(chosenRoomId), roomNumber: String(chosenRoomDoc?.roomNumber || ''), checkIn, checkOut, guests: Number(guests), total: computedTotal, couponId: appliedCouponId, couponCode: appliedCouponCode, status: 'confirmed', paid: false, ownerActionToken, userActionToken })
   // Do not hard-block room for all dates; overlap logic prevents conflicts
   let thread = await MessageThread.findOne({ bookingId: id })
   if (!thread) {
@@ -188,6 +170,7 @@ async function create(req, res) {
           <div style="font-family:Arial,sans-serif;max-width:640px;margin:auto">
             <h2>New booking received: #${id}</h2>
             <p>Hotel: <b>${hotel.name}</b> (#${hotel.id})</p>
+            <p>Room: ${String(chosenRoomDoc?.roomNumber || '') || '#'+chosenRoomId}</p>
             <p>Dates: ${checkIn} → ${checkOut}</p>
             <p>Guests: ${guests}</p>
             <p>Total: ₹${computedTotal}</p>
@@ -204,7 +187,7 @@ async function create(req, res) {
     // Do not send reservation emails to the user on booking creation
   } catch (_e) { /* ignore */ }
 
-  res.json({ status: 'reserved', id, roomId: chosenRoomId, holdExpiresAt })
+  res.json({ status: 'reserved', id, roomId: chosenRoomId, roomNumber: String(chosenRoomDoc?.roomNumber || '') })
 }
 
 async function invoice(req, res) {
@@ -226,9 +209,12 @@ async function confirm(req, res) {
   const id = Number(req.params.id)
   const b = await Booking.findOne({ id })
   if (!b) return res.status(404).json({ error: 'Booking not found' })
-  const now = new Date()
-  if (b.status !== 'held') return res.status(409).json({ error: 'Booking not in held state' })
-  if (b.holdExpiresAt && new Date(b.holdExpiresAt) <= now) return res.status(409).json({ error: 'Hold expired' })
+  if (b.status === 'confirmed') {
+    b.paid = true
+    await b.save()
+    return res.json({ status: 'confirmed' })
+  }
+  // allow confirming pending/held bookings
   b.status = 'confirmed'
   b.paid = true
   await b.save()
@@ -251,7 +237,7 @@ async function confirm(req, res) {
     if (mailer && user?.email) {
       try {
         const transporter = mailer.createTransport({ host: process.env.SMTP_HOST, service: /gmail\.com$/i.test(String(process.env.SMTP_HOST||'')) ? 'gmail' : undefined, port: Number(process.env.SMTP_PORT || 587), secure: String(process.env.SMTP_SECURE||'false') === 'true', auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS } })
-        const html = `<div style="font-family:Arial,sans-serif;max-width:640px;margin:auto"><h2>Your room is confirmed</h2><p>Booking #${id} • ${hotel?.name || ''}</p><p>Check-in: ${b.checkIn} • Check-out: ${b.checkOut} • Guests: ${b.guests}</p><p>Status: Confirmed</p></div>`
+        const html = `<div style="font-family:Arial,sans-serif;max-width:640px;margin:auto"><h2>Your room is confirmed</h2><p>Booking #${id} • ${hotel?.name || ''}</p><p>Room: ${b.roomNumber || ('#'+b.roomId)}</p><p>Check-in: ${b.checkIn} • Check-out: ${b.checkOut} • Guests: ${b.guests}</p><p>Status: Confirmed</p></div>`
         await transporter.sendMail({ from: process.env.SMTP_USER, to: user.email, subject: `Booking confirmed #${id} • ${hotel?.name || ''}`, html })
       } catch (e) { console.warn('[BookingConfirm] user email send failed', e?.message || e) }
     }
