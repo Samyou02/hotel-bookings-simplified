@@ -14,6 +14,13 @@ import { apiGet, apiPost, apiDelete } from "@/lib/api"
 import RoomTypeManager from "@/components/RoomTypeManager"
 import { useToast } from "@/hooks/use-toast"
 
+const ymdLocal = (d: Date) => {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, "0")
+  const da = String(d.getDate()).padStart(2, "0")
+  return `${y}-${m}-${da}`
+}
+
 type OwnerStats = {
   totalRooms: number
   totalBookings: number
@@ -618,6 +625,7 @@ const OwnerDashboard = () => {
     onSuccess: (_res, vars) => {
       toast({ title: "Booking approved", description: `#${vars}` })
       qc.invalidateQueries({ queryKey: ["owner", "bookings", ownerId] })
+      qc.invalidateQueries({ queryKey: ["owner", "stats", ownerId] })
     },
   })
 
@@ -632,6 +640,7 @@ const OwnerDashboard = () => {
     onSuccess: (_res, vars) => {
       toast({ title: "Booking cancelled", description: `#${vars.id}` })
       qc.invalidateQueries({ queryKey: ["owner", "bookings", ownerId] })
+      qc.invalidateQueries({ queryKey: ["owner", "stats", ownerId] })
     },
     onError: (err: unknown) => {
       const msg = (() => {
@@ -670,6 +679,7 @@ const OwnerDashboard = () => {
     onSuccess: (_res, vars) => {
       toast({ title: "Checked in", description: `Booking #${vars}` })
       qc.invalidateQueries({ queryKey: ["owner", "bookings", ownerId] })
+      qc.invalidateQueries({ queryKey: ["owner", "stats", ownerId] })
     },
   })
 
@@ -678,6 +688,7 @@ const OwnerDashboard = () => {
     onSuccess: (_res, vars) => {
       toast({ title: "Checked out", description: `Booking #${vars}` })
       qc.invalidateQueries({ queryKey: ["owner", "bookings", ownerId] })
+      qc.invalidateQueries({ queryKey: ["owner", "stats", ownerId] })
     },
   })
 
@@ -2396,12 +2407,8 @@ const OwnerDashboard = () => {
                                       const sel: DateRange | undefined =
                                         seasonSel[h.id]
                                       const price = seasonPrice[h.id] || ""
-                                      const start = sel?.from
-                                        ? sel.from.toISOString().slice(0, 10)
-                                        : ""
-                                      const end = sel?.to
-                                        ? sel.to.toISOString().slice(0, 10)
-                                        : ""
+                                      const start = sel?.from ? ymdLocal(sel.from) : ""
+                                      const end = sel?.to ? ymdLocal(sel.to) : ""
                                       if (start && end) {
                                         const next = (pf.seasonal || []).concat({
                                           start,
@@ -2572,9 +2579,7 @@ const OwnerDashboard = () => {
                                   <Button
                                     size="sm"
                                     onClick={() => {
-                                      const dates = (specialSel[h.id] || []).map(
-                                        (d) => d.toISOString().slice(0, 10),
-                                      )
+                                      const dates = (specialSel[h.id] || []).map((d) => ymdLocal(d))
                                       const price = specialPrice[h.id] || ""
                                       if (dates.length) {
                                         const rows = dates.map((date) => ({

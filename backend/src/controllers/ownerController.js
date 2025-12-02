@@ -52,7 +52,10 @@ async function stats(req, res) {
   const hotelIds = hotels.map(h => h.id);
   const ownerBookings = await Booking.find({ hotelId: { $in: hotelIds } }).lean();
   const totalBookings = ownerBookings.length;
-  const totalRevenue = ownerBookings.reduce((s, b) => s + (Number(b.total) || 0), 0);
+  const revenueStatuses = ['checked_out'];
+  const totalRevenue = ownerBookings
+    .filter(b => revenueStatuses.includes(String(b.status || '')))
+    .reduce((s, b) => s + (Number(b.total) || 0), 0);
   const rooms = await Room.find({ hotelId: { $in: hotelIds } }).lean();
   const totalRooms = rooms.length;
   const pendingBookings = ownerBookings.filter(b => ['pending'].includes(String(b.status || ''))).length;

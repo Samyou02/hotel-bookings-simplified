@@ -61,10 +61,12 @@ async function list(req, res) {
       const resolved = toPublicUrl(primary);
       const g = group[h.id] || { sum: 0, count: 0 };
       const avg = g.count ? (g.sum / g.count) : 0;
+      const rounded = Math.round(avg * 10) / 10;
+      const count = g.count || Number(h.reviews || 0);
       return {
         ...h,
-        rating: Math.round(avg * 10) / 10,
-        reviews: g.count || Number(h.reviews || 0),
+        rating: count > 0 ? rounded : undefined,
+        reviews: count,
         image: resolved || 'https://placehold.co/800x600?text=Hotel'
       };
     });
@@ -240,10 +242,12 @@ async function featured(req, res) {
       const resolved = toPublicUrl(primary);
       const g = group[h.id] || { sum: 0, count: 0 };
       const avg = g.count ? (g.sum / g.count) : 0;
+      const rounded = Math.round(avg * 10) / 10;
+      const count = g.count || Number(h.reviews || 0);
       return {
         ...h,
-        rating: Math.round(avg * 10) / 10,
-        reviews: g.count || Number(h.reviews || 0),
+        rating: count > 0 ? rounded : undefined,
+        reviews: count,
         image: resolved || 'https://placehold.co/800x600?text=Hotel'
       };
     });
