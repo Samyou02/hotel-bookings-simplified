@@ -185,6 +185,25 @@ async function updateInfo(req, res) {
   res.json({ status: 'updated' });
 }
 
+async function remapHotelId(req, res) {
+  await connect(); await ensureSeed();
+  const { fromId, toId } = req.body || {}
+  const a = Number(fromId), b = Number(toId)
+  if (!a || !b) return res.status(400).json({ error: 'fromId and toId required' })
+  if (a === b) return res.json({ status: 'noop' })
+  const existsFrom = await Hotel.findOne({ id: a }).lean()
+  if (!existsFrom) return res.status(404).json({ error: 'Source hotel not found' })
+  const existsTo = await Hotel.findOne({ id: b }).lean()
+  if (existsTo) return res.status(409).json({ error: 'Target id already exists' })
+  await Hotel.updateOne({ id: a }, { $set: { id: b } })
+  await Room.updateMany({ hotelId: a }, { $set: { hotelId: b } })
+  await Booking.updateMany({ hotelId: a }, { $set: { hotelId: b } })
+  await Review.updateMany({ hotelId: a }, { $set: { hotelId: b } })
+  await MessageThread.updateMany({ hotelId: a }, { $set: { hotelId: b } })
+  try { const Coupon = require('../models/Coupon'); await Coupon.updateMany({ hotelId: a }, { $set: { hotelId: b } }) } catch {}
+  res.json({ status: 'remapped', fromId: a, toId: b })
+}
+
 async function rooms(req, res) {
   await connect(); await ensureSeed();
   const ownerId = Number(req.query.ownerId);
@@ -226,19 +245,22 @@ async function updateRoom(req, res) {
   await connect(); await ensureSeed();
   const id = Number(req.params.id);
   const { price, availability, amenities, photos, members, type, roomNumber } = req.body || {};
-  const r = await Room.findOne({ id });
-  if (!r) return res.status(404).json({ error: 'Room not found' });
-  if (price !== undefined) r.price = Number(price);
-  if (availability !== undefined) r.availability = !!availability;
-  if (members !== undefined) r.members = Number(members);
-  if (type !== undefined) r.type = String(type || r.type);
-  if (roomNumber !== undefined) r.roomNumber = String(roomNumber);
-  if (Array.isArray(amenities)) r.amenities = amenities;
+  const r = await Room.findOne({ id }).lean();
+  if (!r) {
+    return res.json({ status: 'not_found' });
+  }
+  const $set = {};
+  if (price !== undefined) $set.price = Number(price);
+  if (availability !== undefined) $set.availability = !!availability;
+  if (members !== undefined) $set.members = Number(members);
+  if (type !== undefined) $set.type = String(type || r.type);
+  if (roomNumber !== undefined) $set.roomNumber = String(roomNumber);
+  if (Array.isArray(amenities)) $set.amenities = amenities;
   if (Array.isArray(photos)) {
     const savedUrls = saveImagesFromDataUrls('room', id, photos);
-    r.photos = savedUrls.length ? savedUrls : photos;
+    $set.photos = savedUrls.length ? savedUrls : photos;
   }
-  await r.save();
+  await Room.updateOne({ id }, { $set });
   res.json({ status: 'updated' });
 }
 
@@ -246,10 +268,11 @@ async function blockRoom(req, res) {
   await connect(); await ensureSeed();
   const id = Number(req.params.id);
   const { blocked } = req.body || {};
-  const r = await Room.findOne({ id });
-  if (!r) return res.status(404).json({ error: 'Room not found' });
-  r.blocked = !!blocked;
-  await r.save();
+  const r = await Room.findOne({ id }).lean();
+  if (!r) {
+    return res.json({ status: 'not_found' });
+  }
+  await Room.updateOne({ id }, { $set: { blocked: !!blocked } });
   res.json({ status: 'updated' });
 }
 
@@ -257,7 +280,9 @@ async function deleteRoom(req, res) {
   await connect(); await ensureSeed();
   const id = Number(req.params.id);
   const r = await Room.findOne({ id });
-  if (!r) return res.status(404).json({ error: 'Room not found' });
+  if (!r) {
+    return res.json({ status: 'not_found' });
+  }
   await Room.deleteOne({ id });
   res.json({ status: 'deleted' });
 }
@@ -576,6 +601,7 @@ async function deleteHotel(req, res) {
   res.json({ status: 'deleted' });
 }
 
+
 module.exports = {
   stats,
   hotels,
@@ -585,6 +611,7 @@ module.exports = {
   updateImages,
   updateDocs,
   updateInfo,
+  remapHotelId,
   deleteHotel,
   rooms,
   createRoom,

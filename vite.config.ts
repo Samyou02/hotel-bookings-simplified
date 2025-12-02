@@ -7,7 +7,11 @@ import { componentTagger } from "lovable-tagger";
 export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
-    port: 5173, // 🔥 changed port here
+    port: 5173,
+    proxy: {
+      "/api": { target: process.env.VITE_API_URL || "http://localhost:5000", changeOrigin: true },
+      "/uploads": { target: process.env.VITE_API_URL || "http://localhost:5000", changeOrigin: true },
+    },
   },
   
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),

@@ -182,11 +182,13 @@ async function getRooms(req, res) {
       }
     }
 
-    const typeTotals = items.reduce((acc, r) => {
-      const t = String(r.type || '');
-      acc[t] = (acc[t] || 0) + 1;
-      return acc;
-    }, {});
+    const typeTotals = items
+      .filter((r) => !!r.availability)
+      .reduce((acc, r) => {
+        const t = String(r.type || '');
+        acc[t] = (acc[t] || 0) + 1;
+        return acc;
+      }, {});
 
     const seen = new Set();
     const aggregated = [];
@@ -197,8 +199,9 @@ async function getRooms(req, res) {
       const total = Number(typeTotals[t] || 0);
       const used = Math.max(0, Number(typeUsed[t] || 0));
       const available = Math.max(0, total - used);
+      const rep = items.find((i) => String(i.type || '') === t && !!i.availability) || r;
       aggregated.push({
-        ...r,
+        ...rep,
         availability: available > 0,
         total,
         used,

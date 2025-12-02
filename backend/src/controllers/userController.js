@@ -61,14 +61,14 @@ async function cancelBooking(req, res) {
     if (mailer && owner?.email) {
       try {
         const transporter = mailer.createTransport({ host: process.env.SMTP_HOST, service: /gmail\.com$/i.test(String(process.env.SMTP_HOST||'')) ? 'gmail' : undefined, port: Number(process.env.SMTP_PORT || 587), secure: String(process.env.SMTP_SECURE||'false') === 'true', auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS } })
-        const html = `<div style=\"font-family:Arial,sans-serif;max-width:640px;margin:auto\"><h2>User cancelled reservation</h2><p>Booking #${id} • ${hotel?.name || ''}</p><p>Status: Cancelled</p><p>Reason: ${r}</p><p>User: ${user?.fullName || `${user?.firstName||''} ${user?.lastName||''}`.trim() || ''} • ${user?.email || ''} • ${user?.phone || ''}</p></div>`
+        const html = `<div style=\"font-family:Arial,sans-serif;max-width:640px;margin:auto\"><h2>User cancelled reservation</h2><p>Booking #${id} • ${hotel?.name || ''}</p><p>Room: ${b.roomNumber || ('#'+b.roomId)}</p><p>Status: Cancelled</p><p>Reason: ${r}</p><p>User: ${user?.fullName || `${user?.firstName||''} ${user?.lastName||''}`.trim() || ''} • ${user?.email || ''} • ${user?.phone || ''}</p></div>`
         await transporter.sendMail({ from: process.env.SMTP_USER, to: owner.email, subject: `Booking cancelled by user #${id} • ${hotel?.name || ''}`, html })
       } catch (e) { console.warn('[UserCancel] owner email failed', e?.message || e) }
     }
     if (mailer && user?.email) {
       try {
         const transporter = mailer.createTransport({ host: process.env.SMTP_HOST, service: /gmail\.com$/i.test(String(process.env.SMTP_HOST||'')) ? 'gmail' : undefined, port: Number(process.env.SMTP_PORT || 587), secure: String(process.env.SMTP_SECURE||'false') === 'true', auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS } })
-        const html2 = `<div style=\"font-family:Arial,sans-serif;max-width:640px;margin:auto\"><h2>Your booking was cancelled</h2><p>Booking #${id} • ${hotel?.name || ''}</p><p>Status: Cancelled</p><p>Reason: ${r}</p>${Number(b.cancellationFee||0) > 0 ? `<p>Cancellation Fee: ₹${Number(b.cancellationFee||0)}</p>` : ''}</div>`
+        const html2 = `<div style=\"font-family:Arial,sans-serif;max-width:640px;margin:auto\"><h2>Your booking was cancelled</h2><p>Booking #${id} • ${hotel?.name || ''}</p><p>Room: ${b.roomNumber || ('#'+b.roomId)}</p><p>Status: Cancelled</p><p>Reason: ${r}</p>${Number(b.cancellationFee||0) > 0 ? `<p>Cancellation Fee: ₹${Number(b.cancellationFee||0)}</p>` : ''}</div>`
         await transporter.sendMail({ from: process.env.SMTP_USER, to: user.email, subject: `Booking cancelled #${id} • ${hotel?.name || ''}`, html: html2 })
       } catch (e) { console.warn('[UserCancel] user email failed', e?.message || e) }
     }

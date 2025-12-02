@@ -40,10 +40,10 @@ const OwnerCoupons: React.FC = () => {
                   <option value={0}>Select Hotel</option>
                   {(hotels.data?.hotels||[]).map(h => (<option key={h.id} value={h.id}>{h.name}</option>))}
                 </select>
-                <Input placeholder="Code" value={form.code} onChange={e => setForm({ ...form, code: e.target.value })} />
-                <Input type="number" placeholder="Discount" value={form.discount} onChange={e => setForm({ ...form, discount: Number(e.target.value) })} />
-                <Input type="date" placeholder="Expiry" min={new Date().toISOString().slice(0,10)} value={form.expiry} onChange={e => setForm({ ...form, expiry: e.target.value })} />
-                <Input type="number" placeholder="Usage Limit" value={form.usageLimit} onChange={e => setForm({ ...form, usageLimit: Number(e.target.value) })} />
+                <Input placeholder="Coupon Code" value={form.code} onChange={e => setForm({ ...form, code: e.target.value })} />
+                <Input type="number" placeholder="Discount (%)" value={form.discount} onChange={e => setForm({ ...form, discount: Number(e.target.value) })} />
+                <Input type="date" placeholder="Expiry (dd-mm-yyyy)" min={new Date().toISOString().slice(0,10)} value={form.expiry} onChange={e => setForm({ ...form, expiry: e.target.value })} />
+                <Input type="number" placeholder="Usage Limit (0 = unlimited)" value={form.usageLimit} onChange={e => setForm({ ...form, usageLimit: Number(e.target.value) })} />
               </div>
               <div className="flex gap-2">
                 <Button onClick={() => createCoupon.mutate({ ...form, hotelId, ownerId })} disabled={!hotelId || !form.code || form.discount<=0}>Create Coupon</Button>

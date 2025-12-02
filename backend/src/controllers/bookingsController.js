@@ -27,14 +27,19 @@ async function create(req, res) {
     if (ciMinutes < nowMinutes) return res.status(400).json({ error: 'Check-in time must be later than now' })
   }
   const settings = await Settings.findOne().lean()
-  const filter = { hotelId: Number(hotelId), availability: true }
+  const filter = { hotelId: Number(hotelId), availability: true, blocked: { $ne: true } }
   if (roomType) filter.type = String(roomType)
   let rooms = await Room.find(filter).lean()
+  rooms = (rooms || []).slice().sort((a, b) => {
+    const ra = String(a.roomNumber || '').trim()
+    const rb = String(b.roomNumber || '').trim()
+    const na = /^\d+$/.test(ra) ? Number(ra) : Number.MAX_SAFE_INTEGER
+    const nb = /^\d+$/.test(rb) ? Number(rb) : Number.MAX_SAFE_INTEGER
+    if (na !== nb) return na - nb
+    return Number(a.id || 0) - Number(b.id || 0)
+  })
   if (!rooms || rooms.length === 0) {
-    const newRoomId = await nextIdFor('Room')
-    await Room.create({ id: newRoomId, hotelId: Number(hotelId), type: String(roomType||'Standard'), price: Number(hotel.price)||0, members: 2, amenities: [], photos: [], availability: true, blocked: false })
-    rooms = await Room.find(filter).lean()
-    if (!rooms || rooms.length === 0) return res.status(409).json({ error: 'No rooms available' })
+    return res.status(409).json({ error: 'No rooms available' })
   }
   let chosenRoomId = null
   for (const r of rooms) {
@@ -47,9 +52,7 @@ async function create(req, res) {
     if (!overlaps) { chosenRoomId = r.id; break }
   }
   if (!chosenRoomId) {
-    const newRoomId = await nextIdFor('Room')
-    await Room.create({ id: newRoomId, hotelId: Number(hotelId), type: String(roomType||'Standard'), price: Number(hotel.price)||0, members: 2, amenities: [], photos: [], availability: true, blocked: false })
-    chosenRoomId = newRoomId
+    return res.status(409).json({ error: 'No rooms available for the selected dates' })
   }
   const chosenRoom = rooms.find(x => x.id === chosenRoomId) || await Room.findOne({ id: Number(chosenRoomId) }).lean()
   if (chosenRoom && Number(guests) > Number(chosenRoom.members || 0)) {
@@ -221,8 +224,7 @@ async function confirm(req, res) {
     if (c) { c.used = Number(c.used||0) + 1; await c.save() }
   }
   if (b.roomId) {
-    const r = await Room.findOne({ id: Number(b.roomId) })
-    if (r) { r.blocked = false; await r.save() }
+    await Room.updateOne({ id: Number(b.roomId) }, { $set: { blocked: false } })
   }
   const thread = await MessageThread.findOne({ bookingId: id })
   const mid = await nextIdFor('Message')
@@ -278,7 +280,7 @@ async function ownerCancelEmail(req, res) {
       try {
         const transporter = mailer.createTransport({ host: process.env.SMTP_HOST, service: /gmail\.com$/i.test(String(process.env.SMTP_HOST||'')) ? 'gmail' : undefined, port: Number(process.env.SMTP_PORT || 587), secure: String(process.env.SMTP_SECURE||'false') === 'true', auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS } })
         const owner = hotel?.ownerId ? await User.findOne({ id: Number(hotel.ownerId) }).lean() : null
-        const html = `<div style=\"font-family:Arial,sans-serif;max-width:640px;margin:auto\"><h2>Your reservation was cancelled</h2><p>Booking #${id} • ${hotel?.name || ''}</p><p>Status: Cancelled</p><p>Reason: ${reason}</p><p>Owner: ${owner?.fullName || `${owner?.firstName||''} ${owner?.lastName||''}`.trim() || ''} • ${owner?.email || ''} • ${owner?.phone || ''}</p></div>`
+        const html = `<div style=\"font-family:Arial,sans-serif;max-width:640px;margin:auto\"><h2>Your reservation was cancelled</h2><p>Booking #${id} • ${hotel?.name || ''}</p><p>Room: ${b.roomNumber || ('#'+b.roomId)}</p><p>Status: Cancelled</p><p>Reason: ${reason}</p><p>Owner: ${owner?.fullName || `${owner?.firstName||''} ${owner?.lastName||''}`.trim() || ''} • ${owner?.email || ''} • ${owner?.phone || ''}</p></div>`
         await transporter.sendMail({ from: process.env.SMTP_USER, to: user.email, subject: `Booking cancelled by owner #${id} • ${hotel?.name || ''}`, html })
       } catch (e) { console.warn('[OwnerCancelEmail] user email failed', e?.message || e) }
     }
@@ -342,7 +344,7 @@ async function ownerCancelEmailQuery(req, res) {
       try {
         const transporter = mailer.createTransport({ host: process.env.SMTP_HOST, service: /gmail\.com$/i.test(String(process.env.SMTP_HOST||'')) ? 'gmail' : undefined, port: Number(process.env.SMTP_PORT || 587), secure: String(process.env.SMTP_SECURE||'false') === 'true', auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS } })
         const owner = hotel?.ownerId ? await User.findOne({ id: Number(hotel.ownerId) }).lean() : null
-        const html = `<div style=\"font-family:Arial,sans-serif;max-width:640px;margin:auto\"><h2>Your reservation was cancelled</h2><p>Booking #${id} • ${hotel?.name || ''}</p><p>Status: Cancelled</p><p>Reason: ${reason}</p><p>Owner: ${owner?.fullName || `${owner?.firstName||''} ${owner?.lastName||''}`.trim() || ''} • ${owner?.email || ''} • ${owner?.phone || ''}</p></div>`
+        const html = `<div style=\"font-family:Arial,sans-serif;max-width:640px;margin:auto\"><h2>Your reservation was cancelled</h2><p>Booking #${id} • ${hotel?.name || ''}</p><p>Room: ${b.roomNumber || ('#'+b.roomId)}</p><p>Status: Cancelled</p><p>Reason: ${reason}</p><p>Owner: ${owner?.fullName || `${owner?.firstName||''} ${owner?.lastName||''}`.trim() || ''} • ${owner?.email || ''} • ${owner?.phone || ''}</p></div>`
         await transporter.sendMail({ from: process.env.SMTP_USER, to: user.email, subject: `Booking cancelled by owner #${id} • ${hotel?.name || ''}`, html })
       } catch (e) { console.warn('[OwnerCancelEmailQuery] user email failed', e?.message || e) }
     }

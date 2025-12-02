@@ -31,7 +31,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
+      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <React.Suspense fallback={<div className="container py-8">Loading...</div>}>
         <Routes>
           <Route path="/" element={<Index />} />

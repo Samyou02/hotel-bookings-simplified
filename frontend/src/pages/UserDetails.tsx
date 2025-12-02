@@ -28,7 +28,7 @@ const UserDetails = () => {
   type Payload = Partial<User> & { idDocImage?: string }
   const update = useMutation({ mutationFn: (p: Payload) => apiPost(`/api/user/details`, { userId, ...p }), onSuccess: () => { qc.invalidateQueries({ queryKey: ["user","details",userId] }); toast({ title: "Details updated" }) }, onError: () => toast({ title: "Update failed", variant: "destructive" }) })
   const [docPreview, setDocPreview] = React.useState<string>("")
-  const resolve = (u?: string) => { if (!u) return ""; const s = String(u); const env = (typeof import.meta !== 'undefined' && (import.meta as unknown as { env?: Record<string, string> })?.env) || {} as Record<string, string>; const base = env?.VITE_API_URL || ""; if (s.startsWith("/uploads")) return `${base}${s}`; if (s.startsWith("uploads")) return `${base}/${s}`; return s }
+  const resolve = (u?: string) => { if (!u) return ""; const s = String(u); const env = (typeof import.meta !== 'undefined' && (import.meta as unknown as { env?: Record<string, string> })?.env) || {} as Record<string, string>; const base = env?.VITE_API_URL || 'http://localhost:5000'; if (/^https?:\/\/localhost:\d+\/uploads\//i.test(s)) return s.replace(/localhost:\d+/i,'localhost:5000'); if (s.startsWith("/uploads")) return `${base}${s}`; if (s.startsWith("uploads")) return `${base}/${s}`; return s }
   const [errors, setErrors] = React.useState<{ [k:string]: string }>({})
   const isDate = (v?: string) => !!v && /^\d{4}-\d{2}-\d{2}$/.test(v)
   const validateId = (type?: string, num?: string) => {

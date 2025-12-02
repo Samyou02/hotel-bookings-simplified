@@ -317,11 +317,19 @@ const OwnerDashboard = () => {
     return h?.name || ""
   }
 
+  const resolveOwnerHotelId = (n: number) => {
+    const list = hotelsQ.data?.hotels || []
+    if (!n) return 0
+    if (n >= 1 && n <= list.length) return list[n - 1].id
+    return 0
+  }
+
   const resolve = (u: string) => {
     if (!u) return ""
     const s = String(u)
     const env = (typeof import.meta !== 'undefined' && (import.meta as unknown as { env?: Record<string, string> })?.env) || {} as Record<string, string>
-    const base = env?.VITE_API_URL || 'http://localhost:5000'
+    let base = env?.VITE_API_URL || 'http://localhost:5000'
+    if (/localhost:\d+/i.test(base) && !/localhost:5000/i.test(base)) base = base.replace(/localhost:\d+/i, 'localhost:5000')
     if (s.startsWith("/uploads")) return `${base}${s}`
     if (s.startsWith("uploads")) return `${base}/${s}`
     return s
@@ -443,11 +451,10 @@ const OwnerDashboard = () => {
         }
       >(`/api/owner/hotels/submit`, { ownerId, ...p }),
     onSuccess: (res) => {
-      if (res?.id) {
-        addId("hotels", res.id)
-        setLastHotelRegId(res.id)
-        toast({ title: "Hotel submitted", description: `#${res.id}` })
-      }
+      const serial = (hotelsQ.data?.hotels || []).length + 1
+      setLastHotelRegId(serial)
+      if (res?.id) addId("hotels", res.id)
+      toast({ title: "Hotel submitted", description: `#${serial}` })
       qc.invalidateQueries({ queryKey: ["owner", "hotels", ownerId] })
     },
   })
@@ -588,6 +595,7 @@ const OwnerDashboard = () => {
         })
       }
       qc.invalidateQueries({ queryKey: ["owner", "rooms", ownerId] })
+      qc.invalidateQueries({ queryKey: ["owner", "stats", ownerId] })
     },
   })
 
@@ -1016,7 +1024,7 @@ const OwnerDashboard = () => {
                         <span>
                           Registration is one-time. Your Hotel ID
                           {allHotels.length > 1 ? "s" : ""}:{" "}
-                          {allHotels.map((h) => `#${h.id}`).join(", ")}.
+                          {allHotels.map((_, idx) => `#${idx + 1}`).join(", ")}.
                         </span>
                       ) : (
                         <span>No hotel registered yet.</span>
@@ -1133,7 +1141,7 @@ const OwnerDashboard = () => {
                                   onChange={(e)=> setNameEdit({ ...nameEdit, [h.id]: e.target.value })}
                                 />
                               ) : (
-                                <div>{h.id} • {h.name}</div>
+                                <div>{idx + 1} • {h.name}</div>
                               )}
                             </td>
                             <td className="p-3">
@@ -1315,7 +1323,7 @@ const OwnerDashboard = () => {
                     />
                     <div className="text-xs text-muted-foreground mt-1">
                       {roomForm.hotelId
-                        ? hotelName(roomForm.hotelId) || "Unknown hotel"
+                        ? hotelName(resolveOwnerHotelId(roomForm.hotelId)) || "Unknown hotel"
                         : ""}
                     </div>
                   </div>
@@ -1438,8 +1446,13 @@ const OwnerDashboard = () => {
                         const photos = files.length
                           ? await Promise.all(files.map(toDataUrl))
                           : []
+                        const resolvedId = resolveOwnerHotelId(roomForm.hotelId)
+                        if (!resolvedId) {
+                          toast({ title: 'Invalid Hotel ID', description: 'Enter your owner S.No shown in Register page.' })
+                          return
+                        }
                         const payloadBase = {
-                          hotelId: roomForm.hotelId,
+                          hotelId: resolvedId,
                           type: roomForm.type,
                           price: roomForm.price,
                           members: roomForm.members,
@@ -1462,7 +1475,7 @@ const OwnerDashboard = () => {
                           names: files.map((f) => f.name),
                         })
                       }}
-                      disabled={!roomForm.hotelId || !roomForm.type}
+                      disabled={!resolveOwnerHotelId(roomForm.hotelId) || !roomForm.type}
                     >
                       Add Room
                     </Button>

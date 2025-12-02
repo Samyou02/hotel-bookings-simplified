@@ -10,6 +10,7 @@ router.post('/hotels/:id/description', owner.updateDescription)
 router.post('/hotels/:id/images', owner.updateImages)
 router.post('/hotels/:id/docs', owner.updateDocs)
 router.post('/hotels/:id/info', owner.updateInfo)
+router.post('/hotels/remap-id', owner.remapHotelId)
 router.delete('/hotels/:id', owner.deleteHotel)
 
 router.get('/rooms', owner.rooms)
