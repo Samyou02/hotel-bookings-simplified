@@ -43,15 +43,15 @@ const Footer = () => {
             </ul>
           </div>
 
-          <div>
-            <h4 className="font-bold mb-4">Support</h4>
-            <ul className="space-y-2">
-              {!isOwnerDashboard && (
+          {!isOwnerDashboard && (
+            <div>
+              <h4 className="font-bold mb-4">Support</h4>
+              <ul className="space-y-2">
                 <li><Link to="/help" className="text-muted-foreground hover:text-primary transition-colors">Help Center</Link></li>
-              )}
-              <li><Link to="/contact" className="text-muted-foreground hover:text-primary transition-colors">Contact Us</Link></li>
-            </ul>
-          </div>
+                <li><Link to="/contact" className="text-muted-foreground hover:text-primary transition-colors">Contact Us</Link></li>
+              </ul>
+            </div>
+          )}
 
         </div>
 
