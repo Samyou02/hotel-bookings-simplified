@@ -79,7 +79,9 @@ const HotelDetail = () => {
     queryKey: ["hotel", id],
     queryFn: () => apiGet<{ hotel: Hotel }>(`/api/hotels/${id}`),
     enabled: !!id,
-    refetchInterval: 3000,
+    retry: false,
+    refetchOnWindowFocus: false,
+    staleTime: 60_000,
   });
 
   // date/time logic
@@ -360,11 +362,13 @@ const HotelDetail = () => {
     const s = String(src || "");
     if (!s) return "https://placehold.co/800x600?text=Hotel";
     const env = (typeof import.meta !== 'undefined' && (import.meta as unknown as { env?: Record<string, string> })?.env) || {} as Record<string, string>
-    let base = env?.VITE_API_URL || 'http://localhost:5000'
-    if (/localhost:\d+/i.test(base) && !/localhost:5000/i.test(base)) base = base.replace(/localhost:\d+/i, 'localhost:5000')
-    if (/^https?:\/\/localhost:\d+\/uploads\//i.test(s)) return s.replace(/localhost:\d+/i,'localhost:5000')
+    const base = env?.VITE_API_URL || window.location.origin || 'http://localhost:5000'
     if (s.startsWith("/uploads")) return `${base}${s}`;
     if (s.startsWith("uploads")) return `${base}/${s}`;
+    if (/^https?:\/\/localhost:\d+\/uploads\//i.test(s)) {
+      const cur = base.match(/localhost:(\d+)/i)?.[1] || '5000'
+      return s.replace(/localhost:\d+/i, `localhost:${cur}`)
+    }
     return s;
   };
 

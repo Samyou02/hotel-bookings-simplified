@@ -89,7 +89,7 @@ async function getById(req, res) {
     if (!hotelRaw) {
       return res.status(404).json({ error: 'Not found' });
     }
-    if (String(hotelRaw.status || '') !== 'approved' || hotelRaw.ownerId == null) {
+    if (String(hotelRaw.status || '') !== 'approved') {
       return res.status(404).json({ error: 'Not found' });
     }
 

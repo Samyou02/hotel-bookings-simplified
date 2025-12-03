@@ -1,6 +1,17 @@
 // server.js
+try {
+  const c = global.console || console
+  const fallback = function(){ try { process.stdout.write('\n') } catch {} }
+  ;['log','error','warn','info','debug','trace'].forEach((k)=>{
+    try { if (typeof c[k] !== 'function') { c[k] = fallback } } catch {}
+  })
+} catch {}
 
 const express = require('express');
+console.log('[Server] boot')
+try { if (typeof console.log !== 'function') { console.log = function(){ } } } catch {}
+try { if (typeof console.error !== 'function') { console.error = function(){ } } } catch {}
+try { if (typeof console.warn !== 'function') { console.warn = function(){ } } } catch {}
 const fs = require('fs');
 const path = require('path');
 const cors = require('cors');
@@ -36,12 +47,20 @@ const ownerRoutes    = require('./routes/owner');
 const messagesRoutes = require('./routes/messages');
 
 const app = express();
+let __started = false
 
+process.on('exit', (code) => { try { console.log(`[Server] process exit ${code}`) } catch {} })
+process.on('beforeExit', (code) => { try { console.log(`[Server] process beforeExit ${code}`) } catch {} })
+process.on('uncaughtException', (err) => { try { console.error('[Server] uncaughtException', err?.message || err) } catch {} })
+process.on('unhandledRejection', (err) => { try { console.error('[Server] unhandledRejection', (err && err.message) || String(err)) } catch {} })
+
+console.log('[Server] setup middlewares')
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
 const uploadsDir = path.join(__dirname, 'uploads');
+console.log('[Server] ensure uploads dir')
 try {
   fs.mkdirSync(uploadsDir, { recursive: true });
 } catch (err) {
@@ -70,10 +89,22 @@ app.get('/uploads/:name', (req, res) => {
 });
 
 app.use('/uploads', express.static(uploadsDir));
+console.log('[Server] static uploads ready')
 
-const port = 5000 ;
+const portEnv = Number(process.env.PORT || 5000)
+let port = Number.isFinite(portEnv) && portEnv > 0 ? portEnv : 5000
+console.log(`[Server] init port ${port}`)
+try {
+  console.log(`[Server] attempting to listen on ${port}`)
+  app.listen(port, () => {
+    __started = true
+    console.log(`Backend running on http://localhost:${port}`)
+  })
+} catch (e) {
+  console.error('[Server] listen exception', e?.message || e)
+}
 
-(async () => {
+setTimeout(async () => {
   try {
     await connect();
     await ensureSeed();
@@ -85,13 +116,8 @@ const port = 5000 ;
     console.log(`[Server] DB health: ${isConnected()}`);
   } catch (e) {
     console.error('[Server] DB init failed', e?.message || e);
-  } finally {
-    app.listen(port, () => {
-      console.log(`Backend running on http://localhost:${port}`);
-      console.log(`[Server] DB connected: ${isConnected()}`);
-    });
   }
-})();
+}, 0);
 
 // removed held-expiry timer: bookings create directly as 'pending'
 
@@ -161,3 +187,5 @@ app.use('/api/bookings', bookingsRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/owner', ownerRoutes);
 app.use('/api/messages', messagesRoutes);
+
+// single start handled in DB-init block above
