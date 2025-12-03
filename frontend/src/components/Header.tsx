@@ -67,15 +67,39 @@ const Header = () => {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-gradient-to-r from-blue-50 via-purple-100 via-cyan-100 to-pink-100 border-purple-200 shadow-2xl backdrop-blur-xl relative overflow-hidden">
+      {/* Enhanced Animated Background */}
       <div className="absolute inset-0 bg-gradient-to-r from-white/20 via-purple-200/30 to-cyan-200/30 animate-pulse"></div>
       <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-transparent via-white/10 to-purple-100/20"></div>
+
+      {/* Decorative Floating Elements */}
+      <div className="absolute -top-4 -left-4 w-16 h-16 bg-gradient-to-r from-purple-300/20 to-pink-300/20 rounded-full blur-xl animate-float shadow-lg"></div>
+      <div className="absolute top-6 right-12 w-12 h-12 bg-gradient-to-r from-cyan-300/15 to-blue-300/15 rounded-full blur-lg animate-float-delayed"></div>
+      <div className="absolute top-10 left-1/2 w-8 h-8 bg-gradient-to-r from-yellow-200/10 to-orange-200/10 rounded-full blur-md animate-float opacity-70"></div>
+
+      {/* Sparkle Particles */}
+      <div className="absolute top-8 left-8 w-1 h-1 bg-yellow-400 rounded-full animate-ping opacity-80"></div>
+      <div className="absolute top-12 right-20 w-0.5 h-0.5 bg-pink-400 rounded-full animate-ping opacity-60 animation-delay-1000"></div>
+      <div className="absolute top-16 left-24 w-1.5 h-1.5 bg-cyan-400 rounded-full animate-ping opacity-70 animation-delay-2000"></div>
+
+      {/* Subtle Pattern Overlay */}
+      <div className="absolute inset-0 opacity-[0.03]">
+        <div className="absolute top-2 left-4 w-6 h-6 border border-purple-300 rounded-full"></div>
+        <div className="absolute top-8 right-8 w-4 h-4 border border-cyan-300 rotate-45"></div>
+      </div>
       <div className="container flex h-16 items-center justify-between relative z-10">
-        <Link to="/" className="flex items-center space-x-2 hover:scale-105 transition-transform duration-300">
-          <img src={(() => {
-            const env = (typeof import.meta !== 'undefined' && (import.meta as unknown as { env?: Record<string, string> })?.env) || {} as Record<string, string>
-            return env?.VITE_LOGO_URL || "/logo.svg";
-          })()} alt="Sana Stayz" className="h-8 w-8 rounded-full object-cover ring-3 ring-purple-400 shadow-lg animate-bounce" onError={(e) => { e.currentTarget.src = "https://placehold.co/64x64?text=S" }} />
-          <span className="text-xl font-bold bg-gradient-to-r from-purple-600 via-blue-600 to-pink-600 bg-clip-text text-transparent drop-shadow-md">Sana Stayz</span>
+        <Link to="/" className="flex items-center space-x-2 hover:scale-110 transition-transform duration-500 group animate-heartbeat">
+          <div className="relative">
+            <img src={(() => {
+              const env = (typeof import.meta !== 'undefined' && (import.meta as unknown as { env?: Record<string, string> })?.env) || {} as Record<string, string>
+              return env?.VITE_LOGO_URL || "/logo.svg";
+            })()} alt="Sana Stayz" className="h-10 w-10 rounded-full object-cover ring-3 ring-purple-400 shadow-xl animate-bounce-gentle hover:animate-morph transition-all duration-700" onError={(e) => { e.currentTarget.src = "https://placehold.co/64x64?text=S" }} />
+            <div className="absolute inset-0 bg-gradient-to-r from-yellow-400/20 to-pink-400/20 rounded-full animate-glow opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+          </div>
+          <span className="text-2xl font-black bg-gradient-to-r from-purple-600 via-pink-600 via-blue-600 to-cyan-600 bg-clip-text text-transparent drop-shadow-lg animate-text-glow group-hover:animate-rainbow transition-all duration-700 relative">
+            Sana Stayz
+            <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 opacity-0 group-hover:opacity-20 animate-gradient-shift rounded-lg blur-lg transition-opacity duration-500"></div>
+          </span>
+          <div className="absolute -top-2 -right-2 w-3 h-3 bg-gradient-to-r from-yellow-400 to-pink-400 rounded-full animate-ping opacity-70"></div>
         </Link>
 
         {(!hideNavLinks) ? (

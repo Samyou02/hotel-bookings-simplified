@@ -967,76 +967,259 @@ const OwnerDashboard = () => {
   }, [pricingType, roomsRaw, hotelsQ.data])
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-pink-50 via-pink-100 to-pink-200 relative overflow-hidden">
+      {/* Enhanced Magical Background Effects with Light Colors */}
+      <div className="absolute inset-0 opacity-25">
+        <div className="absolute -top-20 -left-20 w-96 h-96 bg-gradient-to-r from-rose-200/30 to-pink-200/30 rounded-full blur-3xl animate-float"></div>
+        <div className="absolute -bottom-20 -right-20 w-96 h-96 bg-gradient-to-r from-violet-200/30 to-cyan-200/30 rounded-full blur-3xl animate-float-delayed"></div>
+        <div className="absolute top-1/2 left-1/2 w-80 h-80 bg-gradient-to-r from-yellow-100/40 to-orange-100/40 rounded-full blur-2xl animate-float opacity-50"></div>
+        <div className="absolute top-1/4 right-1/4 w-64 h-64 bg-gradient-to-r from-lavender-200/25 to-blue-200/25 rounded-full blur-xl animate-float-reverse"></div>
+        <div className="absolute bottom-1/4 left-1/4 w-72 h-72 bg-gradient-to-r from-emerald-100/35 to-teal-100/35 rounded-full blur-2xl animate-float animation-delay-2000"></div>
+      </div>
+
+      {/* Rotating Gradient Background */}
+      <div className="absolute inset-0 bg-gradient-to-r from-pink-100/10 via-purple-100/10 to-cyan-100/10 animate-rotate-bg opacity-60"></div>
+
+      {/* Wave Animation Overlay */}
+      <svg className="absolute inset-0 w-full h-full" viewBox="0 0 1200 600" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="waveGradient1" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" style={{ stopColor: 'rgba(255,255,255,0.1)', stopOpacity: 1 }} />
+            <stop offset="100%" style={{ stopColor: 'rgba(255,255,255,0.3)', stopOpacity: 1 }} />
+          </linearGradient>
+          <linearGradient id="waveGradient2" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" style={{ stopColor: 'rgba(255,255,255,0.2)', stopOpacity: 1 }} />
+            <stop offset="100%" style={{ stopColor: 'rgba(255,255,255,0.4)', stopOpacity: 1 }} />
+          </linearGradient>
+        </defs>
+        <path d="M0,400 C300,300 900,500 1200,400 L1200,600 L0,600 Z" fill="url(#waveGradient1)" className="animate-wave-1"></path>
+        <path d="M0,450 C400,350 800,550 1200,450 L1200,600 L0,600 Z" fill="url(#waveGradient2)" className="animate-wave-2"></path>
+      </svg>
+
+      {/* Enhanced Sparkle Particles - Light Colors */}
+      <div className="absolute top-20 left-20 w-2 h-2 bg-gradient-to-r from-yellow-300 to-orange-300 rounded-full animate-ping opacity-70"></div>
+      <div className="absolute top-40 right-40 w-1.5 h-1.5 bg-gradient-to-r from-pink-300 to-lavender-300 rounded-full animate-ping opacity-60 animation-delay-1000"></div>
+      <div className="absolute bottom-32 left-32 w-1 h-1 bg-gradient-to-r from-blue-300 to-cyan-300 rounded-full animate-ping opacity-50 animation-delay-2000"></div>
+      <div className="absolute bottom-20 right-20 w-1.5 h-1.5 bg-gradient-to-r from-purple-300 to-violet-300 rounded-full animate-ping opacity-55 animation-delay-3000"></div>
+      <div className="absolute top-60 left-40 w-1.5 h-1.5 bg-gradient-to-r from-emerald-300 to-teal-300 rounded-full animate-bounce opacity-65 animation-delay-1500"></div>
+      <div className="absolute bottom-40 right-60 w-1 h-1 bg-gradient-to-r from-indigo-300 to-blue-300 rounded-full animate-bounce opacity-60 animation-delay-2500"></div>
+      <div className="absolute top-1/3 left-1/2 w-1.5 h-1.5 bg-gradient-to-r from-rose-300 to-pink-300 rounded-full animate-pulse opacity-70 animation-delay-800"></div>
+      <div className="absolute bottom-1/3 right-1/3 w-1 h-1 bg-gradient-to-r from-violet-300 to-purple-300 rounded-full animate-pulse opacity-65 animation-delay-1800"></div>
+
+      {/* Floating Geometric Shapes with Light Colors */}
+      <div className="absolute inset-0 opacity-[0.08] pointer-events-none">
+        <div className="absolute top-16 left-16 w-20 h-20 border-2 border-pink-200 rotate-45 animate-float-slow animate-glow-light"></div>
+        <div className="absolute top-32 right-32 w-16 h-16 border-2 border-violet-200 rotate-12 animate-float-slow animation-delay-1000 animate-twist"></div>
+        <div className="absolute bottom-32 left-32 w-14 h-14 border-2 border-cyan-200 rounded-full animate-float-slow animation-delay-2000 animate-scale-pulse"></div>
+        <div className="absolute bottom-24 right-24 w-12 h-12 border-2 border-emerald-200 rotate-30 animate-float-slow animation-delay-3000 animate-wiggle"></div>
+        <div className="absolute top-1/2 left-20 w-18 h-18 border-2 border-indigo-200 rounded-full animate-float-medium animation-delay-1500"></div>
+        <div className="absolute top-3/4 right-20 w-16 h-16 border-2 border-purple-200 rotate-60 animate-float-medium animation-delay-2500 animate-heartbeat"></div>
+        <div className="absolute bottom-1/4 left-1/3 w-14 h-14 border-2 border-teal-200 rotate-15 animate-float-medium animation-delay-800 animate-morph"></div>
+      </div>
+
+      {/* Morphing Circles */}
+      <div className="absolute top-20 right-20 w-32 h-32 bg-gradient-to-r from-pink-200/20 to-violet-200/20 rounded-full blur-lg animate-morph-circle opacity-40"></div>
+      <div className="absolute bottom-40 left-16 w-28 h-28 bg-gradient-to-r from-cyan-200/20 to-blue-200/20 rounded-full blur-lg animate-morph-circle animation-delay-2000 opacity-35"></div>
+
+      {/* Animated Mesh Pattern */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_25%_25%,_theme(colors.pink.100)_1px,_transparent_1px)] bg-[length:32px_32px] opacity-10 animate-pulse"></div>
+
+      {/* Bokeh Light Effects */}
+      <div className="absolute top-32 left-32 w-24 h-24 bg-gradient-to-r from-emerald-300/20 to-cyan-300/20 rounded-full blur-xl animate-bokeh"></div>
+      <div className="absolute bottom-32 right-32 w-28 h-28 bg-gradient-to-r from-violet-300/15 to-pink-300/15 rounded-full blur-xl animate-bokeh animation-delay-3000"></div>
+      <div className="absolute top-1/3 right-1/3 w-20 h-20 bg-gradient-to-r from-yellow-300/25 to-orange-300/25 rounded-full blur-lg animate-bokeh animation-delay-6000"></div>
+
+      {/* Character/Mascot Breathing */}
+      <div className="absolute top-24 right-24 animate-breathe">
+        <div className="w-16 h-16 bg-gradient-to-br from-blue-300/30 to-purple-300/30 rounded-full flex items-center justify-center">
+          <div className="w-12 h-12 bg-gradient-to-br from-cyan-400/40 to-blue-400/40 rounded-full flex items-center justify-center">
+            <span className="text-2xl animate-pulse">🤖</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Rotating Hexagonal Patterns */}
+      <div className="absolute top-1/4 left-1/4 animate-hex-rotate">
+        <svg className="w-20 h-20 opacity-5" viewBox="0 0 100 100">
+          <polygon points="50,5 90,25 90,75 50,95 10,75 10,25" fill="none" stroke="currentColor" className="text-purple-300"/>
+        </svg>
+      </div>
+      <div className="absolute bottom-1/4 right-1/4 animate-hex-rotate animation-delay-5000">
+        <svg className="w-16 h-16 opacity-5" viewBox="0 0 100 100">
+          <polygon points="50,5 90,25 90,75 50,95 10,75 10,25" fill="none" stroke="currentColor" className="text-cyan-300"/>
+        </svg>
+      </div>
+
+      {/* Enhanced Floating Elements */}
+      <div className="absolute top-16 left-16 animate-float-reverse">
+        <div className="w-8 h-8 bg-gradient-to-r from-pink-300/20 to-violet-300/20 rounded-lg rotate-12"></div>
+      </div>
+      <div className="absolute top-40 right-40 animate-float-medium">
+        <div className="w-6 h-6 bg-gradient-to-r from-emerald-300/15 to-teal-300/15 rounded-full"></div>
+      </div>
+      <div className="absolute bottom-20 left-20 animate-float-slow">
+        <div className="w-10 h-10 bg-gradient-to-r from-yellow-300/10 to-orange-300/10 rounded-xl rotate-45"></div>
+      </div>
+
       <Header />
-      <main className="flex-1 bg-gradient-to-b from-transparent via-purple-50/20 to-green-50/20">
+      <main className="flex-1 relative z-10">
         {!feature && (
-          <section className="bg-gradient-to-br from-cyan-500 via-blue-600 via-purple-700 to-pink-600 text-primary-foreground py-12 relative overflow-hidden">
+          <section className="bg-gradient-to-br from-cyan-500 via-blue-600 via-purple-700 to-pink-600 text-primary-foreground py-16 relative overflow-hidden">
+            {/* Enhanced animated background effects */}
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-black/10 to-transparent animate-pulse"></div>
             <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-white/5 to-black/20"></div>
+
+            {/* Additional floating elements */}
+            <div className="absolute top-16 left-16 w-32 h-32 bg-gradient-to-r from-yellow-300/10 to-orange-300/10 rounded-full blur-xl animate-float shadow-2xl animate-morph opacity-80"></div>
+            <div className="absolute top-32 right-32 w-28 h-28 bg-gradient-to-r from-pink-300/10 to-purple-300/10 rounded-full blur-lg animate-float-delayed animate-glow shadow-2xl"></div>
+            <div className="absolute bottom-20 left-20 w-40 h-40 bg-gradient-to-r from-cyan-300/8 to-blue-300/8 rounded-full blur-2xl animate-float opacity-60 animate-morph"></div>
+            <div className="absolute top-1/2 left-1/2 w-24 h-24 bg-gradient-to-r from-green-300/10 to-purple-300/10 rounded-full blur-xl animate-float-delayed opacity-50"></div>
+
+            {/* Particles Background */}
+            <div className="absolute inset-0 pointer-events-none">
+              {/* Left side particles */}
+              <div className="absolute top-20 left-32 w-1.5 h-1.5 bg-yellow-300 rounded-full animate-particle opacity-90"></div>
+              <div className="absolute top-40 left-16 w-1 h-1 bg-pink-300 rounded-full animate-particle opacity-80 animation-delay-1000"></div>
+              <div className="absolute top-60 left-24 w-1 h-1 bg-cyan-300 rounded-full animate-particle opacity-70 animation-delay-2000"></div>
+              <div className="absolute bottom-32 left-20 w-1.5 h-1.5 bg-orange-300 rounded-full animate-particle opacity-60"></div>
+              <div className="absolute bottom-48 left-12 w-1 h-1 bg-purple-300 rounded-full animate-particle opacity-50 animation-delay-3000"></div>
+
+              {/* Right side particles */}
+              <div className="absolute top-24 right-20 w-2 h-2 bg-blue-300 rounded-full animate-particle opacity-85"></div>
+              <div className="absolute top-44 right-16 w-1.5 h-1.5 bg-indigo-300 rounded-full animate-particle opacity-75 animation-delay-1500"></div>
+              <div className="absolute bottom-24 right-24 w-1 h-1 bg-teal-300 rounded-full animate-particle opacity-65 animation-delay-2500"></div>
+              <div className="absolute bottom-40 right-12 w-1.5 h-1.5 bg-violet-300 rounded-full animate-particle opacity-55"></div>
+
+              {/* Center particles */}
+              <div className="absolute top-1/3 left-1/2 w-1 h-1 bg-emerald-300 rounded-full animate-particle opacity-70 animation-delay-800"></div>
+              <div className="absolute bottom-1/3 left-1/3 w-1.5 h-1.5 bg-rose-300 rounded-full animate-particle opacity-60 animation-delay-1800"></div>
+            </div>
+
+            {/* Sparkle effects - enhanced */}
+            <div className="absolute top-20 left-32 w-1.5 h-1.5 bg-yellow-300 rounded-full animate-ping opacity-90"></div>
+            <div className="absolute top-40 right-16 w-1 h-1 bg-pink-300 rounded-full animate-ping opacity-80 animation-delay-1000"></div>
+            <div className="absolute top-60 left-1/4 w-1 h-1 bg-cyan-300 rounded-full animate-ping opacity-70 animation-delay-2000"></div>
+            <div className="absolute bottom-20 right-1/3 w-2 h-2 bg-orange-300 rounded-full animate-pulse opacity-80 animation-delay-500"></div>
+            <div className="absolute top-48 right-1/3 w-1 h-1 bg-purple-300 rounded-full animate-bounce opacity-60 animation-delay-1500"></div>
+
+            {/* Rainbow effects */}
+            <div className="absolute inset-0 opacity-20 pointer-events-none">
+              <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-red-500 via-yellow-500 via-green-500 via-blue-500 via-indigo-500 via-purple-500 animate-rainbow"></div>
+              <div className="absolute bottom-0 left-0 right-0 h-2 bg-gradient-to-r from-purple-500 via-pink-500 via-cyan-500 via-yellow-500 via-red-500 via-blue-500 animate-rainbow"></div>
+            </div>
+
+            {/* Geometric overlays */}
+            <div className="absolute inset-0 opacity-[0.03] pointer-events-none">
+              <div className="absolute top-24 left-24 w-16 h-16 border-2 border-white rotate-45 animate-pulse animate-morph"></div>
+              <div className="absolute top-40 right-40 w-12 h-12 border-2 border-white rounded-full animate-pulse animation-delay-2000 animate-wiggle"></div>
+              <div className="absolute bottom-32 left-1/3 w-20 h-20 border-2 border-white rotate-30 animate-pulse animation-delay-1000 animate-heartbeat"></div>
+              <div className="absolute bottom-24 right-1/4 w-14 h-14 border-2 border-white rounded-full animate-pulse animation-delay-800"></div>
+              <div className="absolute top-1/2 left-20 w-18 h-18 border-2 border-white rotate-12 animate-pulse animation-delay-1600"></div>
+            </div>
+
             <div className="container relative z-10">
-              <div className="flex items-center gap-4 mb-4">
-                <div className="p-3 bg-white/20 rounded-full backdrop-blur-sm border border-white/30">
-                  <Building2 className="h-8 w-8 animate-pulse" />
+              <div className="text-center mb-8">
+                <div className="flex justify-center mb-4">
+                  <div className="p-4 bg-white/20 rounded-full backdrop-blur-sm border border-white/30 shadow-2xl hover:scale-110 transition-transform duration-500">
+                    <Building2 className="h-12 w-12 animate-pulse drop-shadow-lg" />
+                  </div>
                 </div>
                 <div>
-                  <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-yellow-300 via-orange-400 to-red-500 bg-clip-text text-transparent drop-shadow-lg">
-                    Hotel Owner Dashboard
+                  <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold bg-gradient-to-r from-yellow-300 via-orange-400 via-pink-400 to-red-500 bg-clip-text text-transparent drop-shadow-2xl mb-4 animate-fade-in relative">
+                    <span className="inline-block overflow-hidden border-r-4 border-orange-400 animate-type whitespace-nowrap">
+                      Hotel Owner Dashboard
+                    </span>
+                    <span className="animate-blink">&nbsp;</span>
                   </h1>
-                  <p className="opacity-90 text-lg mt-1">Elegant management of your exceptional properties</p>
+                  <p className="opacity-90 text-xl md:text-2xl mt-2 font-light animate-fade-in animation-delay-500 relative">
+                    💫 Elegant management of your exceptional properties 💫
+                    <span className="absolute -top-2 -right-4 text-pink-300 animate-bounce">✨</span>
+                    <span className="absolute -bottom-1 -left-4 text-yellow-300 animate-pulse">🌟</span>
+                  </p>
+                  <div className="mt-4 flex justify-center animate-fade-in animation-delay-1000">
+                    <div className="flex items-center space-x-1 bg-white/10 px-4 py-2 rounded-full backdrop-blur-sm border border-white/20 animate-breathe">
+                      <span className="w-2 h-2 bg-green-400 rounded-full animate-ping"></span>
+                      <span className="text-sm opacity-80">Live Dashboard</span>
+                      <span className="ml-2 animate-spin">⚡</span>
+                    </div>
+                  </div>
                 </div>
               </div>
-              <div className="mt-8 grid gap-6 md:grid-cols-3 lg:grid-cols-5">
-                <Card className="group shadow-2xl hover:shadow-cyan-500/25 bg-gradient-to-br from-white via-blue-50 to-cyan-100 border-0 hover:scale-105 hover:rotate-1 transition-all duration-700 ease-out cursor-pointer backdrop-blur-sm">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-semibold text-cyan-700">Total Rooms</CardTitle>
+
+              <div className="mt-16 grid gap-8 lg:grid-cols-5 md:grid-cols-2 sm:grid-cols-1">
+                <Card className="group shadow-2xl hover:shadow-cyan-500/30 bg-gradient-to-br from-white via-blue-50 to-cyan-100 border-0 hover:scale-110 hover:rotate-2 hover:perspective-[1000px] hover:rotate-y-12 transition-all duration-700 ease-out cursor-pointer backdrop-blur-sm hover:shadow-[0_0_50px_rgba(34,211,238,0.3)] relative overflow-hidden animate-bounce-entrance">
+                  {/* Animated floating pseudo-elements */}
+                  <div className="absolute -top-2 -left-2 w-4 h-4 bg-cyan-300 rounded-full animate-float opacity-60 animation-delay-500"></div>
+                  <div className="absolute -bottom-2 -right-2 w-3 h-3 bg-blue-400 rounded-full animate-bounce opacity-50 animation-delay-1000"></div>
+                  {/* Card interior effects */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-cyan-500/5 to-transparent animate-gradient-shift opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-cyan-400 via-blue-500 to-cyan-400 animate-rainbow"></div>
+                  <CardHeader className="pb-3 text-center">
+                    <CardTitle className="text-sm font-bold text-cyan-700 uppercase tracking-wider">Total Rooms</CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <div className="text-4xl font-bold bg-gradient-to-r from-cyan-600 to-blue-600 bg-clip-text text-transparent group-hover:from-blue-600 group-hover:to-purple-600 transition-colors duration-500">
+                  <CardContent className="pt-0 text-center">
+                    <div className="text-3xl md:text-4xl font-black bg-gradient-to-r from-cyan-600 to-blue-600 bg-clip-text text-transparent group-hover:from-blue-600 group-hover:to-purple-600 transition-all duration-500 drop-shadow-lg mb-2">
                       {stats.data?.totalRooms ?? 0}
                     </div>
+                    <div className="text-xs text-cyan-600 opacity-70 uppercase tracking-wide">Available</div>
                   </CardContent>
                 </Card>
-                <Card className="group shadow-2xl hover:shadow-purple-500/25 bg-gradient-to-br from-white via-purple-50 to-pink-100 border-0 hover:scale-105 hover:rotate-1 transition-all duration-700 ease-out cursor-pointer backdrop-blur-sm">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-semibold text-purple-700">Total Bookings</CardTitle>
+
+                <Card className="group shadow-2xl hover:shadow-purple-500/30 bg-gradient-to-br from-white via-purple-50 to-pink-100 border-0 hover:scale-110 hover:rotate-2 transition-all duration-700 ease-out cursor-pointer backdrop-blur-sm hover:shadow-[0_0_50px_rgba(147,51,234,0.3)]">
+                  <CardHeader className="pb-3 text-center">
+                    <CardTitle className="text-sm font-bold text-purple-700 uppercase tracking-wider">Total Bookings</CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <div className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent group-hover:from-pink-600 group-hover:to-rose-600 transition-colors duration-500">
+                  <CardContent className="pt-0 text-center">
+                    <div className="text-3xl md:text-4xl font-black bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent group-hover:from-pink-600 group-hover:to-rose-600 transition-all duration-500 drop-shadow-lg mb-2">
                       {stats.data?.totalBookings ?? 0}
                     </div>
+                    <div className="text-xs text-purple-600 opacity-70 uppercase tracking-wide">Reservations</div>
                   </CardContent>
                 </Card>
-                <Card className="group shadow-2xl hover:shadow-green-500/25 bg-gradient-to-br from-white via-green-50 to-emerald-100 border-0 hover:scale-105 hover:rotate-1 transition-all duration-700 ease-out cursor-pointer backdrop-blur-sm">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-semibold text-green-700">Total Revenue</CardTitle>
+
+                <Card className="group shadow-2xl hover:shadow-green-500/30 bg-gradient-to-br from-white via-green-50 to-emerald-100 border-0 hover:scale-110 hover:rotate-2 transition-all duration-700 ease-out cursor-pointer backdrop-blur-sm hover:shadow-[0_0_50px_rgba(34,197,94,0.3)]">
+                  <CardHeader className="pb-3 text-center">
+                    <CardTitle className="text-sm font-bold text-green-700 uppercase tracking-wider">Total Revenue</CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <div className="text-4xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent group-hover:from-emerald-600 group-hover:to-teal-600 transition-colors duration-500">
+                  <CardContent className="pt-0 text-center">
+                    <div className="text-3xl md:text-4xl font-black bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent group-hover:from-emerald-600 group-hover:to-teal-600 transition-all duration-500 drop-shadow-lg mb-2">
                       ₹{stats.data?.totalRevenue ?? 0}
                     </div>
+                    <div className="text-xs text-green-600 opacity-70 uppercase tracking-wide">Earnings</div>
                   </CardContent>
                 </Card>
-                <Card className="group shadow-2xl hover:shadow-orange-500/25 bg-gradient-to-br from-white via-orange-50 to-yellow-100 border-0 hover:scale-105 hover:rotate-1 transition-all duration-700 ease-out cursor-pointer backdrop-blur-sm">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-semibold text-orange-700">Pending</CardTitle>
+
+                <Card className="group shadow-2xl hover:shadow-orange-500/30 bg-gradient-to-br from-white via-orange-50 to-yellow-100 border-0 hover:scale-110 hover:rotate-2 transition-all duration-700 ease-out cursor-pointer backdrop-blur-sm hover:shadow-[0_0_50px_rgba(249,115,22,0.3)]">
+                  <CardHeader className="pb-3 text-center">
+                    <CardTitle className="text-sm font-bold text-orange-700 uppercase tracking-wider">Pending</CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <div className="text-4xl font-bold bg-gradient-to-r from-orange-600 to-yellow-600 bg-clip-text text-transparent group-hover:from-yellow-600 group-hover:to-amber-600 transition-colors duration-500">
+                  <CardContent className="pt-0 text-center">
+                    <div className="text-3xl md:text-4xl font-black bg-gradient-to-r from-orange-600 to-yellow-600 bg-clip-text text-transparent group-hover:from-yellow-600 group-hover:to-amber-600 transition-all duration-500 drop-shadow-lg mb-2">
                       {stats.data?.pendingBookings ?? 0}
                     </div>
+                    <div className="text-xs text-orange-600 opacity-70 uppercase tracking-wide">Awaiting</div>
                   </CardContent>
                 </Card>
-                <Card className="group shadow-2xl hover:shadow-red-500/25 bg-gradient-to-br from-white via-red-50 to-rose-100 border-0 hover:scale-105 hover:rotate-1 transition-all duration-700 ease-out cursor-pointer backdrop-blur-sm">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-semibold text-red-700">Status</CardTitle>
+
+                <Card className="group shadow-2xl hover:shadow-red-500/30 bg-gradient-to-br from-white via-red-50 to-rose-100 border-0 hover:scale-110 hover:rotate-2 transition-all duration-700 ease-out cursor-pointer backdrop-blur-sm hover:shadow-[0_0_50px_rgba(239,68,68,0.3)] min-w-0">
+                  <CardHeader className="pb-2 text-center">
+                    <CardTitle className="text-sm font-bold text-red-700 uppercase tracking-wider">Status</CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <div className="text-4xl font-bold bg-gradient-to-r from-red-600 to-rose-600 bg-clip-text text-transparent group-hover:from-rose-600 group-hover:to-pink-600 transition-colors duration-500">
+                  <CardContent className="pt-0 pb-3 text-center px-2">
+                    <div className="text-2xl md:text-3xl font-black bg-gradient-to-r from-red-600 to-rose-600 bg-clip-text text-transparent group-hover:from-rose-600 group-hover:to-pink-600 transition-all duration-500 drop-shadow-lg mb-1 capitalize break-words leading-tight">
                       {stats.data?.hotelStatus ?? "pending"}
                     </div>
+                    <div className="text-xs text-red-600 opacity-80 uppercase font-semibold leading-relaxed">Registration</div>
                   </CardContent>
                 </Card>
+              </div>
+
+              {/* Decorative bottom element */}
+              <div className="mt-12 flex justify-center">
+                <div className="relative">
+                  <div className="w-32 h-1 bg-gradient-to-r from-transparent via-white/40 to-transparent rounded-full"></div>
+                  <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-8 h-1 bg-white/60 rounded-full animate-pulse"></div>
+                </div>
               </div>
             </div>
           </section>
@@ -1902,9 +2085,35 @@ const OwnerDashboard = () => {
                           <td className="p-3">{b.guests}</td>
                           <td className="p-3">₹{b.total}</td>
                           <td className="p-3">
-                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-secondary">
-                              {b.status}
-                            </span>
+                            <div className={`inline-flex items-center gap-4 px-6 py-4 rounded-2xl text-lg font-bold shadow-xl border-2 whitespace-nowrap uppercase ${
+                              String(b.status).toLowerCase().includes('approved') ||
+                              String(b.status).toLowerCase().includes('confirmed') ||
+                              String(b.status).toLowerCase() === 'checked_in'
+                                ? 'bg-gradient-to-r from-emerald-500 via-green-600 to-emerald-700 text-white border-green-900 shadow-green-900/50'
+                                : String(b.status).toLowerCase().includes('pending')
+                                ? 'bg-gradient-to-r from-yellow-500 via-amber-600 to-yellow-700 text-white border-orange-900 shadow-orange-900/50 animate-pulse'
+                                : String(b.status).toLowerCase().includes('cancelled')
+                                ? 'bg-gradient-to-r from-red-500 via-rose-600 to-red-700 text-white border-red-900 shadow-red-900/50'
+                                : 'bg-gradient-to-r from-blue-500 via-cyan-600 to-blue-700 text-white border-blue-900 shadow-blue-900/50'
+                            }`}>
+                              {/* Status Icon */}
+                              {String(b.status).toLowerCase().includes('approved') ||
+                               String(b.status).toLowerCase().includes('confirmed') ? (
+                                <div className="w-2 h-2 bg-green-800 rounded-full animate-pulse flex-shrink-0"></div>
+                              ) : String(b.status).toLowerCase().includes('pending') ? (
+                                <div className="w-2 h-2 bg-orange-800 rounded-full animate-bounce flex-shrink-0"></div>
+                              ) : String(b.status).toLowerCase().includes('cancelled') ? (
+                                <div className="w-2 h-2 bg-red-800 rounded-full flex-shrink-0 animate-ping"></div>
+                              ) : null}
+                              <span className="tracking-normal">
+                                {b.status === 'confirmed' ? 'APPROVED' :
+                                 b.status === 'checked_in' ? 'CHECKED IN' :
+                                 b.status === 'checked_out' ? 'CHECKED OUT' :
+                                 b.status === 'cancelled' ? 'CANCELLED' :
+                                 b.status === 'pending' ? 'PENDING APPROVAL' :
+                                 b.status.toUpperCase()}
+                              </span>
+                            </div>
                           </td>
                           <td className="p-3 flex gap-2 flex-wrap items-center">
                             {(() => {

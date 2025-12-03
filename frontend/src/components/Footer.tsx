@@ -6,9 +6,25 @@ const Footer = () => {
   const isOwnerDashboard = location.pathname.startsWith("/dashboard/owner");
   return (
     <footer className="bg-gradient-to-br from-cyan-50 via-purple-100 via-pink-50 to-blue-50 border-t border-purple-200 text-gray-800 relative overflow-hidden animate-gradient-y">
-      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-purple-200/20 via-pink-200/20 to-cyan-200/20 animate-pulse"></div>
-      <div className="absolute -top-10 -left-10 w-40 h-40 bg-gradient-to-r from-purple-200/30 to-pink-200/30 rounded-full blur-3xl animate-float"></div>
-      <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-gradient-to-r from-cyan-200/30 to-blue-200/30 rounded-full blur-3xl animate-float-delayed"></div>
+      {/* Animated Background Effects */}
+      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-purple-200/20 via-pink-200/20 to-cyan-200/20 animate-pulse opacity-70"></div>
+      <div className="absolute -top-10 -left-10 w-40 h-40 bg-gradient-to-r from-purple-400/20 to-pink-400/20 rounded-full blur-3xl animate-float shadow-2xl"></div>
+      <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-gradient-to-r from-cyan-400/20 to-blue-400/20 rounded-full blur-3xl animate-float-delayed shadow-2xl"></div>
+      <div className="absolute top-20 right-20 w-32 h-32 bg-gradient-to-r from-yellow-200/10 to-orange-200/10 rounded-full blur-2xl animate-float opacity-60"></div>
+      <div className="absolute bottom-32 left-16 w-24 h-24 bg-gradient-to-r from-pink-300/15 to-purple-300/15 rounded-full blur-xl animate-float-delayed opacity-50"></div>
+
+      {/* Sparkle Effects */}
+      <div className="absolute top-16 left-16 w-2 h-2 bg-yellow-400 rounded-full animate-ping opacity-80"></div>
+      <div className="absolute top-32 right-32 w-1 h-1 bg-pink-400 rounded-full animate-ping opacity-60 animation-delay-1000"></div>
+      <div className="absolute bottom-20 left-1/3 w-1.5 h-1.5 bg-cyan-400 rounded-full animate-ping opacity-70 animation-delay-2000"></div>
+      <div className="absolute bottom-40 right-1/4 w-1 h-1 bg-purple-400 rounded-full animate-ping opacity-50 animation-delay-3000"></div>
+
+      {/* Geometric Patterns */}
+      <div className="absolute top-0 left-0 w-full h-full opacity-5">
+        <div className="absolute top-10 left-10 w-20 h-20 border-2 border-purple-300 rotate-45 animate-pulse"></div>
+        <div className="absolute top-40 right-20 w-16 h-16 border-2 border-pink-300 rotate-12 animate-pulse animation-delay-1000"></div>
+        <div className="absolute bottom-20 left-20 w-24 h-24 border-2 border-cyan-300 rounded-full animate-pulse animation-delay-2000"></div>
+      </div>
       <div className="container py-16 relative z-10">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="space-y-4">
@@ -72,17 +88,25 @@ const Footer = () => {
           )}
 
           {isOwnerDashboard && (
-            <div className="space-y-4">
-              <h4 className="font-bold text-xl text-cyan-700 mb-6 relative">
-                Owner Portal
-                <div className="absolute -bottom-1 left-0 w-12 h-1 bg-gradient-to-r from-cyan-400 to-blue-400 rounded-full"></div>
-              </h4>
-              <ul className="space-y-3">
-                <li><Link to="/dashboard/owner" className="text-gray-600 hover:text-cyan-600 transition-colors hover:translate-x-2 transform duration-300 flex items-center">🏠 Dashboard</Link></li>
-                <li><Link to="/dashboard/owner/reviews" className="text-gray-600 hover:text-cyan-600 transition-colors hover:translate-x-2 transform duration-300 flex items-center">⭐ Reviews</Link></li>
-                <li><Link to="/dashboard/owner/contact" className="text-gray-600 hover:text-cyan-600 transition-colors hover:translate-x-2 transform duration-300 flex items-center">💌 Contact</Link></li>
-              </ul>
+          <div className="space-y-4 animate-slide-up">
+            <h3 className="text-2xl font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-cyan-600 bg-clip-text text-transparent animate-rainbow drop-shadow-lg">
+              Contact Us ✨
+            </h3>
+            <p className="text-muted-foreground animate-fade-in animation-delay-300">
+              Have questions? Get in touch with our team. We're here to help you make the most of your stay.
+            </p>
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground hover:text-purple-600 transition-colors duration-300 flex items-center gap-2 animate-fade-in animation-delay-500">
+                📧 Email: contact@sanastayz.com
+              </p>
+              <p className="text-sm text-muted-foreground hover:text-purple-600 transition-colors duration-300 flex items-center gap-2 animate-fade-in animation-delay-700">
+                📱 Phone: +1 (555) 123-4567
+              </p>
+              <p className="text-sm text-muted-foreground hover:text-purple-600 transition-colors duration-300 flex items-center gap-2 animate-fade-in animation-delay-1000">
+                📍 Address: 123 Stay Avenue, Paradise City
+              </p>
             </div>
+          </div>
           )}
 
         </div>
