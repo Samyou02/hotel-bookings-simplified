@@ -73,26 +73,35 @@ const Register = () => {
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
-      <main className="flex-1 flex items-center justify-center py-12 px-4">
-        <div className="w-full max-w-md">
-          <div className="text-center mb-8">
-            {(() => {
-              const env = (typeof import.meta !== 'undefined' && (import.meta as unknown as { env?: Record<string, string> })?.env) || {} as Record<string, string>
-              const logo = env?.VITE_LOGO_URL || "/logo.svg";
-              return <img src={logo} alt="Sana Stayz" className="h-12 w-12 mx-auto mb-4 rounded-full object-cover" onError={(e)=>{ e.currentTarget.src = "https://placehold.co/96x96?text=S" }} />
-            })()}
-            <h1 className="text-3xl font-bold mb-2">Create Account</h1>
-            <p className="text-muted-foreground">
-              Join Sana Stayz and start your journey
-            </p>
+      <main className="flex-1 relative">
+        <section className="bg-gradient-to-br from-cyan-500 via-blue-600 via-purple-700 to-pink-600 text-primary-foreground py-14 relative overflow-hidden">
+          <div className="container">
+            <div className="text-center">
+              <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight">Create Account</h1>
+              <p className="mt-3 text-lg opacity-90">Join Sana Stayz and start your journey</p>
+            </div>
           </div>
-
-          <div className="bg-card rounded-lg shadow-card p-8">
-            <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); if (!validate()) return; mutation.mutate(); }}>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium mb-2 block">First Name *</label>
-                  <Input placeholder="John" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
+        </section>
+        <div className="container -mt-8 px-4 flex items-start justify-center">
+          <div className="w-full max-w-md">
+            <div className="relative rounded-lg p-8 pt-12 shadow-2xl bg-gradient-to-br from-white via-purple-50 to-pink-100 border-0 backdrop-blur-sm transition-all">
+              {(() => {
+                const env = (typeof import.meta !== 'undefined' && (import.meta as unknown as { env?: Record<string, string> })?.env) || {} as Record<string, string>
+                const logo = env?.VITE_LOGO_URL || "/logo.svg";
+                return (
+                  <img
+                    src={logo}
+                    alt="Sana Stayz"
+                    className="absolute -top-7 left-1/2 -translate-x-1/2 h-14 w-14 rounded-full object-cover border border-white shadow-md bg-white"
+                    onError={(e)=>{ e.currentTarget.src = "https://placehold.co/96x96?text=S" }}
+                  />
+                )
+              })()}
+              <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); if (!validate()) return; mutation.mutate(); }}>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">First Name *</label>
+                    <Input placeholder="John" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
                 </div>
                 <div>
                   <label className="text-sm font-medium mb-2 block">Last Name *</label>
@@ -182,7 +191,7 @@ const Register = () => {
                 </label>
               </div>
 
-              <Button className="w-full" disabled={mutation.isPending}>{mutation.isPending ? "Creating..." : "Create Account"}</Button>
+              <Button className="w-full bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white" disabled={mutation.isPending}>{mutation.isPending ? "Creating..." : "Create Account"}</Button>
               {mutation.isError && <div className="text-red-600 text-sm">Registration failed</div>}
               {mutation.isSuccess && <div className="text-green-600 text-sm">Account created</div>}
 
@@ -224,6 +233,7 @@ const Register = () => {
                 Sign in
               </Link>
             </p>
+            </div>
           </div>
         </div>
       </main>
