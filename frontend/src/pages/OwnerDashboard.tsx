@@ -1064,160 +1064,58 @@ const OwnerDashboard = () => {
       <Header />
       <main className="flex-1 relative z-10">
         {!feature && (
-          <section className="bg-gradient-to-br from-cyan-500 via-blue-600 via-purple-700 to-pink-600 text-primary-foreground py-24 relative overflow-hidden">
-            {/* Enhanced animated background effects */}
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-black/10 to-transparent animate-pulse"></div>
-            <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-white/5 to-black/20"></div>
-
-            {/* Additional floating elements */}
-            <div className="absolute top-16 left-16 w-32 h-32 bg-gradient-to-r from-yellow-300/10 to-orange-300/10 rounded-full blur-xl animate-float shadow-2xl animate-morph opacity-80"></div>
-            <div className="absolute top-32 right-32 w-28 h-28 bg-gradient-to-r from-pink-300/10 to-purple-300/10 rounded-full blur-lg animate-float-delayed animate-glow shadow-2xl"></div>
-            <div className="absolute bottom-20 left-20 w-40 h-40 bg-gradient-to-r from-cyan-300/8 to-blue-300/8 rounded-full blur-2xl animate-float opacity-60 animate-morph"></div>
-            <div className="absolute top-1/2 left-1/2 w-24 h-24 bg-gradient-to-r from-green-300/10 to-purple-300/10 rounded-full blur-xl animate-float-delayed opacity-50"></div>
-
-            {/* Particles Background */}
-            <div className="absolute inset-0 pointer-events-none">
-              {/* Left side particles */}
-              <div className="absolute top-20 left-32 w-1.5 h-1.5 bg-yellow-300 rounded-full animate-particle opacity-90"></div>
-              <div className="absolute top-40 left-16 w-1 h-1 bg-pink-300 rounded-full animate-particle opacity-80 animation-delay-1000"></div>
-              <div className="absolute top-60 left-24 w-1 h-1 bg-cyan-300 rounded-full animate-particle opacity-70 animation-delay-2000"></div>
-              <div className="absolute bottom-32 left-20 w-1.5 h-1.5 bg-orange-300 rounded-full animate-particle opacity-60"></div>
-              <div className="absolute bottom-48 left-12 w-1 h-1 bg-purple-300 rounded-full animate-particle opacity-50 animation-delay-3000"></div>
-
-              {/* Right side particles */}
-              <div className="absolute top-24 right-20 w-2 h-2 bg-blue-300 rounded-full animate-particle opacity-85"></div>
-              <div className="absolute top-44 right-16 w-1.5 h-1.5 bg-indigo-300 rounded-full animate-particle opacity-75 animation-delay-1500"></div>
-              <div className="absolute bottom-24 right-24 w-1 h-1 bg-teal-300 rounded-full animate-particle opacity-65 animation-delay-2500"></div>
-              <div className="absolute bottom-40 right-12 w-1.5 h-1.5 bg-violet-300 rounded-full animate-particle opacity-55"></div>
-
-              {/* Center particles */}
-              <div className="absolute top-1/3 left-1/2 w-1 h-1 bg-emerald-300 rounded-full animate-particle opacity-70 animation-delay-800"></div>
-              <div className="absolute bottom-1/3 left-1/3 w-1.5 h-1.5 bg-rose-300 rounded-full animate-particle opacity-60 animation-delay-1800"></div>
-            </div>
-
-            {/* Sparkle effects - enhanced */}
-            <div className="absolute top-20 left-32 w-1.5 h-1.5 bg-yellow-300 rounded-full animate-ping opacity-90"></div>
-            <div className="absolute top-40 right-16 w-1 h-1 bg-pink-300 rounded-full animate-ping opacity-80 animation-delay-1000"></div>
-            <div className="absolute top-60 left-1/4 w-1 h-1 bg-cyan-300 rounded-full animate-ping opacity-70 animation-delay-2000"></div>
-            <div className="absolute bottom-20 right-1/3 w-2 h-2 bg-orange-300 rounded-full animate-pulse opacity-80 animation-delay-500"></div>
-            <div className="absolute top-48 right-1/3 w-1 h-1 bg-purple-300 rounded-full animate-bounce opacity-60 animation-delay-1500"></div>
-
-            {/* Rainbow effects */}
-            <div className="absolute inset-0 opacity-20 pointer-events-none">
-              <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-red-500 via-yellow-500 via-green-500 via-blue-500 via-indigo-500 via-purple-500 animate-rainbow"></div>
-              <div className="absolute bottom-0 left-0 right-0 h-2 bg-gradient-to-r from-purple-500 via-pink-500 via-cyan-500 via-yellow-500 via-red-500 via-blue-500 animate-rainbow"></div>
-            </div>
-
-            {/* Geometric overlays */}
-            <div className="absolute inset-0 opacity-[0.03] pointer-events-none">
-              <div className="absolute top-24 left-24 w-16 h-16 border-2 border-white rotate-45 animate-pulse animate-morph"></div>
-              <div className="absolute top-40 right-40 w-12 h-12 border-2 border-white rounded-full animate-pulse animation-delay-2000 animate-wiggle"></div>
-              <div className="absolute bottom-32 left-1/3 w-20 h-20 border-2 border-white rotate-30 animate-pulse animation-delay-1000 animate-heartbeat"></div>
-              <div className="absolute bottom-24 right-1/4 w-14 h-14 border-2 border-white rounded-full animate-pulse animation-delay-800"></div>
-              <div className="absolute top-1/2 left-20 w-18 h-18 border-2 border-white rotate-12 animate-pulse animation-delay-1600"></div>
-            </div>
-
-            <div className="container relative z-10 min-h-[320px] flex flex-col items-center justify-center text-center">
-              <div className="mb-8">
-                <div className="flex justify-center mb-4">
-                  <div className="p-4 bg-white/20 rounded-full backdrop-blur-sm border border-white/30 shadow-2xl hover:scale-110 transition-transform duration-500">
-                    <Building2 className="h-12 w-12 animate-pulse drop-shadow-lg" />
-                  </div>
-                </div>
-                <div>
-                  <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-white drop-shadow-2xl mb-4">
-                    Hotel Owner Dashboard
-                  </h1>
-                  <p className="text-white/90 text-xl md:text-2xl mt-2 font-light">
-                    Elegant management of your exceptional properties
-                  </p>
-                  <div className="mt-4 flex justify-center animate-fade-in animation-delay-1000">
-                    <div className="flex items-center space-x-1 bg-white/10 px-4 py-2 rounded-full backdrop-blur-sm border border-white/20 animate-breathe">
-                      <span className="w-2 h-2 bg-green-400 rounded-full animate-ping"></span>
-                      <span className="text-sm opacity-80">Live Dashboard</span>
-                      <span className="ml-2 animate-spin">⚡</span>
-                    </div>
-                  </div>
+          <>
+            <section className="bg-gradient-to-br from-cyan-500 via-blue-600 via-purple-700 to-pink-600 text-primary-foreground py-14 relative overflow-hidden">
+              <div className="container">
+                <div className="text-center">
+                  <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight">Hotel Owner Dashboard</h1>
+                  <p className="mt-3 text-lg opacity-90">At Sana Stayz, we bring you closer to exceptional hospitality— one luxurious stay, one effortless booking at a time.</p>
                 </div>
               </div>
+            </section>
 
-              <div className="mt-16 grid gap-8 lg:grid-cols-5 md:grid-cols-2 sm:grid-cols-1">
-                <Card className="group shadow-2xl hover:shadow-cyan-500/30 bg-gradient-to-br from-white via-blue-50 to-cyan-100 border-0 hover:scale-110 hover:rotate-2 hover:perspective-[1000px] hover:rotate-y-12 transition-all duration-700 ease-out cursor-pointer backdrop-blur-sm hover:shadow-[0_0_50px_rgba(34,211,238,0.3)] relative overflow-hidden animate-bounce-entrance">
-                  {/* Animated floating pseudo-elements */}
-                  <div className="absolute -top-2 -left-2 w-4 h-4 bg-cyan-300 rounded-full animate-float opacity-60 animation-delay-500"></div>
-                  <div className="absolute -bottom-2 -right-2 w-3 h-3 bg-blue-400 rounded-full animate-bounce opacity-50 animation-delay-1000"></div>
-                  {/* Card interior effects */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-cyan-500/5 to-transparent animate-gradient-shift opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-cyan-400 via-blue-500 to-cyan-400 animate-rainbow"></div>
-                  <CardHeader className="pb-3 text-center">
-                    <CardTitle className="text-sm font-bold text-cyan-700 uppercase tracking-wider">Total Rooms</CardTitle>
-                  </CardHeader>
-                  <CardContent className="pt-0 text-center">
-                    <div className="text-3xl md:text-4xl font-black bg-gradient-to-r from-cyan-600 to-blue-600 bg-clip-text text-transparent group-hover:from-blue-600 group-hover:to-purple-600 transition-all duration-500 drop-shadow-lg mb-2">
-                      {stats.data?.totalRooms ?? 0}
-                    </div>
-                    <div className="text-xs text-cyan-600 opacity-70 uppercase tracking-wide">Available</div>
-                  </CardContent>
-                </Card>
+            <div className="container mt-8 grid gap-8 lg:grid-cols-5 md:grid-cols-2 sm:grid-cols-1">
+              <Card className="group shadow-2xl hover:shadow-cyan-500/30 bg-gradient-to-br from-white via-blue-50 to-cyan-100 border-0 hover:scale-110 transition-all duration-700 ease-out backdrop-blur-sm">
+                <CardHeader className="pb-3 text-center"><CardTitle className="text-sm font-bold text-cyan-700 uppercase tracking-wider">Total Rooms</CardTitle></CardHeader>
+                <CardContent className="pt-0 text-center">
+                  <div className="text-3xl md:text-4xl font-black bg-gradient-to-r from-cyan-600 to-blue-600 bg-clip-text text-transparent drop-shadow-lg mb-2">{stats.data?.totalRooms ?? 0}</div>
+                  <div className="text-xs text-cyan-600 opacity-70 uppercase tracking-wide">Available</div>
+                </CardContent>
+              </Card>
 
-                <Card className="group shadow-2xl hover:shadow-purple-500/30 bg-gradient-to-br from-white via-purple-50 to-pink-100 border-0 hover:scale-110 hover:rotate-2 transition-all duration-700 ease-out cursor-pointer backdrop-blur-sm hover:shadow-[0_0_50px_rgba(147,51,234,0.3)]">
-                  <CardHeader className="pb-3 text-center">
-                    <CardTitle className="text-sm font-bold text-purple-700 uppercase tracking-wider">Total Bookings</CardTitle>
-                  </CardHeader>
-                  <CardContent className="pt-0 text-center">
-                    <div className="text-3xl md:text-4xl font-black bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent group-hover:from-pink-600 group-hover:to-rose-600 transition-all duration-500 drop-shadow-lg mb-2">
-                      {stats.data?.totalBookings ?? 0}
-                    </div>
-                    <div className="text-xs text-purple-600 opacity-70 uppercase tracking-wide">Reservations</div>
-                  </CardContent>
-                </Card>
+              <Card className="group shadow-2xl hover:shadow-purple-500/30 bg-gradient-to-br from-white via-purple-50 to-pink-100 border-0 hover:scale-110 transition-all duration-700 ease-out backdrop-blur-sm">
+                <CardHeader className="pb-3 text-center"><CardTitle className="text-sm font-bold text-purple-700 uppercase tracking-wider">Total Bookings</CardTitle></CardHeader>
+                <CardContent className="pt-0 text-center">
+                  <div className="text-3xl md:text-4xl font-black bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent drop-shadow-lg mb-2">{stats.data?.totalBookings ?? 0}</div>
+                  <div className="text-xs text-purple-600 opacity-70 uppercase tracking-wide">Reservations</div>
+                </CardContent>
+              </Card>
 
-                <Card className="group shadow-2xl hover:shadow-green-500/30 bg-gradient-to-br from-white via-green-50 to-emerald-100 border-0 hover:scale-110 hover:rotate-2 transition-all duration-700 ease-out cursor-pointer backdrop-blur-sm hover:shadow-[0_0_50px_rgba(34,197,94,0.3)]">
-                  <CardHeader className="pb-3 text-center">
-                    <CardTitle className="text-sm font-bold text-green-700 uppercase tracking-wider">Total Revenue</CardTitle>
-                  </CardHeader>
-                  <CardContent className="pt-0 text-center">
-                    <div className="text-3xl md:text-4xl font-black bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent group-hover:from-emerald-600 group-hover:to-teal-600 transition-all duration-500 drop-shadow-lg mb-2">
-                      ₹{stats.data?.totalRevenue ?? 0}
-                    </div>
-                    <div className="text-xs text-green-600 opacity-70 uppercase tracking-wide">Earnings</div>
-                  </CardContent>
-                </Card>
+              <Card className="group shadow-2xl hover:shadow-green-500/30 bg-gradient-to-br from-white via-green-50 to-emerald-100 border-0 hover:scale-110 transition-all duration-700 ease-out backdrop-blur-sm">
+                <CardHeader className="pb-3 text-center"><CardTitle className="text-sm font-bold text-green-700 uppercase tracking-wider">Total Revenue</CardTitle></CardHeader>
+                <CardContent className="pt-0 text-center">
+                  <div className="text-3xl md:text-4xl font-black bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent drop-shadow-lg mb-2">₹{stats.data?.totalRevenue ?? 0}</div>
+                  <div className="text-xs text-green-600 opacity-70 uppercase tracking-wide">Earnings</div>
+                </CardContent>
+              </Card>
 
-                <Card className="group shadow-2xl hover:shadow-orange-500/30 bg-gradient-to-br from-white via-orange-50 to-yellow-100 border-0 hover:scale-110 hover:rotate-2 transition-all duration-700 ease-out cursor-pointer backdrop-blur-sm hover:shadow-[0_0_50px_rgba(249,115,22,0.3)]">
-                  <CardHeader className="pb-3 text-center">
-                    <CardTitle className="text-sm font-bold text-orange-700 uppercase tracking-wider">Pending</CardTitle>
-                  </CardHeader>
-                  <CardContent className="pt-0 text-center">
-                    <div className="text-3xl md:text-4xl font-black bg-gradient-to-r from-orange-600 to-yellow-600 bg-clip-text text-transparent group-hover:from-yellow-600 group-hover:to-amber-600 transition-all duration-500 drop-shadow-lg mb-2">
-                      {stats.data?.pendingBookings ?? 0}
-                    </div>
-                    <div className="text-xs text-orange-600 opacity-70 uppercase tracking-wide">Awaiting</div>
-                  </CardContent>
-                </Card>
+              <Card className="group shadow-2xl hover:shadow-orange-500/30 bg-gradient-to-br from-white via-orange-50 to-yellow-100 border-0 hover:scale-110 transition-all duration-700 ease-out backdrop-blur-sm">
+                <CardHeader className="pb-3 text-center"><CardTitle className="text-sm font-bold text-orange-700 uppercase tracking-wider">Pending</CardTitle></CardHeader>
+                <CardContent className="pt-0 text-center">
+                  <div className="text-3xl md:text-4xl font-black bg-gradient-to-r from-orange-600 to-yellow-600 bg-clip-text text-transparent drop-shadow-lg mb-2">{stats.data?.pendingBookings ?? 0}</div>
+                  <div className="text-xs text-orange-600 opacity-70 uppercase tracking-wide">Awaiting</div>
+                </CardContent>
+              </Card>
 
-                <Card className="group shadow-2xl hover:shadow-red-500/30 bg-gradient-to-br from-white via-red-50 to-rose-100 border-0 hover:scale-110 hover:rotate-2 transition-all duration-700 ease-out cursor-pointer backdrop-blur-sm hover:shadow-[0_0_50px_rgba(239,68,68,0.3)] min-w-0">
-                  <CardHeader className="pb-2 text-center">
-                    <CardTitle className="text-sm font-bold text-red-700 uppercase tracking-wider">Status</CardTitle>
-                  </CardHeader>
-                  <CardContent className="pt-0 pb-3 text-center px-2">
-                    <div className="text-2xl md:text-3xl font-black bg-gradient-to-r from-red-600 to-rose-600 bg-clip-text text-transparent group-hover:from-rose-600 group-hover:to-pink-600 transition-all duration-500 drop-shadow-lg mb-1 capitalize break-words leading-tight">
-                      {stats.data?.hotelStatus ?? "pending"}
-                    </div>
-                    <div className="text-xs text-red-600 opacity-80 uppercase font-semibold leading-relaxed">Registration</div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Decorative bottom element */}
-              <div className="mt-12 flex justify-center">
-                <div className="relative">
-                  <div className="w-32 h-1 bg-gradient-to-r from-transparent via-white/40 to-transparent rounded-full"></div>
-                  <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-8 h-1 bg-white/60 rounded-full animate-pulse"></div>
-                </div>
-              </div>
+              <Card className="group shadow-2xl hover:shadow-red-500/30 bg-gradient-to-br from-white via-red-50 to-rose-100 border-0 hover:scale-110 transition-all duration-700 ease-out backdrop-blur-sm min-w-0">
+                <CardHeader className="pb-2 text-center"><CardTitle className="text-sm font-bold text-red-700 uppercase tracking-wider">Status</CardTitle></CardHeader>
+                <CardContent className="pt-0 pb-3 text-center px-2">
+                  <div className="text-2xl md:text-3xl font-black bg-gradient-to-r from-red-600 to-rose-600 bg-clip-text text-transparent drop-shadow-lg mb-1 capitalize break-words leading-tight">{stats.data?.hotelStatus ?? "pending"}</div>
+                  <div className="text-xs text-red-600 opacity-80 uppercase font-semibold leading-relaxed">Registration</div>
+                </CardContent>
+              </Card>
             </div>
-          </section>
+          </>
         )}
 
         {feature === "register" && (
