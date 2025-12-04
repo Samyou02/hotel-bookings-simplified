@@ -95,17 +95,6 @@ const Footer = () => {
             <p className="text-muted-foreground animate-fade-in animation-delay-300">
               Have questions? Get in touch with our team. We're here to help you make the most of your stay.
             </p>
-            <div className="space-y-3">
-              <p className="text-sm text-muted-foreground hover:text-purple-600 transition-colors duration-300 flex items-center gap-2 animate-fade-in animation-delay-500">
-                📧 Email: contact@sanastayz.com
-              </p>
-              <p className="text-sm text-muted-foreground hover:text-purple-600 transition-colors duration-300 flex items-center gap-2 animate-fade-in animation-delay-700">
-                📱 Phone: +1 (555) 123-4567
-              </p>
-              <p className="text-sm text-muted-foreground hover:text-purple-600 transition-colors duration-300 flex items-center gap-2 animate-fade-in animation-delay-1000">
-                📍 Address: 123 Stay Avenue, Paradise City
-              </p>
-            </div>
           </div>
           )}
 
@@ -113,7 +102,7 @@ const Footer = () => {
 
         <div className="border-t border-gradient-to-r from-purple-200 via-pink-200 to-cyan-200 via-blue-200 mt-12 pt-8 text-center">
           <p className="text-gray-600 text-lg font-medium animate-fade-in">
-            💎 &copy; {new Date().getFullYear()} Sana Stayz. Crafted with elegance, reserved with sophistication. ✨
+            &copy; {new Date().getFullYear()} Sana Stayz — Curated stays for unforgettable journeys.
           </p>
         </div>
       </div>

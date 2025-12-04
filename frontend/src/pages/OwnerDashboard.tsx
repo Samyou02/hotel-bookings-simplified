@@ -1064,7 +1064,7 @@ const OwnerDashboard = () => {
       <Header />
       <main className="flex-1 relative z-10">
         {!feature && (
-          <section className="bg-gradient-to-br from-cyan-500 via-blue-600 via-purple-700 to-pink-600 text-primary-foreground py-16 relative overflow-hidden">
+          <section className="bg-gradient-to-br from-cyan-500 via-blue-600 via-purple-700 to-pink-600 text-primary-foreground py-24 relative overflow-hidden">
             {/* Enhanced animated background effects */}
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-black/10 to-transparent animate-pulse"></div>
             <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-white/5 to-black/20"></div>
@@ -1117,24 +1117,19 @@ const OwnerDashboard = () => {
               <div className="absolute top-1/2 left-20 w-18 h-18 border-2 border-white rotate-12 animate-pulse animation-delay-1600"></div>
             </div>
 
-            <div className="container relative z-10">
-              <div className="text-center mb-8">
+            <div className="container relative z-10 min-h-[320px] flex flex-col items-center justify-center text-center">
+              <div className="mb-8">
                 <div className="flex justify-center mb-4">
                   <div className="p-4 bg-white/20 rounded-full backdrop-blur-sm border border-white/30 shadow-2xl hover:scale-110 transition-transform duration-500">
                     <Building2 className="h-12 w-12 animate-pulse drop-shadow-lg" />
                   </div>
                 </div>
                 <div>
-                  <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold bg-gradient-to-r from-yellow-300 via-orange-400 via-pink-400 to-red-500 bg-clip-text text-transparent drop-shadow-2xl mb-4 animate-fade-in relative">
-                    <span className="inline-block overflow-hidden border-r-4 border-orange-400 animate-type whitespace-nowrap">
-                      Hotel Owner Dashboard
-                    </span>
-                    <span className="animate-blink">&nbsp;</span>
+                  <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-white drop-shadow-2xl mb-4">
+                    Hotel Owner Dashboard
                   </h1>
-                  <p className="opacity-90 text-xl md:text-2xl mt-2 font-light animate-fade-in animation-delay-500 relative">
-                    💫 Elegant management of your exceptional properties 💫
-                    <span className="absolute -top-2 -right-4 text-pink-300 animate-bounce">✨</span>
-                    <span className="absolute -bottom-1 -left-4 text-yellow-300 animate-pulse">🌟</span>
+                  <p className="text-white/90 text-xl md:text-2xl mt-2 font-light">
+                    Elegant management of your exceptional properties
                   </p>
                   <div className="mt-4 flex justify-center animate-fade-in animation-delay-1000">
                     <div className="flex items-center space-x-1 bg-white/10 px-4 py-2 rounded-full backdrop-blur-sm border border-white/20 animate-breathe">
@@ -2512,10 +2507,12 @@ const OwnerDashboard = () => {
 
         {/* CONTACT */}
         {feature === "contact" && (
-          <Card className="shadow-card hover:shadow-card-hover transition-all">
-            <CardHeader><CardTitle>Contact</CardTitle></CardHeader>
+          <Card className="shadow-2xl hover:shadow-orange-500/20 bg-gradient-to-br from-white via-orange-50 to-pink-50 border-0 scale-100 hover:scale-102 transition-all duration-500 ease-out">
+            <CardHeader>
+              <CardTitle className="text-2xl font-bold bg-gradient-to-r from-orange-700 to-pink-700 bg-clip-text text-transparent drop-shadow-sm">Contact</CardTitle>
+            </CardHeader>
             <CardContent>
-              <div className="rounded-lg border overflow-x-auto">
+              <div className="rounded-xl border bg-white shadow-md overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead className="bg-muted/50">
                     <tr className="text-left">
@@ -2535,7 +2532,7 @@ const OwnerDashboard = () => {
                         <td className="p-3"><Input placeholder="phone" maxLength={10} value={contactForm[h.id]?.phone1 ?? ''} onChange={(e)=> { const v = (e.target.value||'').replace(/\D/g,'').slice(0,10); setContactForm({ ...contactForm, [h.id]: { ...(contactForm[h.id]||{}), phone1: v } }) }} disabled={!contactEditing[h.id]} /></td>
                         <td className="p-3"><Input placeholder="phone" maxLength={10} value={contactForm[h.id]?.phone2 ?? ''} onChange={(e)=> { const v = (e.target.value||'').replace(/\D/g,'').slice(0,10); setContactForm({ ...contactForm, [h.id]: { ...(contactForm[h.id]||{}), phone2: v } }) }} disabled={!contactEditing[h.id]} /></td>
                         <td className="p-3"><Input placeholder="Owner Name" value={contactForm[h.id]?.ownerName ?? ''} onChange={(e)=> setContactForm({ ...contactForm, [h.id]: { ...(contactForm[h.id]||{}), ownerName: e.target.value } })} disabled={!contactEditing[h.id]} /></td>
-                        <td className="p-3 flex gap-2"><Button size="sm" variant="outline" onClick={()=> setContactEditing({ ...contactEditing, [h.id]: !(contactEditing[h.id] || false) })}>{contactEditing[h.id] ? 'Stop Edit' : 'Edit'}</Button><Button size="sm" onClick={()=> updateInfo.mutate({ id: h.id, contactEmail: contactForm[h.id]?.email || '', contactPhone1: contactForm[h.id]?.phone1 || '', contactPhone2: contactForm[h.id]?.phone2 || '', ownerName: contactForm[h.id]?.ownerName || '' })} disabled={!contactEditing[h.id]}>Save</Button><Button size="sm" variant="destructive" onClick={()=> { setContactForm({ ...contactForm, [h.id]: { email:'', phone1:'', phone2:'', ownerName:'' } }); updateInfo.mutate({ id: h.id, contactEmail: '', contactPhone1: '', contactPhone2: '', ownerName: '' }) }}>Delete</Button></td>
+                        <td className="p-3 flex gap-2"><Button size="sm" variant="outline" onClick={()=> setContactEditing({ ...contactEditing, [h.id]: !(contactEditing[h.id] || false) })}>{contactEditing[h.id] ? 'Stop Edit' : 'Edit'}</Button><Button size="sm" className="bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 text-white font-semibold shadow-md hover:shadow-lg" onClick={()=> updateInfo.mutate({ id: h.id, contactEmail: contactForm[h.id]?.email || '', contactPhone1: contactForm[h.id]?.phone1 || '', contactPhone2: contactForm[h.id]?.phone2 || '', ownerName: contactForm[h.id]?.ownerName || '' })} disabled={!contactEditing[h.id]}>Save</Button><Button size="sm" variant="destructive" onClick={()=> { setContactForm({ ...contactForm, [h.id]: { email:'', phone1:'', phone2:'', ownerName:'' } }); updateInfo.mutate({ id: h.id, contactEmail: '', contactPhone1: '', contactPhone2: '', ownerName: '' }) }}>Delete</Button></td>
                       </tr>
                     ))}
                   </tbody>
@@ -2546,10 +2543,12 @@ const OwnerDashboard = () => {
         )}
 
         {feature === "contact" && (
-          <Card className="shadow-card hover:shadow-card-hover transition-all">
-            <CardHeader><CardTitle>Admin Contact Details</CardTitle></CardHeader>
+          <Card className="shadow-2xl hover:shadow-orange-500/20 bg-gradient-to-br from-white via-orange-50 to-pink-50 border-0 scale-100 hover:scale-102 transition-all duration-500 ease-out">
+            <CardHeader>
+              <CardTitle className="text-2xl font-bold bg-gradient-to-r from-orange-700 to-pink-700 bg-clip-text text-transparent drop-shadow-sm">Admin Contact Details</CardTitle>
+            </CardHeader>
             <CardContent>
-              <div className="rounded-lg border overflow-x-auto">
+              <div className="rounded-xl border bg-white shadow-md overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead className="bg-muted/50">
                     <tr className="text-left">
