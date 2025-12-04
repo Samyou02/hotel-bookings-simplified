@@ -37,7 +37,8 @@ const OwnerCoupons: React.FC = () => {
           <Card className="shadow-card hover:shadow-card-hover transition-all">
             <CardHeader><CardTitle>Coupon Management</CardTitle></CardHeader>
             <CardContent className="space-y-3">
-              <div className="rounded-lg border overflow-hidden">
+              <div className="rounded-2xl p-4 bg-gradient-to-br from-pink-50 via-purple-50 to-orange-50">
+                <div className="rounded-xl border bg-white shadow-md overflow-hidden">
                 <table className="w-full text-sm">
                   <thead className="bg-muted/50">
                     <tr className="text-left">
@@ -51,7 +52,7 @@ const OwnerCoupons: React.FC = () => {
                   <tbody>
                     <tr className="border-t">
                       <td className="p-3">
-                        <select className="px-4 py-2 rounded-lg border bg-background" value={hotelId} onChange={e=>setHotelId(Number(e.target.value))}>
+                        <select className="px-3 py-2 rounded-md border bg-white shadow-sm" value={hotelId} onChange={e=>setHotelId(Number(e.target.value))}>
                           <option value={0}>Select Hotel</option>
                           {(hotels.data?.hotels||[]).map(h => (<option key={h.id} value={h.id}>{h.name}</option>))}
                         </select>
@@ -63,12 +64,14 @@ const OwnerCoupons: React.FC = () => {
                     </tr>
                   </tbody>
                 </table>
+                </div>
               </div>
               <div className="flex gap-2">
                 <Button onClick={() => createCoupon.mutate({ ...form, hotelId, ownerId })} disabled={!hotelId || !form.code || form.discount<=0}>Create Coupon</Button>
                 <Button variant="destructive" onClick={() => { if (window.confirm('Delete ALL coupons?')) deleteAll.mutate() }}>Delete All</Button>
               </div>
-              <div className="rounded-lg border overflow-hidden">
+              <div className="rounded-2xl p-4 bg-gradient-to-br from-pink-50 via-purple-50 to-orange-50">
+                <div className="rounded-xl border bg-white shadow-md overflow-hidden">
                 <table className="w-full text-sm">
                   <thead className="bg-muted/50"><tr className="text-left"><th className="p-3">Code</th><th className="p-3">Discount</th><th className="p-3">Expiry</th><th className="p-3">Usage</th><th className="p-3">Status</th><th className="p-3">Actions</th></tr></thead>
                   <tbody className="[&_tr:hover]:bg-muted/30">
@@ -107,6 +110,7 @@ const OwnerCoupons: React.FC = () => {
                     ))}
                   </tbody>
                 </table>
+                </div>
               </div>
             </CardContent>
           </Card>

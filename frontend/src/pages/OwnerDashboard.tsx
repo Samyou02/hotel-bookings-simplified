@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
-import { Building2, Calendar as CalendarIcon } from "lucide-react"
+import { Building2, Calendar as CalendarIcon, LogIn, LogOut } from "lucide-react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { apiGet, apiPost, apiDelete } from "@/lib/api"
 import RoomTypeManager from "@/components/RoomTypeManager"
@@ -1980,7 +1980,7 @@ const OwnerDashboard = () => {
                       ]
                       return (
                         <select
-                          className="px-2 py-1 rounded border bg-background text-sm"
+                          className="px-3 py-2 rounded-md border bg-white text-sm shadow-sm"
                           value={statusFilter}
                           onChange={(e) => setStatusFilter(e.target.value)}
                         >
@@ -2001,7 +2001,7 @@ const OwnerDashboard = () => {
                       ]
                       return (
                         <select
-                          className="px-2 py-1 rounded border bg-background text-sm"
+                          className="px-3 py-2 rounded-md border bg-white text-sm shadow-sm"
                           value={dateFilterBookings}
                           onChange={(e) => setDateFilterBookings(e.target.value)}
                         >
@@ -2095,7 +2095,8 @@ const OwnerDashboard = () => {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="rounded-lg border overflow-hidden">
+                <div className="rounded-2xl p-4 bg-gradient-to-br from-pink-50 via-purple-50 to-orange-50">
+                  <div className="rounded-xl border bg-white shadow-md overflow-hidden">
                   <table className="w-full text-sm">
                     <thead className="bg-muted/50">
                       <tr className="text-left">
@@ -2157,16 +2158,16 @@ const OwnerDashboard = () => {
                           <td className="p-3">{b.guests}</td>
                           <td className="p-3">₹{b.total}</td>
                           <td className="p-3">
-                            <div className={`inline-flex items-center gap-4 px-6 py-4 rounded-2xl text-lg font-bold shadow-xl border-2 whitespace-nowrap uppercase ${
+                            <div className={`inline-flex items-center gap-3 px-4 py-2 rounded-full text-sm font-semibold shadow-md border whitespace-nowrap uppercase ${
                               String(b.status).toLowerCase().includes('approved') ||
                               String(b.status).toLowerCase().includes('confirmed') ||
                               String(b.status).toLowerCase() === 'checked_in'
-                                ? 'bg-gradient-to-r from-emerald-500 via-green-600 to-emerald-700 text-white border-green-900 shadow-green-900/50'
-                                : String(b.status).toLowerCase().includes('pending')
-                                ? 'bg-gradient-to-r from-yellow-500 via-amber-600 to-yellow-700 text-white border-orange-900 shadow-orange-900/50 animate-pulse'
-                                : String(b.status).toLowerCase().includes('cancelled')
-                                ? 'bg-gradient-to-r from-red-500 via-rose-600 to-red-700 text-white border-red-900 shadow-red-900/50'
-                                : 'bg-gradient-to-r from-blue-500 via-cyan-600 to-blue-700 text-white border-blue-900 shadow-blue-900/50'
+                                ? 'bg-gradient-to-r from-emerald-500 via-green-600 to-emerald-700 text-white border-green-900'
+                              : String(b.status).toLowerCase().includes('pending')
+                                ? 'bg-gradient-to-r from-yellow-500 via-amber-600 to-yellow-700 text-white border-orange-900 animate-pulse'
+                              : String(b.status).toLowerCase().includes('cancelled')
+                                ? 'bg-gradient-to-r from-red-500 via-rose-600 to-red-700 text-white border-red-900'
+                                : 'bg-gradient-to-r from-blue-500 via-cyan-600 to-blue-700 text-white border-blue-900'
                             }`}>
                               {/* Status Icon */}
                               {String(b.status).toLowerCase().includes('approved') ||
@@ -2178,7 +2179,7 @@ const OwnerDashboard = () => {
                                 <div className="w-2 h-2 bg-red-800 rounded-full flex-shrink-0 animate-ping"></div>
                               ) : null}
                               <span className="tracking-normal">
-                                {b.status === 'confirmed' ? 'APPROVED' :
+                                {b.status === 'confirmed' ? 'CONFIRMED' :
                                  b.status === 'checked_in' ? 'CHECKED IN' :
                                  b.status === 'checked_out' ? 'CHECKED OUT' :
                                  b.status === 'cancelled' ? 'CANCELLED' :
@@ -2187,7 +2188,7 @@ const OwnerDashboard = () => {
                               </span>
                             </div>
                           </td>
-                          <td className="p-3 flex gap-2 flex-wrap items-center">
+                          <td className="p-3">
                             {(() => {
                               const s = String(b.status || "")
                                 .trim()
@@ -2196,33 +2197,12 @@ const OwnerDashboard = () => {
                               const canCheckin = s === "confirmed"
                               const canCheckout = s === "confirmed" || s === "checked_in"
                               return (
-                                <>
-                                  {canCheckin && (
-                                    <Button
-                                      size="sm"
-                                      onClick={() =>
-                                        checkinBooking.mutate(b.id)
-                                      }
-                                    >
-                                      Check-in
-                                    </Button>
-                                  )}
-                                  {canCheckout && (
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={() =>
-                                        checkoutBooking.mutate(b.id)
-                                      }
-                                    >
-                                      Check-out
-                                    </Button>
-                                  )}
+                                <div className="flex gap-2 flex-wrap items-center">
                                   {canCancel && (
                                     <>
                                       <Button size="sm" variant="outline" onClick={() => setOwnerCancelVisible({ ...ownerCancelVisible, [b.id]: !(ownerCancelVisible[b.id] || false) })}>Cancel</Button>
                                       {ownerCancelVisible[b.id] ? (
-                                        <div className="flex items-center gap-2">
+                                        <div className="flex items-center gap-2 w-full">
                                           <select className="px-2 py-1 rounded border text-sm" value={ownerCancelSel[b.id] || ''} onChange={(e)=> setOwnerCancelSel({ ...ownerCancelSel, [b.id]: e.target.value })}>
                                             <option value="">Select reason</option>
                                             {ownerCancelOptions.map(opt => (<option key={opt} value={opt}>{opt}</option>))}
@@ -2242,7 +2222,31 @@ const OwnerDashboard = () => {
                                       ) : null}
                                     </>
                                   )}
-                                </>
+                                  {canCheckin && (
+                                    <Button
+                                      size="sm"
+                                      className="bg-green-600 hover:bg-green-700 text-white shadow-md"
+                                      onClick={() =>
+                                        checkinBooking.mutate(b.id)
+                                      }
+                                    >
+                                      <LogIn className="w-4 h-4" />
+                                      Check-in
+                                    </Button>
+                                  )}
+                                  {canCheckout && (
+                                    <Button
+                                      size="sm"
+                                      className="bg-blue-600 hover:bg-blue-700 text-white shadow-md border-transparent"
+                                      onClick={() =>
+                                        checkoutBooking.mutate(b.id)
+                                      }
+                                    >
+                                      <LogOut className="w-4 h-4" />
+                                      Check-out
+                                    </Button>
+                                  )}
+                                </div>
                               )
                             })()}
                           </td>
@@ -2250,6 +2254,7 @@ const OwnerDashboard = () => {
                       ))}
                     </tbody>
                   </table>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -2271,7 +2276,7 @@ const OwnerDashboard = () => {
                       ]
                       return (
                         <select
-                          className="px-2 py-1 rounded border bg-background text-sm"
+                          className="px-3 py-2 rounded-md border bg-white text-sm shadow-sm"
                           value={dateFilterGuests}
                           onChange={(e) => setDateFilterGuests(e.target.value)}
                         >
@@ -2371,7 +2376,8 @@ const OwnerDashboard = () => {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="rounded-lg border overflow-hidden">
+                <div className="rounded-2xl p-4 bg-gradient-to-br from-pink-50 via-purple-50 to-orange-50">
+                  <div className="rounded-xl border bg-white shadow-md overflow-hidden">
                   <table className="w-full text-sm">
                     <thead className="bg-muted/50">
                         <tr className="text-left">
@@ -2465,6 +2471,7 @@ const OwnerDashboard = () => {
                       )}
                     </tbody>
                   </table>
+                  </div>
                 </div>
               </CardContent>
           </Card>
@@ -2540,7 +2547,8 @@ const OwnerDashboard = () => {
                 <CardTitle>Dynamic Pricing</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <div className="overflow-x-auto">
+                <div className="rounded-2xl p-4 bg-gradient-to-br from-pink-50 via-purple-50 to-orange-50">
+                  <div className="overflow-x-auto rounded-xl border bg-white shadow-md">
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="text-left">
@@ -2583,7 +2591,7 @@ const OwnerDashboard = () => {
                               {h.id} • {h.name}
                               <div className="mt-2">
                                 <select
-                                  className="px-2 py-1 rounded border bg-background text-xs"
+                                  className="px-3 py-2 rounded-md border bg-white text-xs shadow-sm"
                                   value={pricingType[h.id] || ""}
                                   onChange={(e) => {
                                     const sel = e.target.value
@@ -3098,10 +3106,12 @@ const OwnerDashboard = () => {
                       })}
                     </tbody>
                   </table>
+                  </div>
                 </div>
                 <div className="mt-6">
                   <div className="text-sm font-medium mb-2">Saved Pricing</div>
-                  <div className="overflow-x-auto">
+                  <div className="rounded-2xl p-4 bg-gradient-to-br from-pink-50 via-purple-50 to-orange-50">
+                    <div className="overflow-x-auto rounded-xl border bg-white shadow-md">
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="text-left">
@@ -3178,6 +3188,7 @@ const OwnerDashboard = () => {
                         })}
                       </tbody>
                     </table>
+                    </div>
                   </div>
                 </div>
               </CardContent>
