@@ -22,7 +22,7 @@ const Header = () => {
   } catch {
     authed = false
   }
-  const unread = useQuery({ queryKey: ["inbox","count", role, userId], queryFn: () => role==='owner' ? apiGet<{ count:number }>(`/api/messages/unread-count?ownerId=${userId}`) : apiGet<{ count:number }>(`/api/messages/unread-count?userId=${userId}`), enabled: authed && !!userId, refetchInterval: 2000 })
+  const unread = useQuery({ queryKey: ["inbox","count", role, userId], queryFn: () => role==='owner' ? apiGet<{ count:number }>(`/api/messages/unread-count?ownerId=${userId}`) : apiGet<{ count:number }>(`/api/messages/unread-count?userId=${userId}`), enabled: authed && !!userId && !pathname.startsWith("/dashboard/admin"), refetchInterval: 2000 })
 
   const navLinks = (() => {
     const base = [
@@ -133,6 +133,7 @@ const Header = () => {
             if (authed) {
               return (
                 <>
+                {!pathname.startsWith("/dashboard/admin") && (
                 <Button
                   variant="outline"
                   size="sm"
@@ -144,6 +145,7 @@ const Header = () => {
                       <span className="ml-2 inline-flex items-center justify-center rounded-full bg-gradient-to-r from-red-400 to-red-500 text-white text-[10px] h-5 min-w-5 shadow-lg animate-pulse">{unread.data.count}</span>
                     ) : null}
                   </Button>
+                )}
                   <Button
                     variant="outline"
                     size="sm"
@@ -209,7 +211,7 @@ const Header = () => {
                     } catch {
                       authed = false;
                     }
-                    if (authed) {
+                    if (authed && !pathname.startsWith("/dashboard/admin")) {
                       return (
                         <Link
                           to="/inbox"

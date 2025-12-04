@@ -7,6 +7,7 @@ router.get('/users', admin.users)
 router.post('/owners', admin.createOwner)
 router.post('/users/owner', admin.createOwner)
 router.post('/users/:id/block', admin.blockUser)
+router.delete('/users/:id', admin.deleteUser)
 
 router.get('/hotels', admin.hotelsList)
 router.post('/hotels/:id/status', admin.hotelStatus)

@@ -1225,12 +1225,33 @@ const OwnerDashboard = () => {
           </section>
         )}
 
+        {feature === "register" && (
+          <section className="bg-gradient-to-br from-cyan-500 via-blue-600 via-purple-700 to-pink-600 text-primary-foreground py-14 relative overflow-hidden">
+            <div className="container">
+              <div className="text-center">
+                <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight">
+                  Hotel Registration
+                </h1>
+                <p className="mt-3 text-lg opacity-90">
+                  Add your property details and get approved faster
+                </p>
+                <div className="mt-4 flex justify-center">
+                  <div className="flex items-center space-x-1 bg-white/10 px-4 py-2 rounded-full backdrop-blur-sm border border-white/20">
+                    <span className="w-2 h-2 bg-green-400 rounded-full animate-ping"></span>
+                    <span className="text-sm opacity-80">Registration Portal</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
+
         <div className="container py-8 space-y-8">
           {/* REGISTER HOTEL */}
           {feature === "register" && (
-            <Card className="shadow-card hover:shadow-card-hover transition-all">
+            <Card className="group shadow-2xl hover:shadow-cyan-500/30 bg-gradient-to-br from-white via-blue-50 to-cyan-100 border-0 hover:scale-[1.01] transition-all duration-500 ease-out backdrop-blur-sm">
               <CardHeader>
-                <CardTitle>Hotel Registration</CardTitle>
+                <CardTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 via-cyan-600 to-purple-600 bg-clip-text text-transparent">Hotel Registration</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 {(() => {
@@ -1517,9 +1538,60 @@ const OwnerDashboard = () => {
 
           {/* ROOMS */}
           {feature === "rooms" && (
-            <Card className="shadow-card hover:shadow-card-hover transition-all">
+            <section className="bg-gradient-to-br from-cyan-500 via-blue-600 via-purple-700 to-pink-600 text-primary-foreground py-14 relative overflow-hidden">
+              <div className="container">
+                <div className="text-center">
+                  <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight">Manage Rooms</h1>
+                  <p className="mt-3 text-lg opacity-90">Create room types and add rooms with amenities and photos</p>
+                  <div className="mt-4 flex justify-center">
+                    <div className="flex items-center space-x-1 bg-white/10 px-4 py-2 rounded-full backdrop-blur-sm border border-white/20">
+                      <span className="w-2 h-2 bg-green-400 rounded-full animate-ping"></span>
+                      <span className="text-sm opacity-80">Rooms Portal</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+          )}
+          {feature === "rooms" && (
+            <div className="container mt-8 grid gap-8 lg:grid-cols-4 md:grid-cols-2 sm:grid-cols-1">
+              <Card className="group shadow-2xl hover:shadow-cyan-500/30 bg-gradient-to-br from-white via-blue-50 to-cyan-100 border-0 hover:scale-110 transition-all duration-700 ease-out backdrop-blur-sm">
+                <CardHeader className="pb-3 text-center"><CardTitle className="text-sm font-bold text-blue-700 uppercase tracking-wider">Total Rooms</CardTitle></CardHeader>
+                <CardContent className="pt-0 text-center">
+                  <div className="text-3xl md:text-4xl font-black bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent drop-shadow-lg mb-2">{rooms.length}</div>
+                  <div className="text-xs text-blue-600 opacity-70 uppercase tracking-wide">Count</div>
+                </CardContent>
+              </Card>
+
+              <Card className="group shadow-2xl hover:shadow-green-500/30 bg-gradient-to-br from-white via-green-50 to-emerald-100 border-0 hover:scale-110 transition-all duration-700 ease-out backdrop-blur-sm">
+                <CardHeader className="pb-3 text-center"><CardTitle className="text-sm font-bold text-green-700 uppercase tracking-wider">Available</CardTitle></CardHeader>
+                <CardContent className="pt-0 text-center">
+                  <div className="text-3xl md:text-4xl font-black bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent drop-shadow-lg mb-2">{rooms.filter(r=>r.availability && !r.blocked).length}</div>
+                  <div className="text-xs text-green-600 opacity-70 uppercase tracking-wide">Rooms</div>
+                </CardContent>
+              </Card>
+
+              <Card className="group shadow-2xl hover:shadow-orange-500/30 bg-gradient-to-br from-white via-orange-50 to-yellow-100 border-0 hover:scale-110 transition-all duration-700 ease-out backdrop-blur-sm">
+                <CardHeader className="pb-3 text-center"><CardTitle className="text-sm font-bold text-orange-700 uppercase tracking-wider">Blocked</CardTitle></CardHeader>
+                <CardContent className="pt-0 text-center">
+                  <div className="text-3xl md:text-4xl font-black bg-gradient-to-r from-orange-600 to-yellow-600 bg-clip-text text-transparent drop-shadow-lg mb-2">{rooms.filter(r=>r.blocked).length}</div>
+                  <div className="text-xs text-orange-600 opacity-70 uppercase tracking-wide">Rooms</div>
+                </CardContent>
+              </Card>
+
+              <Card className="group shadow-2xl hover:shadow-purple-500/30 bg-gradient-to-br from-white via-purple-50 to-pink-100 border-0 hover:scale-110 transition-all duration-700 ease-out backdrop-blur-sm">
+                <CardHeader className="pb-3 text-center"><CardTitle className="text-sm font-bold text-purple-700 uppercase tracking-wider">Types</CardTitle></CardHeader>
+                <CardContent className="pt-0 text-center">
+                  <div className="text-3xl md:text-4xl font-black bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent drop-shadow-lg mb-2">{Array.from(new Set(rooms.map(r=>r.type))).length}</div>
+                  <div className="text-xs text-purple-600 opacity-70 uppercase tracking-wide">Unique</div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+          {feature === "rooms" && (
+            <Card className="group shadow-2xl hover:shadow-purple-500/30 bg-gradient-to-br from-white via-purple-50 to-pink-100 border-0 hover:scale-[1.01] transition-all duration-500 ease-out backdrop-blur-sm">
               <CardHeader>
-                <CardTitle>Manage Rooms</CardTitle>
+                <CardTitle className="text-2xl font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-rose-600 bg-clip-text text-transparent">Manage Rooms</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <RoomTypeManager types={roomTypes} onAddType={addRoomType} />

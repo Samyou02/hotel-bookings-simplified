@@ -45,6 +45,7 @@ const AdminDashboard = () => {
     || ((bookings.data?.bookings || []).length > 0)
 
   const blockUser = useMutation({ mutationFn: (p: { id:number; blocked:boolean }) => apiPost("/api/admin/users/"+p.id+"/block", { blocked: p.blocked }), onSuccess: () => qc.invalidateQueries({ queryKey: ["admin","users"] }) })
+  const deleteUser = useMutation({ mutationFn: (id:number) => apiDelete("/api/admin/users/"+id), onSuccess: (_res, id) => { toast({ title: "User deleted", description: `#${id}` }); qc.invalidateQueries({ queryKey: ["admin","users"] }) }, onError: () => toast({ title: "Delete failed", variant: "destructive" }) })
   const setHotelStatus = useMutation({ mutationFn: (p: { id:number; status:Hotel["status"] }) => apiPost("/api/admin/hotels/"+p.id+"/status", { status: p.status }), onSuccess: (_res, vars) => { qc.invalidateQueries({ queryKey: ["admin","hotels"] }); toast({ title: "Hotel status updated", description: `#${vars.id} → ${vars.status}` }) }, onError: () => toast({ title: "Update failed", variant: "destructive" }) })
   const setHotelFeatured = useMutation({ mutationFn: (p: { id:number; featured:boolean }) => apiPost("/api/admin/hotels/"+p.id+"/feature", { featured: p.featured }), onSuccess: (_res, vars) => { qc.invalidateQueries({ queryKey: ["admin","hotels"] }); toast({ title: vars.featured ? "Featured" : "Unfeatured", description: `#${vars.id}` }) }, onError: () => toast({ title: "Update failed", variant: "destructive" }) })
   
@@ -109,6 +110,8 @@ const AdminDashboard = () => {
   const [commInput, setCommInput] = React.useState("")
   const [storyInput, setStoryInput] = React.useState("")
   const [missionInput, setMissionInput] = React.useState("")
+  const [storyEditing, setStoryEditing] = React.useState(false)
+  const [missionEditing, setMissionEditing] = React.useState(false)
   
   const [ownerForm, setOwnerForm] = React.useState({ email:"", password:"", firstName:"", lastName:"", phone:"" })
   const [filterRole, setFilterRole] = React.useState<'all'|'user'|'owner'>('all')
@@ -236,7 +239,7 @@ const AdminDashboard = () => {
               <table className="w-full text-sm">
                 <thead className="bg-muted/50"><tr className="text-left"><th className="p-3">S.No</th><th className="p-3">Email</th><th className="p-3">Role</th><th className="p-3">Status</th><th className="p-3">Actions</th></tr></thead>
                 <tbody className="[&_tr:hover]:bg-muted/30">
-                  {sortRecent((users.data?.users || []).filter(u => (filterRole==='all' ? true : u.role===filterRole) && inPeriod(usersPeriod, u.createdAt))).filter(u=>{ try { const raw = localStorage.getItem('deletedAdminUsers') || '{}'; const map = JSON.parse(raw) as { [id:number]: boolean }; return !map[u.id] } catch { return true } }).map((u, idx) => (
+                  {sortRecent((users.data?.users || []).filter(u => !('deleted' in u && (u as unknown as { deleted?: boolean }).deleted) && (filterRole==='all' ? true : u.role===filterRole) && inPeriod(usersPeriod, u.createdAt))).filter(u=>{ try { const raw = localStorage.getItem('deletedAdminUsers') || '{}'; const map = JSON.parse(raw) as { [id:number]: boolean }; return !map[u.id] } catch { return true } }).map((u, idx) => (
                     <tr key={u.id} className="border-t">
                       <td className="p-3">{idx+1}</td>
                       <td className="p-3">{u.email}</td>
@@ -244,6 +247,7 @@ const AdminDashboard = () => {
                       <td className="p-3"><span className={`inline-flex items-center px-2 py-1 rounded-full text-xs ${u.blocked ? 'bg-destructive/15 text-destructive' : 'bg-primary/15 text-primary'}`}>{u.blocked ? 'Blocked' : 'Active'}</span></td>
                       <td className="p-3 flex gap-2">
                         <Button variant={u.blocked ? 'outline' : 'destructive'} size="sm" onClick={() => blockUser.mutate({ id: u.id, blocked: !u.blocked })}>{u.blocked ? 'Unblock' : 'Block'}</Button>
+                        <Button variant="destructive" size="sm" onClick={() => { deleteUser.mutate(u.id) }}>Delete</Button>
                       </td>
                     </tr>
                   ))}
@@ -304,16 +308,20 @@ const AdminDashboard = () => {
             <div className="space-y-4">
               <div>
                 <div className="text-sm font-medium mb-2">Our Story</div>
-                <Textarea rows={6} placeholder="Enter our story" value={storyInput} onChange={e=>setStoryInput(e.target.value)} />
-                <div className="mt-2">
-                  <Button onClick={() => updateSettings.mutate({ ourStory: storyInput })} disabled={updateSettings.isPending}>Save</Button>
+                <Textarea rows={6} placeholder="Enter our story" value={storyInput} onChange={e=>setStoryInput(e.target.value)} readOnly={!storyEditing} />
+                <div className="mt-2 flex gap-2">
+                  <Button variant="outline" onClick={()=> setStoryEditing(!storyEditing)}>{storyEditing ? 'Stop Edit' : 'Edit'}</Button>
+                  <Button onClick={() => updateSettings.mutate({ ourStory: storyInput })} disabled={updateSettings.isPending || !storyEditing}>Update</Button>
+                  <Button variant="secondary" onClick={() => updateSettings.mutate({ ourStory: storyInput, ourMission: missionInput })} disabled={updateSettings.isPending}>Save</Button>
                 </div>
               </div>
               <div>
                 <div className="text-sm font-medium mb-2">Our Mission</div>
-                <Textarea rows={4} placeholder="Enter our mission" value={missionInput} onChange={e=>setMissionInput(e.target.value)} />
-                <div className="mt-2">
-                  <Button onClick={() => updateSettings.mutate({ ourMission: missionInput })} disabled={updateSettings.isPending}>Save</Button>
+                <Textarea rows={4} placeholder="Enter our mission" value={missionInput} onChange={e=>setMissionInput(e.target.value)} readOnly={!missionEditing} />
+                <div className="mt-2 flex gap-2">
+                  <Button variant="outline" onClick={()=> setMissionEditing(!missionEditing)}>{missionEditing ? 'Stop Edit' : 'Edit'}</Button>
+                  <Button onClick={() => updateSettings.mutate({ ourMission: missionInput })} disabled={updateSettings.isPending || !missionEditing}>Update</Button>
+                  <Button variant="secondary" onClick={() => updateSettings.mutate({ ourStory: storyInput, ourMission: missionInput })} disabled={updateSettings.isPending}>Save</Button>
                 </div>
               </div>
               

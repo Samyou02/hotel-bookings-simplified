@@ -17,6 +17,7 @@ const UserSchema = new mongoose.Schema({
   role: { type: String, enum: ['admin','user','owner'], default: 'user' },
   isApproved: { type: Boolean, default: true },
   blocked: { type: Boolean, default: false },
+  deleted: { type: Boolean, default: false },
   resetToken: String,
   resetExpires: Date,
   createdAt: { type: Date, default: Date.now }

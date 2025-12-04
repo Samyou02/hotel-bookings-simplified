@@ -57,6 +57,17 @@ async function blockUser(req, res) {
   res.json({ status: 'updated' })
 }
 
+async function deleteUser(req, res) {
+  await connect(); await ensureSeed();
+  const id = Number(req.params.id)
+  const u = await User.findOne({ id })
+  if (!u) return res.status(404).json({ error: 'User not found' })
+  u.deleted = true
+  u.blocked = true
+  await u.save()
+  res.json({ status: 'deleted' })
+}
+
 async function hotelsList(req, res) {
   await connect(); await ensureSeed();
   const hotels = await Hotel.find({ ownerId: { $ne: null } }).lean()
@@ -239,6 +250,7 @@ module.exports = {
   users,
   createOwner,
   blockUser,
+  deleteUser,
   hotelsList,
   hotelStatus,
   hotelFeature,
