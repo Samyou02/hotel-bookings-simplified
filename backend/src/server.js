@@ -6,6 +6,7 @@ const path = require('path');
 const cors = require('cors');
 const dotenv = require('dotenv');
 dotenv.config();
+try { dotenv.config({ path: path.resolve(__dirname, '../../frontend/.env') }) } catch {}
 
 const nodemailer = require("nodemailer");   // <-- ADDED
                                              
@@ -71,7 +72,16 @@ app.get('/uploads/:name', (req, res) => {
 
 app.use('/uploads', express.static(uploadsDir));
 
-const port = 5000 ;
+const apiUrlRaw = process.env.VITE_API_URL || process.env.API_URL || '';
+let fromApiPort = 0;
+try {
+  if (apiUrlRaw) {
+    const u = new URL(apiUrlRaw);
+    const p = String(u.port || '').trim();
+    fromApiPort = p ? Number(p) : 0;
+  }
+} catch {}
+const port = Number(process.env.PORT || process.env.BACKEND_PORT || (fromApiPort || 5000));
 
 (async () => {
   try {

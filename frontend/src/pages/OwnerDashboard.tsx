@@ -366,8 +366,7 @@ const OwnerDashboard = () => {
     if (!u) return ""
     const s = String(u)
     const env = (typeof import.meta !== 'undefined' && (import.meta as unknown as { env?: Record<string, string> })?.env) || {} as Record<string, string>
-    let base = env?.VITE_API_URL || 'http://localhost:5000'
-    if (/localhost:\d+/i.test(base) && !/localhost:5000/i.test(base)) base = base.replace(/localhost:\d+/i, 'localhost:5000')
+    const base = env?.VITE_API_URL || 'http://localhost:5000'
     if (s.startsWith("/uploads")) return `${base}${s}`
     if (s.startsWith("uploads")) return `${base}/${s}`
     return s
