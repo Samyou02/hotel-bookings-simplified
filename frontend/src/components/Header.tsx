@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { User, Menu, X, LogOut } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { User, Menu, X, LogOut, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -10,6 +10,15 @@ const Header = () => {
   const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
   const { pathname } = useLocation();
+  const lastPathRef = useRef<string>("");
+  useEffect(() => {
+    const prev = lastPathRef.current;
+    const current = pathname;
+    lastPathRef.current = current;
+    try {
+      localStorage.setItem("lastRoute", current);
+    } catch { void 0 }
+  }, [pathname]);
   let authed = false;
   let role: 'admin'|'user'|'owner' = 'user'
   let userId = 0
@@ -137,8 +146,11 @@ const Header = () => {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="hidden md:flex border-purple-400 text-purple-600 bg-white/80 backdrop-blur-sm hover:bg-purple-50 hover:border-purple-500 hover:scale-105 transition-all duration-300"
-                  onClick={() => navigate("/inbox")}
+                  className="hidden md:flex border-purple-400 text-purple-600 bg-white/80 backdrop-blur-sm hover:bg-purple-50 hover;border-purple-500 hover:scale-105 transition-all duration-300"
+                  onClick={() => {
+                    try { localStorage.setItem("inboxReferrer", pathname); } catch { void 0 }
+                    navigate("/inbox");
+                  }}
                 >
                   Inbox
                     {unread.data?.count ? (
@@ -216,7 +228,10 @@ const Header = () => {
                         <Link
                           to="/inbox"
                           className="text-lg font-medium transition-colors hover:text-primary"
-                          onClick={() => setIsOpen(false)}
+                          onClick={() => {
+                            try { localStorage.setItem("inboxReferrer", pathname); } catch { void 0 }
+                            setIsOpen(false);
+                          }}
                         >
                           Inbox
                           {unread.data?.count ? (
@@ -239,17 +254,50 @@ const Header = () => {
                     }
                     if (authed) {
                       return (
-                        <Button
-                          className="w-full"
-                          onClick={() => {
-                            localStorage.removeItem("auth");
-                            setIsOpen(false);
-                            navigate("/signin");
-                          }}
-                        >
-                          <LogOut className="h-4 w-4 mr-2" />
-                          Logout
-                        </Button>
+                        <>
+                          <Button
+                            variant="outline"
+                            className="w-full"
+                            onClick={() => {
+                              try {
+                                const current = pathname;
+                                if (current.startsWith("/inbox")) {
+                                  let referrer = "";
+                                  try {
+                                    referrer = localStorage.getItem("inboxReferrer") || "";
+                                  } catch { void 0 }
+                                  if (referrer) {
+                                    try { localStorage.removeItem("inboxReferrer"); } catch { void 0 }
+                                    navigate(referrer);
+                                    return;
+                                  }
+                                }
+                                if (typeof window !== "undefined" && window.history.length > 1) {
+                                  navigate(-1);
+                                } else {
+                                  const dest = role === 'owner' ? '/dashboard/owner' : (role === 'admin' ? '/dashboard/admin' : '/dashboard/user')
+                                  navigate(dest);
+                                }
+                              } finally {
+                                setIsOpen(false);
+                              }
+                            }}
+                          >
+                            <ArrowLeft className="h-4 w-4 mr-2" />
+                            Back
+                          </Button>
+                          <Button
+                            className="w-full"
+                            onClick={() => {
+                              localStorage.removeItem("auth");
+                              setIsOpen(false);
+                              navigate("/signin");
+                            }}
+                          >
+                            <LogOut className="h-4 w-4 mr-2" />
+                            Logout
+                          </Button>
+                        </>
                       );
                     }
                     return (
