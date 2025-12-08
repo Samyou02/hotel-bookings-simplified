@@ -251,9 +251,9 @@ const UserDashboard = () => {
 
         <Card className="group shadow-2xl hover:shadow-cyan-500/30 bg-gradient-to-br from-white via-blue-50 to-cyan-100 border-0 hover:scale-[1.01] transition-all duration-500 ease-out backdrop-blur-sm">
           <CardHeader>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
               <CardTitle>Bookings</CardTitle>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
                 {(() => {
                   const opts = [
                     { k:'all', v:'All time' },
@@ -262,12 +262,12 @@ const UserDashboard = () => {
                     { k:'monthly', v:'Monthly' },
                   ]
                   return (
-                    <select className="px-2 py-1 rounded border bg-background text-sm" value={dateFilterBookings} onChange={e=>setDateFilterBookings(e.target.value)}>
+                    <select className="px-2 py-1 rounded border bg-background text-sm w-full sm:w-auto" value={dateFilterBookings} onChange={e=>setDateFilterBookings(e.target.value)}>
                       {opts.map(o=> (<option key={o.k} value={o.k}>{o.v}</option>))}
                     </select>
                   )
                 })()}
-                <Button variant="outline" onClick={()=>{
+                <Button variant="outline" className="shrink-0" onClick={()=>{
                   const rows = bookingsTimeFiltered.map(b => [
                     `#${b.id}`,
                     String(b.hotelId||''),
@@ -291,7 +291,7 @@ const UserDashboard = () => {
                   a.click()
                   setTimeout(()=>URL.revokeObjectURL(url), 2000)
                 }}>Download Excel</Button>
-                <Button variant="destructive" onClick={() => { try { const raw = localStorage.getItem('deletedUserBookings') || '{}'; const map = JSON.parse(raw) as { [id:number]: boolean }; bookingsTimeFiltered.forEach(b => { map[b.id] = true }); localStorage.setItem('deletedUserBookings', JSON.stringify(map)); toast({ title: 'Deleted from view', description: `${bookingsTimeFiltered.length} item(s)` }) } catch { toast({ title: 'Delete failed', variant: 'destructive' }) } }}>Delete</Button>
+                <Button variant="destructive" className="shrink-0" onClick={() => { try { const raw = localStorage.getItem('deletedUserBookings') || '{}'; const map = JSON.parse(raw) as { [id:number]: boolean }; bookingsTimeFiltered.forEach(b => { map[b.id] = true }); localStorage.setItem('deletedUserBookings', JSON.stringify(map)); toast({ title: 'Deleted from view', description: `${bookingsTimeFiltered.length} item(s)` }) } catch { toast({ title: 'Delete failed', variant: 'destructive' }) } }}>Delete</Button>
               </div>
             </div>
           </CardHeader>

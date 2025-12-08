@@ -225,26 +225,26 @@ const AdminDashboard = () => {
               />
               <Button onClick={() => { if (!ownerForm.email || !ownerForm.password) return; createOwner.mutate(ownerForm) }} disabled={createOwner.isPending || !ownerForm.email || !ownerForm.password}>{createOwner.isPending ? "Adding..." : "Add Hotel Owner"}</Button>
             </div>
-            <div className="flex items-center gap-2 mb-3">
+            <div className="flex items-center gap-2 mb-3 flex-wrap">
               <span className="text-sm text-muted-foreground">Show</span>
-              <select className="px-3 py-2 rounded border bg-background text-sm" value={filterRole} onChange={e=>setFilterRole(e.target.value as 'all'|'user'|'owner')}>
+              <select className="px-3 py-2 rounded border bg-background text-sm w-full sm:w-auto" value={filterRole} onChange={e=>setFilterRole(e.target.value as 'all'|'user'|'owner')}>
                 <option value="all">All</option>
                 <option value="user">Users</option>
                 <option value="owner">Hotel Owners</option>
               </select>
-              <select className="px-3 py-2 rounded border bg-background text-sm" value={usersPeriod} onChange={e=>setUsersPeriod(e.target.value as typeof usersPeriod)}>
+              <select className="px-3 py-2 rounded border bg-background text-sm w-full sm:w-auto" value={usersPeriod} onChange={e=>setUsersPeriod(e.target.value as typeof usersPeriod)}>
                 <option value="all">All</option>
                 <option value="yearly">Yearly</option>
                 <option value="monthly">Monthly</option>
                 <option value="weekly">Weekly</option>
                 <option value="daily">Daily</option>
               </select>
-              <Button variant="outline" onClick={()=>{
+              <Button variant="outline" className="shrink-0" onClick={()=>{
                 const data = sortRecent((users.data?.users||[]).filter(u=> (filterRole==='all'?true:u.role===filterRole) && inPeriod(usersPeriod, u.createdAt)))
                 const rows = data.map(u=>({ id:u.id, email:u.email, role:u.role, blocked:u.blocked, createdAt:u.createdAt }))
                 downloadCsv(`users-${usersPeriod}`, rows)
               }}>Download</Button>
-              <Button variant="destructive" onClick={()=>{ try { const raw = localStorage.getItem('deletedAdminUsers') || '{}'; const map = JSON.parse(raw) as { [id:number]: boolean }; const data = sortRecent((users.data?.users||[]).filter(u=> (filterRole==='all'?true:u.role===filterRole) && inPeriod(usersPeriod, u.createdAt))); data.forEach(u=>{ map[u.id] = true }); localStorage.setItem('deletedAdminUsers', JSON.stringify(map)); toast({ title: 'Deleted from view', description: `${data.length} user(s)` }) } catch { toast({ title: 'Delete failed', variant: 'destructive' }) } }}>Delete</Button>
+              <Button variant="destructive" className="shrink-0" onClick={()=>{ try { const raw = localStorage.getItem('deletedAdminUsers') || '{}'; const map = JSON.parse(raw) as { [id:number]: boolean }; const data = sortRecent((users.data?.users||[]).filter(u=> (filterRole==='all'?true:u.role===filterRole) && inPeriod(usersPeriod, u.createdAt))); data.forEach(u=>{ map[u.id] = true }); localStorage.setItem('deletedAdminUsers', JSON.stringify(map)); toast({ title: 'Deleted from view', description: `${data.length} user(s)` }) } catch { toast({ title: 'Delete failed', variant: 'destructive' }) } }}>Delete</Button>
             </div>
             <div className="rounded-lg border overflow-x-auto">
               <table className="w-full text-sm">
@@ -256,7 +256,7 @@ const AdminDashboard = () => {
                       <td className="p-3">{u.email}</td>
                       <td className="p-3"><span className="inline-flex items-center px-2 py-1 rounded-full bg-secondary text-xs">{u.role}</span></td>
                       <td className="p-3"><span className={`inline-flex items-center px-2 py-1 rounded-full text-xs ${u.blocked ? 'bg-destructive/15 text-destructive' : 'bg-primary/15 text-primary'}`}>{u.blocked ? 'Blocked' : 'Active'}</span></td>
-                      <td className="p-3 flex gap-2">
+                      <td className="p-3 flex gap-2 flex-wrap">
                         <Button variant={u.blocked ? 'outline' : 'destructive'} size="sm" onClick={() => blockUser.mutate({ id: u.id, blocked: !u.blocked })}>{u.blocked ? 'Unblock' : 'Block'}</Button>
                         <Button variant="destructive" size="sm" onClick={() => { deleteUser.mutate(u.id) }}>Delete</Button>
                       </td>
@@ -273,7 +273,7 @@ const AdminDashboard = () => {
         <Card className="rounded-2xl p-0 shadow-2xl bg-gradient-to-br from-white via-blue-50 to-cyan-100 border-0">
           <CardHeader><CardTitle>Hotel Management</CardTitle></CardHeader>
           <CardContent>
-            <div className="flex items-center gap-2 mb-3">
+            <div className="flex items-center gap-2 mb-3 flex-wrap">
               <select className="px-3 py-2 rounded border bg-background text-sm" value={hotelsPeriod} onChange={e=>setHotelsPeriod(e.target.value as typeof hotelsPeriod)}>
                 <option value="all">All</option>
                 <option value="yearly">Yearly</option>
@@ -281,12 +281,12 @@ const AdminDashboard = () => {
                 <option value="weekly">Weekly</option>
                 <option value="daily">Daily</option>
               </select>
-              <Button variant="outline" onClick={()=>{
+              <Button variant="outline" className="shrink-0" onClick={()=>{
                 const data = sortRecent((hotels.data?.hotels||[]).filter(h=> inPeriod(hotelsPeriod, h.createdAt as string | undefined)))
                 const rows = data.map(h=>({ id:h.id, name:h.name, location:h.location, status:h.status, featured:h.featured, createdAt:h.createdAt }))
                 downloadCsv(`hotels-${hotelsPeriod}`, rows)
               }}>Download</Button>
-              <Button variant="destructive" onClick={async ()=>{ const src = sortRecent((hotels.data?.hotels||[]).filter(h=> inPeriod(hotelsPeriod, h.createdAt as string | undefined))); if (src.length && window.confirm(`Delete ${src.length} hotel(s) in current filter?`)) { const ids = src.map(h=>h.id); await qc.cancelQueries({ queryKey: ["admin","hotels"] }); const prev = qc.getQueryData<{ hotels: Hotel[] }>(["admin","hotels"]) || { hotels: [] }; qc.setQueryData(["admin","hotels"], (data?: { hotels: Hotel[] }) => ({ hotels: (data?.hotels || []).filter(h => !ids.includes(h.id)) })); Promise.all(ids.map(id => deleteHotelOwner.mutateAsync(id))).finally(()=> qc.invalidateQueries({ queryKey: ["admin","hotels"] })) } }}>Delete</Button>
+              <Button variant="destructive" className="shrink-0" onClick={async ()=>{ const src = sortRecent((hotels.data?.hotels||[]).filter(h=> inPeriod(hotelsPeriod, h.createdAt as string | undefined))); if (src.length && window.confirm(`Delete ${src.length} hotel(s) in current filter?`)) { const ids = src.map(h=>h.id); await qc.cancelQueries({ queryKey: ["admin","hotels"] }); const prev = qc.getQueryData<{ hotels: Hotel[] }>(["admin","hotels"]) || { hotels: [] }; qc.setQueryData(["admin","hotels"], (data?: { hotels: Hotel[] }) => ({ hotels: (data?.hotels || []).filter(h => !ids.includes(h.id)) })); Promise.all(ids.map(id => deleteHotelOwner.mutateAsync(id))).finally(()=> qc.invalidateQueries({ queryKey: ["admin","hotels"] })) } }}>Delete</Button>
             </div>
             <div className="rounded-lg border overflow-x-auto">
               <table className="w-full text-sm">
@@ -345,7 +345,7 @@ const AdminDashboard = () => {
         <Card className="rounded-2xl p-0 shadow-2xl bg-gradient-to-br from-white via-purple-50 to-pink-100 border-0">
           <CardHeader><CardTitle>Booking Management</CardTitle></CardHeader>
           <CardContent>
-            <div className="flex items-center gap-2 mb-3">
+            <div className="flex items-center gap-2 mb-3 flex-wrap">
               <select className="px-3 py-2 rounded border bg-background text-sm" value={bookingsPeriod} onChange={e=>setBookingsPeriod(e.target.value as typeof bookingsPeriod)}>
                 <option value="all">All</option>
                 <option value="yearly">Yearly</option>
@@ -353,14 +353,13 @@ const AdminDashboard = () => {
                 <option value="weekly">Weekly</option>
                 <option value="daily">Daily</option>
               </select>
-              <Button variant="outline" onClick={()=>{
+              <Button variant="outline" className="shrink-0" onClick={()=>{
                 const src = bookings.data?.bookings || []
                 const data = sortRecent(src.filter(b=> inPeriod(bookingsPeriod, b.createdAt as string | undefined)))
                 const rows = data.map(b=>({ id:b.id, hotelId:b.hotelId, hotelName:b.hotel?.name, checkIn:b.checkIn, checkOut:b.checkOut, guests:b.guests, total:b.total, status:b.status, refundIssued:b.refundIssued, createdAt:b.createdAt }))
                 downloadCsv(`bookings-${bookingsPeriod}`, rows)
               }}>Download</Button>
-              <Button variant="destructive" onClick={()=>{ try { const raw = localStorage.getItem('deletedAdminBookings') || '{}'; const map = JSON.parse(raw) as { [id:number]: boolean }; const src = bookings.data?.bookings || []; const data = sortRecent(src.filter(b=> inPeriod(bookingsPeriod, b.createdAt as string | undefined))); data.forEach(b=>{ map[b.id] = true }); localStorage.setItem('deletedAdminBookings', JSON.stringify(map)); toast({ title: 'Deleted from view', description: `${data.length} booking(s)` }) } catch { toast({ title: 'Delete failed', variant: 'destructive' }) } }}>Delete</Button>
-              
+              <Button variant="destructive" className="shrink-0" onClick={()=>{ try { const raw = localStorage.getItem('deletedAdminBookings') || '{}'; const map = JSON.parse(raw) as { [id:number]: boolean }; const src = bookings.data?.bookings || []; const data = sortRecent(src.filter(b=> inPeriod(bookingsPeriod, b.createdAt as string | undefined))); data.forEach(b=>{ map[b.id] = true }); localStorage.setItem('deletedAdminBookings', JSON.stringify(map)); toast({ title: 'Deleted from view', description: `${data.length} booking(s)` }) } catch { toast({ title: 'Delete failed', variant: 'destructive' }) } }}>Delete</Button>
             </div>
             <div className="rounded-2xl border overflow-x-auto shadow-md">
               <table className="w-full text-sm">
