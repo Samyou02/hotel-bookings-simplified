@@ -320,11 +320,18 @@ const HotelDetail = () => {
   const [paid, setPaid] = useState<boolean>(false);
 
   const confirm = useMutation({
-    mutationFn: (id: number) => apiPost(`/api/bookings/confirm/${id}`, {}),
+    mutationFn: (id: number) => apiPost(`/api/bookings/confirm/${id}`, {
+      mode: paymentMethod === 'cod' ? 'cod' : (paymentMethod === 'upi' ? 'upi' : ''),
+      upiId: paymentMethod === 'upi' ? upiId : ''
+    }),
     onSuccess: (_res, vars) => {
       setPaid(true);
       toast({ title: "Payment confirmed", description: `Booking #${vars}` });
       qc.invalidateQueries({ queryKey: ["hotel", "rooms", id, checkIn] });
+      if (hotel?.ownerId) {
+        qc.invalidateQueries({ queryKey: ["owner", "bookings", hotel.ownerId] });
+        qc.invalidateQueries({ queryKey: ["owner", "stats", hotel.ownerId] });
+      }
     },
     onError: () => {
       toast({ title: "Payment failed", variant: "destructive" });
@@ -350,7 +357,7 @@ const HotelDetail = () => {
         ctx.font = "16px Arial";
         ctx.fillText(`Booking #${reserve.data.id}`, 24, 80);
         ctx.fillText(`Hotel: ${hotel?.name || ''} (#${id})`, 24, 110);
-        ctx.fillText(`Room: ${reserve.data.roomNumber || ('#'+reserve.data.roomId)}`, 24, 140);
+        ctx.fillText(`Room: Assigned after payment`, 24, 140);
         ctx.fillText(`Check-in: ${checkIn} ${checkInTime}`, 24, 170);
         ctx.fillText(`Check-out: ${checkOut} ${checkOutTime}`, 24, 200);
         ctx.fillText(`Guests: ${guests}`, 24, 230);
@@ -366,9 +373,9 @@ const HotelDetail = () => {
     const s = String(src || "");
     if (!s) return "https://placehold.co/800x600?text=Hotel";
     const env = (typeof import.meta !== 'undefined' && (import.meta as unknown as { env?: Record<string, string> })?.env) || {} as Record<string, string>
-    const base = env?.VITE_API_URL || 'http://localhost:5000'
-    if (s.startsWith("/uploads")) return `${base}${s}`;
-    if (s.startsWith("uploads")) return `${base}/${s}`;
+    const base = env?.VITE_API_URL || env?.VITE_API_BASE || ''
+    if (s.startsWith("/uploads")) return base ? `${base}${s}` : s;
+    if (s.startsWith("uploads")) return base ? `${base}/${s}` : `/${s}`;
     return s;
   };
 
@@ -780,14 +787,14 @@ const HotelDetail = () => {
                   {reserve.isPending
                     ? "Processing reservation"
                     : reserve.isSuccess
-                    ? "Reservation successful"
+                    ? "Reservation created"
                     : reserve.isError
                     ? "Reservation failed"
                     : "Reserve"}
                 </DialogTitle>
                 <DialogDescription>
                   {reserve.isSuccess
-                    ? "Choose a payment method to complete your booking."
+                    ? "Pay now to confirm your booking."
                     : reserve.isPending
                     ? "Please wait while we reserve your room."
                     : reserve.isError
@@ -798,7 +805,7 @@ const HotelDetail = () => {
 
               {reserve.isSuccess && !paid && (
                 <div className="space-y-4">
-                  <div className="p-3 rounded bg-muted text-sm">Room reserved: {reserve.data?.roomNumber || ('#'+(reserve.data?.roomId||''))}</div>
+                  
 
                   <div className="space-y-2">
                     <Label>Payment method</Label>
@@ -827,10 +834,7 @@ const HotelDetail = () => {
                         <span className="text-muted-foreground">Subtotal</span>
                         <span className="font-medium">₹{invoice.data.invoice.subtotal}</span>
                       </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Tax ({invoice.data.invoice.taxRate}%)</span>
-                        <span className="font-medium">₹{invoice.data.invoice.tax}</span>
-                      </div>
+                      
                       <div className="flex justify-between font-bold text-lg">
                         <span>Total</span>
                         <span>₹{invoice.data.invoice.total}</span>

@@ -27,38 +27,7 @@ async function create(req, res) {
     if (ciMinutes < nowMinutes) return res.status(400).json({ error: 'Check-in time must be later than now' })
   }
   const settings = await Settings.findOne().lean()
-  const filter = { hotelId: Number(hotelId), availability: true, blocked: { $ne: true } }
-  if (roomType) filter.type = String(roomType)
-  let rooms = await Room.find(filter).lean()
-  rooms = (rooms || []).slice().sort((a, b) => {
-    const ra = String(a.roomNumber || '').trim()
-    const rb = String(b.roomNumber || '').trim()
-    const na = /^\d+$/.test(ra) ? Number(ra) : Number.MAX_SAFE_INTEGER
-    const nb = /^\d+$/.test(rb) ? Number(rb) : Number.MAX_SAFE_INTEGER
-    if (na !== nb) return na - nb
-    return Number(a.id || 0) - Number(b.id || 0)
-  })
-  if (!rooms || rooms.length === 0) {
-    return res.status(409).json({ error: 'No rooms available' })
-  }
-  let chosenRoomId = null
-  for (const r of rooms) {
-    const existing = await Booking.find({ roomId: r.id, status: { $in: ['pending','confirmed','checked_in'] } }).lean()
-    const overlaps = existing.some(b => {
-      const bCi = new Date(b.checkIn)
-      const bCo = new Date(b.checkOut)
-      return ci < bCo && co > bCi
-    })
-    if (!overlaps) { chosenRoomId = r.id; break }
-  }
-  if (!chosenRoomId) {
-    return res.status(409).json({ error: 'No rooms available for the selected dates' })
-  }
-  const chosenRoom = rooms.find(x => x.id === chosenRoomId) || await Room.findOne({ id: Number(chosenRoomId) }).lean()
-  if (chosenRoom && Number(guests) > Number(chosenRoom.members || 0)) {
-    return res.status(400).json({ error: 'Guests exceed room capacity' })
-  }
-  const basePricePerDay = Number(chosenRoom?.price || 0)
+  const basePricePerDay = Number(hotel.price || 0)
   const diffMs = co.getTime() - ci.getTime()
   const diffHours = Math.ceil(diffMs / (1000 * 60 * 60))
   const stayDays = diffHours > 0 && diffHours <= 24 ? 1 : Math.floor(diffHours / 24)
@@ -143,8 +112,7 @@ async function create(req, res) {
   const id = await nextIdFor('Booking')
   const ownerActionToken = Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2)
   const userActionToken = Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2)
-  const chosenRoomDoc = await Room.findOne({ id: Number(chosenRoomId) }).lean()
-  await Booking.create({ id, userId: Number(userId) || null, hotelId: Number(hotelId), roomId: Number(chosenRoomId), roomNumber: String(chosenRoomDoc?.roomNumber || ''), checkIn, checkOut, guests: Number(guests), total: computedTotal, couponId: appliedCouponId, couponCode: appliedCouponCode, status: 'confirmed', paid: false, ownerActionToken, userActionToken })
+  await Booking.create({ id, userId: Number(userId) || null, hotelId: Number(hotelId), roomId: null, roomNumber: '', checkIn, checkOut, guests: Number(guests), total: computedTotal, couponId: appliedCouponId, couponCode: appliedCouponCode, status: 'pending', paid: false, ownerActionToken, userActionToken })
   if (appliedCouponId) {
     try { await Coupon.updateOne({ id: Number(appliedCouponId) }, { $inc: { used: 1 } }) } catch {}
   }
@@ -174,7 +142,7 @@ async function create(req, res) {
           <div style="font-family:Arial,sans-serif;max-width:640px;margin:auto">
             <h2>New booking received: #${id}</h2>
             <p>Hotel: <b>${hotel.name}</b> (#${hotel.id})</p>
-            <p>Room: ${String(chosenRoomDoc?.roomNumber || '') || '#'+chosenRoomId}</p>
+            <p>Room: Assigned after payment</p>
             <p>Dates: ${checkIn} → ${checkOut}</p>
             <p>Guests: ${guests}</p>
             <p>Total: ₹${computedTotal}</p>
@@ -191,7 +159,7 @@ async function create(req, res) {
     // Do not send reservation emails to the user on booking creation
   } catch (_e) { /* ignore */ }
 
-  res.json({ status: 'reserved', id, roomId: chosenRoomId, roomNumber: String(chosenRoomDoc?.roomNumber || '') })
+  res.json({ status: 'created', id })
 }
 
 async function invoice(req, res) {
@@ -213,14 +181,44 @@ async function confirm(req, res) {
   const id = Number(req.params.id)
   const b = await Booking.findOne({ id })
   if (!b) return res.status(404).json({ error: 'Booking not found' })
-  if (b.status === 'confirmed') {
-    b.paid = true
-    await b.save()
-    return res.json({ status: 'confirmed' })
+  // pick an available room at payment time
+  const hotel = await Hotel.findOne({ id: Number(b.hotelId) })
+  if (!hotel) return res.status(404).json({ error: 'Hotel not found' })
+  const ci = new Date(b.checkIn)
+  let co = new Date(b.checkOut)
+  if (!(ci instanceof Date) || isNaN(ci.getTime())) return res.status(400).json({ error: 'Invalid check-in' })
+  if (!(co instanceof Date) || isNaN(co.getTime())) co = new Date(ci.getTime() + 24 * 60 * 60 * 1000)
+  if (ci >= co) co = new Date(ci.getTime() + 24 * 60 * 60 * 1000)
+  const filter = { hotelId: Number(b.hotelId), availability: true, blocked: { $ne: true } }
+  let rooms = await Room.find(filter).lean()
+  rooms = (rooms || []).slice().sort((a, b) => {
+    const ra = String(a.roomNumber || '').trim()
+    const rb = String(b.roomNumber || '').trim()
+    const na = /^\d+$/.test(ra) ? Number(ra) : Number.MAX_SAFE_INTEGER
+    const nb = /^\d+$/.test(rb) ? Number(rb) : Number.MAX_SAFE_INTEGER
+    if (na !== nb) return na - nb
+    return Number(a.id || 0) - Number(b.id || 0)
+  })
+  let chosenRoomId = null
+  for (const r of rooms) {
+    const existing = await Booking.find({ roomId: r.id, status: { $in: ['confirmed','checked_in'] } }).lean()
+    const overlaps = existing.some(x => {
+      const bCi = new Date(x.checkIn)
+      const bCo = new Date(x.checkOut)
+      return ci < bCo && co > bCi
+    })
+    if (!overlaps) { chosenRoomId = r.id; break }
   }
-  // allow confirming pending/held bookings
+  if (!chosenRoomId) return res.status(409).json({ error: 'No rooms available to confirm' })
+  const chosenRoomDoc = await Room.findOne({ id: Number(chosenRoomId) }).lean()
+  b.roomId = Number(chosenRoomId)
+  b.roomNumber = String(chosenRoomDoc?.roomNumber || '')
   b.status = 'confirmed'
   b.paid = true
+  const { mode, upiId } = req.body || {}
+  const m = String(mode || '').toLowerCase()
+  b.paymentMode = m === 'cod' ? 'cod' : (m === 'upi' ? 'upi' : '')
+  b.paymentRef = b.paymentMode === 'upi' ? String(upiId || '') : ''
   await b.save()
   if (b.couponId) {
     const c = await Coupon.findOne({ id: Number(b.couponId) })
@@ -255,8 +253,12 @@ async function ownerConfirmEmail(req, res) {
   const b = await Booking.findOne({ id })
   if (!b) return res.status(404).send('Booking not found')
   if (!b.ownerActionToken || b.ownerActionToken !== token) return res.status(403).send('Invalid token')
-  req.params.id = String(id)
-  return confirm(req, res)
+  b.status = 'pending'
+  await b.save()
+  const thread = await MessageThread.findOne({ bookingId: id })
+  const mid = await nextIdFor('Message')
+  await Message.create({ id: mid, threadId: Number(thread?.id || 0), senderRole: 'system', senderId: null, content: `Owner approved booking #${id} • awaiting payment`, readByUser: true, readByOwner: true })
+  return res.send('Booking approved • awaiting payment')
 }
 
 async function ownerCancelEmail(req, res) {

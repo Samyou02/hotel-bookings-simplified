@@ -3,7 +3,8 @@
 const env = (typeof import.meta !== 'undefined' && (import.meta as unknown as { env?: Record<string, string> })?.env) || {} as Record<string, string>;
 const primaryBase = env?.VITE_API_URL || env?.VITE_API_BASE || '';
 const originBase = (typeof window !== 'undefined' && window?.location?.origin) ? window.location.origin : '';
-const base = (primaryBase && primaryBase.trim()) ? primaryBase : 'http://localhost:5000';
+const base = (primaryBase && primaryBase.trim()) ? primaryBase : '';
+try { console.info('[API] base:', base || '(same-origin)') } catch (_e) { void 0 }
 
 export async function apiGet<T>(path: string): Promise<T> {
   const url = base ? `${base}${path}` : path;

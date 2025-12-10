@@ -94,6 +94,8 @@ type Booking = {
   extraHours?: number
   extraCharges?: number
   cancellationFee?: number
+  paymentMode?: string
+  paymentRef?: string
   user?: {
     id: number
     email?: string
@@ -366,9 +368,9 @@ const OwnerDashboard = () => {
     if (!u) return ""
     const s = String(u)
     const env = (typeof import.meta !== 'undefined' && (import.meta as unknown as { env?: Record<string, string> })?.env) || {} as Record<string, string>
-    const base = env?.VITE_API_URL || 'http://localhost:5000'
-    if (s.startsWith("/uploads")) return `${base}${s}`
-    if (s.startsWith("uploads")) return `${base}/${s}`
+    const base = env?.VITE_API_URL || env?.VITE_API_BASE || ''
+    if (s.startsWith("/uploads")) return base ? `${base}${s}` : s
+    if (s.startsWith("uploads")) return base ? `${base}/${s}` : `/${s}`
     return s
   }
 
@@ -423,7 +425,9 @@ const OwnerDashboard = () => {
       if (s === "checkout") return "checked_out"
       return s
     }
-    if (statusFilter === "all") return bookingsOrdered
+    if (statusFilter === "all") return bookingsOrdered.filter(
+      (b: Booking) => String(b.status).trim().toLowerCase() !== 'pending'
+    )
     return bookingsOrdered.filter(
       (b: Booking) => String(b.status).trim().toLowerCase() === m(statusFilter),
     )
@@ -562,19 +566,6 @@ const OwnerDashboard = () => {
       qc.invalidateQueries({ queryKey: ["hotel", String(vars.id)] })
       qc.invalidateQueries({ queryKey: ["hotel", Number(vars.id)] })
       try { localStorage.setItem('hotelUpdated', JSON.stringify({ id: Number(vars.id), ts: Date.now() })) } catch (_e) { void 0 }
-    },
-  })
-
-  const updateDocs = useMutation({
-    mutationFn: (p: { id: number; docs: string[] }) =>
-      apiPost(`/api/owner/hotels/${p.id}/docs`, { docs: p.docs }),
-    onSuccess: (_res, vars) => {
-      setDocUploaded((prev) => ({ ...prev, [vars.id]: true }))
-      toast({
-        title: "Documents uploaded",
-        description: `Hotel #${vars.id} • ${vars.docs.length} file(s)`,
-      })
-      qc.invalidateQueries({ queryKey: ["owner", "hotels", ownerId] })
     },
   })
 
@@ -836,9 +827,7 @@ const OwnerDashboard = () => {
   const [editing, setEditing] = React.useState<{ [id: number]: boolean }>({})
 
   const [imageFiles, setImageFiles] = React.useState<{ [id: number]: File[] }>({})
-  const [docFiles, setDocFiles] = React.useState<{ [id: number]: File[] }>({})
   const [imageUploaded, setImageUploaded] = React.useState<{ [id: number]: boolean }>({})
-  const [docUploaded, setDocUploaded] = React.useState<{ [id: number]: boolean }>({})
 
   const [roomForm, setRoomForm] = React.useState({
     hotelId: 0,
@@ -1306,7 +1295,7 @@ const OwnerDashboard = () => {
                           <th className="p-3">Amenities</th>
                           <th className="p-3 min-w-[220px]">Description</th>
                           <th className="p-3 min-w-[180px]">Upload Images</th>
-                          <th className="p-3 min-w-[180px]">Upload Documents</th>
+                          
                           <th className="p-3 min-w-[140px]">Actions</th>
                         </tr>
                       </thead>
@@ -1396,23 +1385,7 @@ const OwnerDashboard = () => {
                                 </div>
                               )}
                             </td>
-                            <td className="p-3">
-                              <div className="flex gap-1 flex-wrap mb-2">
-                                {(h.docs || []).map((d, i)=> (
-                                  <a key={`${h.id}-doc-${i}`} href={d} target="_blank" rel="noreferrer" className="px-2 py-1 bg-secondary rounded text-xs inline-block">Document {i+1}</a>
-                                ))}
-                              </div>
-                              {editing[h.id] && (
-                                <div className="mt-2 flex flex-col items-start gap-2">
-                                  <input
-                                    type="file"
-                                    multiple
-                                    onChange={(e)=> setDocFiles({ ...docFiles, [h.id]: Array.from(e.target.files||[]).slice(0,10) })}
-                                  />
-                                  <Button size="sm" onClick={async ()=>{ const docs = docFiles[h.id] || []; if (!docs.length) return; const toDataUrl = (f: File)=> new Promise<string>((resolve,reject)=>{ const r = new FileReader(); r.onload = ()=> resolve(String(r.result||'')); r.onerror = reject; r.readAsDataURL(f) }); const dataUrls = await Promise.all(docs.map(toDataUrl)); updateDocs.mutate({ id: h.id, docs: dataUrls }); setUploadInfo({ type:'documents', names: docs.map(f=>f.name) }) }}>Save</Button>
-                                </div>
-                              )}
-                            </td>
+                            
                             <td className="p-3">
                               <div className="flex gap-2 flex-wrap">
                                 <Button size="sm" variant="outline" onClick={()=>{ const next = !editing[h.id]; setEditing({ ...editing, [h.id]: next }) }}>{editing[h.id] ? 'Stop Edit' : 'Edit'}</Button>
@@ -2001,6 +1974,7 @@ const OwnerDashboard = () => {
                           String(b.guests || ""),
                           String(b.total || ""),
                           String(b.status || ""),
+                          (() => { const m = String(b.paymentMode||'').toLowerCase(); if (m==='cod') return 'COD'; if (m==='upi') return String(b.paymentRef||'UPI'); return ''; })(),
                         ])
                         const header = [
                           "Booking",
@@ -2013,6 +1987,7 @@ const OwnerDashboard = () => {
                           "Guests",
                           "Total",
                           "Status",
+                          "PaymentMode",
                         ]
                         const csv = [header]
                           .concat(rows)
@@ -2064,28 +2039,29 @@ const OwnerDashboard = () => {
               <CardContent>
                 <div className="rounded-2xl p-4 bg-gradient-to-br from-pink-50 via-purple-50 to-orange-50">
                   <div className="rounded-xl border bg-white shadow-md overflow-x-auto">
-                  <table className="min-w-[900px] w-full text-sm">
+                  <table className="min-w-[900px] w-full text-xs">
                     <thead className="bg-muted/50">
                       <tr className="text-left">
-                        <th className="p-3">S.No</th>
-                        <th className="p-3">Booking</th>
-                        <th className="p-3">Hotel</th>
-                        <th className="p-3">User</th>
-                        <th className="p-3">Room</th>
-                        <th className="p-3">Dates</th>
-                        <th className="p-3">Guests</th>
-                        <th className="p-3">Total</th>
-                        <th className="p-3">Status</th>
-                        <th className="p-3">Actions</th>
+                        <th className="p-2">S.No</th>
+                        <th className="p-2">Booking</th>
+                        <th className="p-2">Hotel</th>
+                        <th className="p-2">User</th>
+                        <th className="p-2">Room</th>
+                        <th className="p-2">Dates</th>
+                        <th className="p-2">Guests</th>
+                        <th className="p-2">Total</th>
+                        <th className="p-2">Status</th>
+                        <th className="p-2">Payment Mode</th>
+                        <th className="p-2">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="[&_tr:hover]:bg-muted/30">
                       {bookingsTimeFiltered.map((b, idx) => (
                         <tr key={b.id} className="border-t">
-                          <td className="p-3">{idx + 1}</td>
-                          <td className="p-3">#{b.id}</td>
-                          <td className="p-3">{b.hotelId}</td>
-                          <td className="p-3">
+                          <td className="p-2">{idx + 1}</td>
+                          <td className="p-2">#{b.id}</td>
+                          <td className="p-2">{b.hotelId}</td>
+                          <td className="p-2">
                             <div className="font-medium">
                               {b.user?.fullName ||
                                 `${b.user?.firstName || ""} ${
@@ -2098,8 +2074,8 @@ const OwnerDashboard = () => {
                               {b.user?.email || "-"}
                             </div>
                           </td>
-                          <td className="p-3">{b.roomNumber ? b.roomNumber : (b.roomId ?? "-")}</td>
-                          <td className="p-3">
+                          <td className="p-2">{b.roomNumber ? b.roomNumber : (b.roomId ?? "-")}</td>
+                          <td className="p-2">
                             {b.checkIn} → {b.checkOut}
                             {(() => {
                               const eh = Number(b?.extraHours || 0)
@@ -2122,9 +2098,9 @@ const OwnerDashboard = () => {
                               return null
                             })()}
                           </td>
-                          <td className="p-3">{b.guests}</td>
-                          <td className="p-3">₹{b.total}</td>
-                          <td className="p-3">
+                          <td className="p-2">{b.guests}</td>
+                          <td className="p-2">₹{b.total}</td>
+                          <td className="p-2">
                             {(() => {
                               const sn = String(b.status).toLowerCase()
                               const label = sn === 'confirmed'
@@ -2136,7 +2112,7 @@ const OwnerDashboard = () => {
                                     : sn === 'cancelled'
                                       ? 'CANCELLED'
                                       : sn === 'pending'
-                                        ? 'PENDING APPROVAL'
+                                        ? 'PENDING PAYMENT'
                                         : String(b.status || '').toUpperCase()
                               const color = sn === 'confirmed'
                                 ? '#28A745'
@@ -2148,11 +2124,19 @@ const OwnerDashboard = () => {
                                       ? '#DC3545'
                                       : '#0EA5E9'
                               return (
-                                <span className="font-semibold uppercase tracking-normal" style={{ color }}>{label}</span>
+                                <span className="text-xs font-semibold uppercase tracking-normal" style={{ color }}>{label}</span>
                               )
                             })()}
                           </td>
-                          <td className="p-3">
+                          <td className="p-2">
+                            {(() => {
+                              const m = String(b.paymentMode || '').toLowerCase()
+                              if (m === 'cod') return 'COD'
+                              if (m === 'upi') return String(b.paymentRef || 'UPI')
+                              return '-'
+                            })()}
+                          </td>
+                          <td className="p-2">
                             {(() => {
                               const s = String(b.status || "")
                                 .trim()
@@ -2164,7 +2148,7 @@ const OwnerDashboard = () => {
                                 <div className="flex flex-wrap items-center gap-2 w-full justify-between">
                                   <div className="flex items-center gap-2 flex-wrap">
                                     {canCancel && (
-                                      <Button size="sm" variant="outline" className="shrink-0" onClick={() => setOwnerCancelVisible({ ...ownerCancelVisible, [b.id]: !(ownerCancelVisible[b.id] || false) })}>Cancel</Button>
+                                      <Button size="sm" variant="outline" className="h-8 px-2 text-xs shrink-0" onClick={() => setOwnerCancelVisible({ ...ownerCancelVisible, [b.id]: !(ownerCancelVisible[b.id] || false) })}>Cancel</Button>
                                     )}
                                     {ownerCancelVisible[b.id] && canCancel ? (
                                       <>
@@ -2180,7 +2164,7 @@ const OwnerDashboard = () => {
                                           const extra = chosen === 'Other' ? (ownerCancelOther[b.id] || '') : ''
                                           const reason = `${chosen}${extra ? (': ' + extra) : ''}`.trim()
                                           return (
-                                            <Button size="sm" variant="destructive" className="shrink-0" onClick={()=> cancelBooking.mutate({ id: b.id, reason })}>Confirm</Button>
+                                            <Button size="sm" variant="destructive" className="h-8 px-2 text-xs shrink-0" onClick={()=> cancelBooking.mutate({ id: b.id, reason })}>Confirm</Button>
                                           )
                                         })()}
                                       </>
@@ -2190,26 +2174,26 @@ const OwnerDashboard = () => {
                                     {canCheckin && (
                                       <Button
                                         size="sm"
-                                        className="text-white shadow-md hover:opacity-90 shrink-0"
+                                        className="h-8 px-2 text-xs text-white shadow-md hover:opacity-90 shrink-0"
                                         style={{ backgroundColor: '#007BFF' }}
                                         onClick={() =>
                                           checkinBooking.mutate(b.id)
                                         }
                                       >
-                                        <LogIn className="w-4 h-4" />
+                                        <LogIn className="w-3 h-3" />
                                         Check-in
                                       </Button>
                                     )}
                                     {canCheckout && (
                                       <Button
                                         size="sm"
-                                        className="text-white shadow-md hover:opacity-90 border-transparent shrink-0"
+                                        className="h-8 px-2 text-xs text-white shadow-md hover:opacity-90 border-transparent shrink-0"
                                         style={{ backgroundColor: '#FD7E14' }}
                                         onClick={() =>
                                           checkoutBooking.mutate(b.id)
                                         }
                                       >
-                                        <LogOut className="w-4 h-4" />
+                                        <LogOut className="w-3 h-3" />
                                         Check-out
                                       </Button>
                                     )}
@@ -2416,8 +2400,8 @@ const OwnerDashboard = () => {
                               const u = String(g.user?.idDocUrl || "")
                               if (!u) return (<span className="text-sm text-muted-foreground">No document</span>)
                               const env = (typeof import.meta !== 'undefined' && (import.meta as unknown as { env?: Record<string, string> })?.env) || {} as Record<string, string>
-                              const base = env?.VITE_API_URL || 'http://localhost:5000'
-                              const s = u.startsWith("/uploads") ? `${base}${u}` : (u.startsWith("uploads") ? `${base}/${u}` : u)
+                              const base = env?.VITE_API_URL || env?.VITE_API_BASE || ''
+                              const s = u.startsWith("/uploads") ? (base ? `${base}${u}` : u) : (u.startsWith("uploads") ? (base ? `${base}/${u}` : `/${u}`) : u)
                               return (
                                 <a href={s} target="_blank" rel="noreferrer">
                                   <img src={s} alt="Document" className="h-10 w-10 rounded object-cover border" onError={(e)=>{ e.currentTarget.src='https://placehold.co/40x40?text=Doc' }} />
