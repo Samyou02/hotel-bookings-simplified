@@ -16,6 +16,8 @@ const BookingSchema = new mongoose.Schema({
   holdExpiresAt: Date,
   paid: { type: Boolean, default: false },
   refundIssued: { type: Boolean, default: false },
+  paymentMode: { type: String, default: '' },
+  paymentRef: { type: String, default: '' },
   cancelReason: { type: String, default: '' },
   checkinAt: Date,
   checkoutAt: Date,

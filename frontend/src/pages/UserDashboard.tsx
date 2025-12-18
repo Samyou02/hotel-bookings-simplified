@@ -80,7 +80,7 @@ const UserDashboard = () => {
 
   type HotelApi = { id:number; name:string; image:string; contactEmail?: string; contactPhone1?: string; contactPhone2?: string; ownerName?: string }
   const [hotelMap, setHotelMap] = React.useState<{ [id:number]: HotelApi }>({})
-  const resolveImage = (src?: string) => { const s = String(src||''); if (!s) return 'https://placehold.co/160x120?text=Hotel'; const env = (typeof import.meta !== 'undefined' && (import.meta as unknown as { env?: Record<string, string> })?.env) || {} as Record<string, string>; const base = env?.VITE_API_URL || 'http://localhost:5000'; if (s.startsWith('/uploads')) return `${base}${s}`; if (s.startsWith('uploads')) return `${base}/${s}`; return s }
+  const resolveImage = (src?: string) => { const s = String(src||''); if (!s) return 'https://placehold.co/160x120?text=Hotel'; const env = (typeof import.meta !== 'undefined' && (import.meta as unknown as { env?: Record<string, string> })?.env) || {} as Record<string, string>; const base = env?.VITE_API_URL || env?.VITE_API_BASE || ''; if (s.startsWith('/uploads')) return base ? `${base}${s}` : s; if (s.startsWith('uploads')) return base ? `${base}/${s}` : `/${s}`; return s }
   React.useEffect(() => {
     const ids = Array.from(new Set(bookings.map(b=>b.hotelId).filter(Boolean)))
     const need = ids.filter(id => !hotelMap[id])

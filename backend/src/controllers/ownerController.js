@@ -354,7 +354,7 @@ async function approveBooking(req, res) {
   const id = Number(req.params.id);
   const b = await Booking.findOne({ id });
   if (!b) return res.status(404).json({ error: 'Booking not found' });
-  b.status = 'confirmed';
+  b.status = 'pending';
   await b.save();
 
   let thread = await MessageThread.findOne({ bookingId: id });
@@ -377,7 +377,7 @@ async function approveBooking(req, res) {
     threadId: Number(thread?.id || 0),
     senderRole: 'system',
     senderId: null,
-    content: `Booking #${id} approved`,
+    content: `Booking #${id} approved • awaiting payment`,
     readByUser: false,
     readByOwner: true
   });

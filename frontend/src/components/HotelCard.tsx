@@ -20,9 +20,9 @@ const HotelCard = ({ id, name, location, price, image, amenities = [], rating, r
     const s = String(src||'')
     if (!s) return 'https://placehold.co/800x600?text=Hotel'
     const env = (typeof import.meta !== 'undefined' && (import.meta as unknown as { env?: Record<string, string> })?.env) || {} as Record<string, string>
-    const base = env?.VITE_API_URL || 'http://localhost:5000'
-    if (s.startsWith('/uploads')) return `${base}${s}`
-    if (s.startsWith('uploads')) return `${base}/${s}`
+    const base = env?.VITE_API_URL || env?.VITE_API_BASE || ''
+    if (s.startsWith('/uploads')) return base ? `${base}${s}` : s
+    if (s.startsWith('uploads')) return base ? `${base}/${s}` : `/${s}`
     return s
   }
   const getAmenityIcon = (amenity: string) => {
