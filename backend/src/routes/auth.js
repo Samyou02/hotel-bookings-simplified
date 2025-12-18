@@ -9,3 +9,4 @@ router.post('/forgot', auth.forgot)
 router.post('/reset', auth.reset)
 
 module.exports = router
+//uihik
