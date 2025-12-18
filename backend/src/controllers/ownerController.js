@@ -6,6 +6,17 @@ const { nextIdFor } = require('../utils/ids');
 const { Hotel, Booking, Room, Review, MessageThread, Message, User } = require('../models');
 const fs = require('fs');
 const path = require('path');
+let cloudinary = null;
+try { cloudinary = require('cloudinary').v2 } catch { cloudinary = null }
+if (cloudinary) {
+  try {
+    cloudinary.config({
+      cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+      api_key: process.env.CLOUDINARY_API_KEY,
+      api_secret: process.env.CLOUDINARY_API_SECRET
+    });
+  } catch {}
+}
 
 function ensureUploadsDir() {
   const uploadsDir = path.join(__dirname, '../uploads');
@@ -28,13 +39,29 @@ function dataUrlToBuffer(dataUrl) {
   return { buf, ext };
 }
 
-function saveImagesFromDataUrls(prefix, entityId, list) {
-  const uploadsDir = ensureUploadsDir();
+async function saveImagesFromDataUrls(prefix, entityId, list) {
   const urls = [];
   const items = Array.isArray(list) ? list : [];
+  const useCloud = !!(cloudinary && process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET);
+  const folder = process.env.CLOUDINARY_UPLOAD_FOLDER || `hotel-bookings/${prefix}`;
+  if (useCloud) {
+    for (let i = 0; i < items.length; i++) {
+      const parsed = dataUrlToBuffer(items[i]);
+      if (!parsed) continue;
+      const publicId = `${prefix}-${entityId}-${Date.now()}-${i}`;
+      try {
+        const res = await new Promise((resolve) => {
+          const s = cloudinary.uploader.upload_stream({ folder, public_id: publicId, resource_type: 'image', overwrite: true }, (err, r) => resolve(err ? null : r));
+          s.end(parsed.buf);
+        });
+        if (res && res.secure_url) urls.push(res.secure_url);
+      } catch {}
+    }
+    return urls;
+  }
+  const uploadsDir = ensureUploadsDir();
   for (let i = 0; i < items.length; i++) {
-    const item = items[i];
-    const parsed = dataUrlToBuffer(item);
+    const parsed = dataUrlToBuffer(items[i]);
     if (!parsed) continue;
     const ts = Date.now();
     const filename = `${prefix}-${entityId}-${ts}-${i}.${parsed.ext}`;
@@ -143,7 +170,7 @@ async function updateImages(req, res) {
   const { images } = req.body || {};
   const h = await Hotel.findOne({ id });
   if (!h) return res.status(404).json({ error: 'Hotel not found' });
-  const savedUrls = saveImagesFromDataUrls('hotel', id, Array.isArray(images) ? images : []);
+  const savedUrls = await saveImagesFromDataUrls('hotel', id, Array.isArray(images) ? images : []);
   h.images = savedUrls.length ? savedUrls : (Array.isArray(images) ? images : []);
   if (h.images.length > 0) h.image = h.images[0];
   await h.save();
@@ -236,7 +263,7 @@ async function createRoom(req, res) {
     return res.status(403).json({ error: 'Not authorized' });
   }
   const id = await nextIdFor('Room');
-  const savedUrls = saveImagesFromDataUrls('room', id, Array.isArray(photos) ? photos : []);
+  const savedUrls = await saveImagesFromDataUrls('room', id, Array.isArray(photos) ? photos : []);
   await Room.create({
     id,
     hotelId: Number(h?.id || hidN),
@@ -268,7 +295,7 @@ async function updateRoom(req, res) {
   if (roomNumber !== undefined) $set.roomNumber = String(roomNumber);
   if (Array.isArray(amenities)) $set.amenities = amenities;
   if (Array.isArray(photos)) {
-    const savedUrls = saveImagesFromDataUrls('room', id, photos);
+    const savedUrls = await saveImagesFromDataUrls('room', id, photos);
     $set.photos = savedUrls.length ? savedUrls : photos;
   }
   await Room.updateOne({ id }, { $set });
