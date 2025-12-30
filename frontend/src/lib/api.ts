@@ -1,7 +1,7 @@
 // apiClient.ts
 
 const env = (typeof import.meta !== 'undefined' && (import.meta as unknown as { env?: Record<string, string> })?.env) || {} as Record<string, string>;
-const primaryBase = env?.VITE_API_URL || env?.VITE_API_BASE || '';
+const primaryBase = env?.VITE_API_URL || env?.VITE_API_BASE || env?.FRONTEND_BASE_URL || '';
 const originBase = (typeof window !== 'undefined' && window?.location?.origin) ? window.location.origin : '';
 const base = (primaryBase && primaryBase.trim()) ? primaryBase : '';
 try { console.info('[API] base:', base || '(same-origin)') } catch (_e) { void 0 }

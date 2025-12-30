@@ -8,7 +8,8 @@ async function connect() {
   if (connected && isConnected()) return
   try {
     const dbName = process.env.MONGODB_DB || 'hotel_app'
-    console.log(`[MongoDB] connecting to ${MONGODB_URI} db=${dbName}`)
+    const maskedUri = MONGODB_URI.replace(/\/\/.*@/, '//***:***@')
+    console.log(`[MongoDB] connecting to ${maskedUri} db=${dbName}`)
     await mongoose.connect(MONGODB_URI, { autoIndex: true, serverSelectionTimeoutMS: 8000, dbName })
     connected = true
     console.log('[MongoDB] connected')
