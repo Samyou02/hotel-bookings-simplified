@@ -7,6 +7,17 @@ let mailer = null
 try { mailer = require('nodemailer') } catch { mailer = null }
 const fs = require('fs')
 const path = require('path')
+let cloudinary = null
+try { cloudinary = require('cloudinary').v2 } catch { cloudinary = null }
+if (cloudinary) {
+  try {
+    cloudinary.config({
+      cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+      api_key: process.env.CLOUDINARY_API_KEY,
+      api_secret: process.env.CLOUDINARY_API_SECRET
+    })
+  } catch {}
+}
 
 function ensureUploadsDir() { const uploadsDir = path.join(__dirname, '../uploads'); try { fs.mkdirSync(uploadsDir, { recursive: true }) } catch {} return uploadsDir }
 function dataUrlToBuffer(dataUrl) { if (typeof dataUrl !== 'string') return null; const match = dataUrl.match(/^data:(.+);base64,(.+)$/); if (!match) return null; const mime = match[1]; const base64 = match[2]; const buf = Buffer.from(base64, 'base64'); let ext = 'png'; if (mime.includes('jpeg')) ext = 'jpg'; else if (mime.includes('png')) ext = 'png'; else if (mime.includes('gif')) ext = 'gif'; else if (mime.includes('webp')) ext = 'webp'; return { buf, ext } }
@@ -42,11 +53,22 @@ async function register(req, res) {
   try {
     const parsed = dataUrlToBuffer(idDocImage)
     if (parsed) {
-      const uploadsDir = ensureUploadsDir()
-      const filename = `user-doc-${id}-${Date.now()}.${parsed.ext}`
-      const filePath = path.join(__dirname, '../uploads', filename)
-      try { fs.writeFileSync(filePath, parsed.buf) } catch {}
-      idDocUrl = `/uploads/${filename}`
+      const useCloud = !!(cloudinary && process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET)
+      if (useCloud) {
+        const folder = process.env.CLOUDINARY_UPLOAD_FOLDER || 'hotel-bookings/user-docs'
+        const publicId = `user-doc-${id}-${Date.now()}`
+        const resUp = await new Promise((resolve) => {
+          const s = cloudinary.uploader.upload_stream({ folder, public_id: publicId, resource_type: 'image', overwrite: true }, (err, r) => resolve(err ? null : r))
+          s.end(parsed.buf)
+        })
+        if (resUp && resUp.secure_url) idDocUrl = resUp.secure_url
+      } else {
+        const uploadsDir = ensureUploadsDir()
+        const filename = `user-doc-${id}-${Date.now()}.${parsed.ext}`
+        const filePath = path.join(__dirname, '../uploads', filename)
+        try { fs.writeFileSync(filePath, parsed.buf) } catch {}
+        idDocUrl = `/uploads/${filename}`
+      }
     }
   } catch {}
   await User.create({ id, email, password, firstName, lastName, phone, fullName, dob, address, idType, idNumber, idIssueDate, idExpiryDate, idDocUrl, role: 'user', isApproved: true })
