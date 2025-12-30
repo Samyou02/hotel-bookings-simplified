@@ -9,6 +9,7 @@ var vite_config_default = defineConfig(({ mode }) => ({
     host: "0.0.0.0",
     port: 8080,
     strictPort: true,
+    cors: true,
     proxy: {
       "/api": { target: process.env.VITE_API_URL || "http://localhost:5000", changeOrigin: true },
       "/uploads": { target: process.env.VITE_API_URL || "http://localhost:5000", changeOrigin: true }

@@ -5,12 +5,72 @@ const fs = require('fs');
 const path = require('path');
 const cors = require('cors');
 const dotenv = require('dotenv');
-dotenv.config({ override: true });
+(() => {
+  try {
+    const candidates = [
+      path.resolve(__dirname, '../.env'),
+      path.resolve(__dirname, '.env'),
+      path.resolve(process.cwd(), '.env'),
+      path.resolve(process.cwd(), 'backend/.env'),
+    ];
+    let loadedFrom = '';
+    for (const p of candidates) {
+      try {
+        if (fs.existsSync(p)) {
+          const result = dotenv.config({ path: p, override: true });
+          try {
+            const content = fs.readFileSync(p, 'utf8');
+            const parsed = dotenv.parse(content);
+            const normalize = (k) => String(k || '').replace(/^\uFEFF/, '').trim();
+            for (const [k, v] of Object.entries(parsed || {})) {
+              const nk = normalize(k);
+              if (!(nk in process.env)) process.env[nk] = String(v || '');
+            }
+            const extract = (name) => {
+              try {
+                const re = new RegExp(`^\\s*${name}\\s*=\\s*(.*)$`, 'm');
+                const m = content.match(re);
+                if (m && m[1] != null) {
+                  const raw = String(m[1]);
+                  const val = raw.replace(/\r?\n.*/s, '').trim().replace(/^"(.*)"$/, '$1');
+                  return val;
+                }
+              } catch {}
+              return '';
+            };
+            if (!process.env.PORT) {
+              const v = extract('PORT');
+              if (v) process.env.PORT = v;
+            }
+            if (!process.env.MONGODB_URI && !process.env.MONGO_URL) {
+              const v1 = extract('MONGODB_URI');
+              const v2 = extract('MONGO_URL');
+              if (v1) process.env.MONGODB_URI = v1;
+              if (v2) process.env.MONGO_URL = v2;
+            }
+          } catch {}
+          loadedFrom = p;
+          break;
+        }
+      } catch {}
+    }
+    console.log('[Server] dotenv loaded from:', loadedFrom || '(none)');
+  } catch (e) {
+    console.warn('[Server] dotenv load failed:', e?.message || e);
+  }
+})();
 
 console.log('[Server] Environment Variables:', {
   PORT: process.env.PORT,
   MONGODB_URI: process.env.MONGODB_URI ? 'SET' : 'NOT SET',
+  MONGO_URL: process.env.MONGO_URL ? 'SET' : 'NOT SET',
   NODE_ENV: process.env.NODE_ENV
+});
+console.log('[Server] Env debug sample:', {
+  PORT_val: process.env.PORT,
+  MONGODB_URI_val: process.env.MONGODB_URI,
+  MONGO_URL_val: process.env.MONGO_URL,
+  FRONTEND_BASE_URL_val: process.env.FRONTEND_BASE_URL
 });
 
 

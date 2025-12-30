@@ -12,6 +12,7 @@ export default defineConfig(({ mode }) => {
       host: "0.0.0.0",
       port: 8080,
       strictPort: true,
+      cors: true,
       proxy: {
         "/api": { target: api, changeOrigin: true },
         "/uploads": { target: api, changeOrigin: true },
