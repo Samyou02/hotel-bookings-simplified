@@ -5,14 +5,16 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { Star } from "lucide-react"
+import { Star, ArrowLeft } from "lucide-react"
 import { apiGet, apiPost } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
+import { useNavigate } from "react-router-dom"
 
 type Thread = { id:number; bookingId:number; hotelId:number; userId:number; ownerId:number; createdAt?: string; lastMessage?: { content:string; senderRole:string; createdAt:string } | null; unreadForUser?: number; unreadForOwner?: number }
 type Message = { id:number; threadId:number; senderRole:'user'|'owner'|'system'; senderId:number|null; content:string; createdAt:string; readByUser?: boolean; readByOwner?: boolean }
 
 const MessageInbox = () => {
+  const navigate = useNavigate()
   const raw = typeof window !== "undefined" ? localStorage.getItem("auth") : null
   const auth = raw ? JSON.parse(raw) as { user?: { id?: number; role?: 'admin'|'user'|'owner' } } : null
   const role = (auth?.user?.role || 'user') as 'user'|'owner'|'admin'
@@ -112,10 +114,25 @@ const MessageInbox = () => {
       <main className="flex-1">
         <section className="bg-gradient-to-br from-cyan-500 via-blue-600 via-purple-700 to-pink-600 text-primary-foreground py-12">
           <div className="container">
-            <div className="flex items-center gap-3 mb-2">
-              <h1 className="text-3xl md:text-4xl font-bold">Message Inbox · {chatTitle}</h1>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-3 mb-2">
+                  <h1 className="text-3xl md:text-4xl font-bold">Message Inbox · {chatTitle}</h1>
+                </div>
+                <p className="opacity-90">Chat with the other party and view booking notifications</p>
+              </div>
+              <Button 
+                variant="outline" 
+                className="bg-white/10 border-white/20 hover:bg-white/20 text-white gap-2 self-start md:self-center"
+                onClick={() => {
+                  const dashboardPath = role === 'owner' ? '/dashboard/owner' : (role === 'admin' ? '/dashboard/admin' : '/dashboard/user');
+                  navigate(dashboardPath);
+                }}
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Back to Dashboard
+              </Button>
             </div>
-            <p className="opacity-90">Chat with the other party and view booking notifications</p>
           </div>
         </section>
         <div className="container py-8">

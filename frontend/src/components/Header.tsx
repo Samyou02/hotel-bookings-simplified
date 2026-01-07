@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { User, Menu, X, LogOut, ArrowLeft } from "lucide-react";
+import { User, Menu, X, LogOut, ArrowLeft, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -146,15 +146,24 @@ const Header = () => {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="hidden md:flex border-purple-400 text-purple-600 bg-white/80 backdrop-blur-sm hover:bg-purple-50 hover;border-purple-500 hover:scale-105 transition-all duration-300"
+                  className="hidden md:flex border-purple-400 text-purple-600 bg-white/80 backdrop-blur-sm hover:bg-purple-50 hover:border-purple-500 hover:scale-105 transition-all duration-300 items-center gap-2"
                   onClick={() => {
                     try { localStorage.setItem("inboxReferrer", pathname); } catch { void 0 }
                     navigate("/inbox");
                   }}
                 >
-                  Inbox
+                  <div className="relative">
+                    <Bell className="h-4 w-4" />
+                    {!!unread.data?.count && (
+                      <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                      </span>
+                    )}
+                  </div>
+                  <span>Inbox</span>
                     {unread.data?.count ? (
-                      <span className="ml-2 inline-flex items-center justify-center rounded-full bg-gradient-to-r from-red-400 to-red-500 text-white text-[10px] h-5 min-w-5 shadow-lg animate-pulse">{unread.data.count}</span>
+                      <span className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-red-400 to-red-500 text-white text-[10px] h-5 min-w-5 shadow-lg font-bold">{unread.data.count}</span>
                     ) : null}
                   </Button>
                 )}
@@ -227,15 +236,24 @@ const Header = () => {
                       return (
                         <Link
                           to="/inbox"
-                          className="text-lg font-medium transition-colors hover:text-primary"
+                          className="text-lg font-medium transition-colors hover:text-primary flex items-center gap-2"
                           onClick={() => {
                             try { localStorage.setItem("inboxReferrer", pathname); } catch { void 0 }
                             setIsOpen(false);
                           }}
                         >
-                          Inbox
+                          <div className="relative">
+                            <Bell className="h-5 w-5" />
+                            {!!unread.data?.count && (
+                              <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                              </span>
+                            )}
+                          </div>
+                          <span>Inbox</span>
                           {unread.data?.count ? (
-                            <span className="ml-2 inline-flex items-center justify-center rounded-full bg-primary text-primary-foreground text-[10px] h-5 min-w-5 px-1">{unread.data.count}</span>
+                            <span className="ml-auto inline-flex items-center justify-center rounded-full bg-primary text-primary-foreground text-[10px] h-5 min-w-5 px-1 font-bold">{unread.data.count}</span>
                           ) : null}
                         </Link>
                       );

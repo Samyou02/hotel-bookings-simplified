@@ -7,12 +7,15 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { ArrowLeft } from "lucide-react"
 import { apiGet, apiPost } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
+import { useNavigate } from "react-router-dom"
 
 type User = { id:number; email:string; firstName?:string; lastName?:string; phone?:string; fullName?:string; dob?:string; address?:string; idType?:string; idNumber?:string; idIssueDate?:string; idExpiryDate?:string; idDocUrl?:string }
 
 const UserDetails = () => {
+  const navigate = useNavigate()
   const raw = typeof window !== "undefined" ? localStorage.getItem("auth") : null
   const auth = raw ? JSON.parse(raw) as { user?: { id?: number } } : null
   const userId = auth?.user?.id || 0
@@ -64,8 +67,20 @@ const UserDetails = () => {
       <main className="flex-1">
         <section className="bg-gradient-to-br from-cyan-500 via-blue-600 via-purple-700 to-pink-600 text-primary-foreground py-12">
           <div className="container">
-            <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight">User Details</h1>
-            <p className="opacity-90">View and edit your profile details</p>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight">User Details</h1>
+                <p className="opacity-90">View and edit your profile details</p>
+              </div>
+              <Button 
+                variant="outline" 
+                className="bg-white/10 border-white/20 hover:bg-white/20 text-white gap-2 self-start md:self-center"
+                onClick={() => navigate('/dashboard/user')}
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Back to Dashboard
+              </Button>
+            </div>
           </div>
         </section>
         <div className="container py-8">

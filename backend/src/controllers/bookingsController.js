@@ -126,7 +126,7 @@ async function create(req, res) {
     thread = await MessageThread.findOne({ id: tid }).lean()
   }
   const mid = await nextIdFor('Message')
-  await Message.create({ id: mid, threadId: Number(thread?.id || 0), senderRole: 'system', senderId: null, content: `Reservation #${id} created`, readByUser: true, readByOwner: false })
+  await Message.create({ id: mid, threadId: Number(thread?.id || 0), senderRole: 'system', senderId: null, content: `Reservation #${id} created`, readByUser: false, readByOwner: false })
 
   try {
     const owner = hotel.ownerId ? await User.findOne({ id: Number(hotel.ownerId) }).lean() : null
@@ -229,7 +229,7 @@ async function confirm(req, res) {
   }
   const thread = await MessageThread.findOne({ bookingId: id })
   const mid = await nextIdFor('Message')
-  await Message.create({ id: mid, threadId: Number(thread?.id || 0), senderRole: 'system', senderId: null, content: `Booking #${id} confirmed`, readByUser: true, readByOwner: true })
+  await Message.create({ id: mid, threadId: Number(thread?.id || 0), senderRole: 'system', senderId: null, content: `Booking #${id} confirmed`, readByUser: false, readByOwner: true })
   try {
     const hotel = await Hotel.findOne({ id: Number(b.hotelId) }).lean()
     const user = b.userId ? await User.findOne({ id: Number(b.userId) }).lean() : null
@@ -257,7 +257,7 @@ async function ownerConfirmEmail(req, res) {
   await b.save()
   const thread = await MessageThread.findOne({ bookingId: id })
   const mid = await nextIdFor('Message')
-  await Message.create({ id: mid, threadId: Number(thread?.id || 0), senderRole: 'system', senderId: null, content: `Owner approved booking #${id} • awaiting payment`, readByUser: true, readByOwner: true })
+  await Message.create({ id: mid, threadId: Number(thread?.id || 0), senderRole: 'system', senderId: null, content: `Owner approved booking #${id} • awaiting payment`, readByUser: false, readByOwner: true })
   return res.send('Booking approved • awaiting payment')
 }
 

@@ -423,7 +423,7 @@ async function checkinBooking(req, res) {
     senderRole: 'system',
     senderId: null,
     content: `Check-in complete for booking #${id}`,
-    readByUser: true,
+    readByUser: false,
     readByOwner: true
   });
   res.json({ status: 'updated' });
@@ -479,7 +479,7 @@ async function checkoutBooking(req, res) {
     senderRole: 'system',
     senderId: null,
     content: `Checkout complete for booking #${id}. Please share your rating and feedback.`,
-    readByUser: true,
+    readByUser: false,
     readByOwner: true
   });
   res.json({ status: 'updated' });
