@@ -11,8 +11,8 @@ var vite_config_default = defineConfig(({ mode }) => ({
     strictPort: true,
     cors: true,
     proxy: {
-      "/api": { target: process.env.VITE_API_URL || "http://localhost:5000", changeOrigin: true },
-      "/uploads": { target: process.env.VITE_API_URL || "http://localhost:5000", changeOrigin: true }
+      "/api": { target: process.env.VITE_API_URL || "https://hotelsb.speshwayhrms.com", changeOrigin: true },
+      "/uploads": { target: process.env.VITE_API_URL || "https://hotelsb.speshwayhrms.com", changeOrigin: true }
     }
   },
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
